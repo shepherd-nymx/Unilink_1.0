@@ -1,0 +1,487 @@
+import { useState, useEffect, useRef } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Animated, Platform } from 'react-native';
+import { useRouter, useLocalSearchParams } from 'expo-router';
+import { supabase } from '@/lib/supabase';
+import { ArrowLeft, CircleCheck as CheckCircle, User, Lock, ShoppingCart, Zap, LogIn } from 'lucide-react-native';
+import { useTheme } from '@/contexts/ThemeContext';
+import { saveUserData } from '@/lib/storage-service';
+import { registerForPushNotificationsOnLogin } from '@/lib/notification-service';
+import { registerDeviceToken } from '@/lib/device-token-service';
+
+export default function CustomerLogin() {
+  const router = useRouter();
+  const { registered } = useLocalSearchParams();
+  const { colors, isDark } = useTheme();
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
+  const [usernameFocused, setUsernameFocused] = useState(false);
+  const [passwordFocused, setPasswordFocused] = useState(false);
+
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(40)).current;
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const shimmerAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (registered === 'true') {
+      setSuccessMessage('Registration successful! Please login to continue.');
+    }
+
+    Animated.parallel([
+      Animated.timing(fadeAnim, { toValue: 1, duration: 700, useNativeDriver: true }),
+      Animated.timing(slideAnim, { toValue: 0, duration: 700, useNativeDriver: true }),
+    ]).start();
+
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, { toValue: 1.06, duration: 2000, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1, duration: 2000, useNativeDriver: true }),
+      ])
+    ).start();
+
+    Animated.loop(
+      Animated.timing(shimmerAnim, { toValue: 1, duration: 3000, useNativeDriver: false })
+    ).start();
+  }, [registered]);
+
+  const handleLogin = async () => {
+    if (!username || !password) {
+      setError('Please fill in all fields');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+
+    try {
+      const { data, error: dbError } = await supabase
+        .from('customers')
+        .select('*')
+        .eq('username', username)
+        .maybeSingle();
+
+      if (dbError) throw dbError;
+
+      if (!data) {
+        setError('Invalid username or password');
+        setLoading(false);
+        return;
+      }
+
+      if (data.auth_id) {
+        if (!data.email) {
+          setError('Account setup incomplete. Please contact support.');
+          setLoading(false);
+          return;
+        }
+        const { error: authError } = await supabase.auth.signInWithPassword({
+          email: data.email,
+          password,
+        });
+        if (authError) {
+          setError('Invalid username or password');
+          setLoading(false);
+          return;
+        }
+      } else {
+        const passwordHash = btoa(password);
+        if (data.password_hash !== passwordHash) {
+          setError('Invalid username or password');
+          setLoading(false);
+          return;
+        }
+      }
+
+      saveUserData({ id: data.id, type: 'customer', name: data.full_name });
+      registerForPushNotificationsOnLogin(data.id, 'customer').catch(() => {});
+      registerDeviceToken(data.id).catch(() => {});
+      router.replace({
+        pathname: '/customer/dashboard',
+        params: { customerId: data.id, customerName: data.full_name },
+      });
+    } catch (err: any) {
+      setError(err.message || 'Login failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const primary = '#1A73E8';
+  const primaryLight = '#4A9EFF';
+  const bg = isDark ? '#050D1A' : '#F0F4FF';
+  const cardBg = isDark ? '#0D1B2E' : '#FFFFFF';
+  const cardBorder = isDark ? '#1A3A5C' : '#DDE8FF';
+  const textPrimary = isDark ? '#E8F4FF' : '#0A1628';
+  const textSecondary = isDark ? '#7AA3CC' : '#5A7A9A';
+  const inputBg = isDark ? '#0A1828' : '#F5F8FF';
+  const inputBorder = isDark ? '#1E3A5C' : '#C8D8F0';
+  const inputBorderFocus = primary;
+  const placeholderColor = isDark ? '#3A6A8A' : '#9AB0CC';
+  const glowColor = isDark ? 'rgba(26,115,232,0.18)' : 'rgba(26,115,232,0.08)';
+
+  return (
+    <View style={[styles.container, { backgroundColor: bg }]}>
+      {/* Background geometric accents */}
+      <View style={[styles.bgCircle1, { borderColor: isDark ? 'rgba(26,115,232,0.12)' : 'rgba(26,115,232,0.07)' }]} />
+      <View style={[styles.bgCircle2, { borderColor: isDark ? 'rgba(74,158,255,0.08)' : 'rgba(26,115,232,0.05)' }]} />
+      <View style={[styles.bgDot1, { backgroundColor: isDark ? 'rgba(26,115,232,0.2)' : 'rgba(26,115,232,0.12)' }]} />
+      <View style={[styles.bgDot2, { backgroundColor: isDark ? 'rgba(74,158,255,0.15)' : 'rgba(26,115,232,0.08)' }]} />
+
+      <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+        <View style={[styles.backButtonInner, { backgroundColor: cardBg, borderColor: cardBorder }]}>
+          <ArrowLeft size={18} color={textSecondary} />
+        </View>
+      </TouchableOpacity>
+
+      <Animated.View style={[styles.content, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
+
+        {/* Logo badge */}
+        <View style={styles.logoArea}>
+          <Animated.View style={[styles.logoRingOuter, { borderColor: primary, transform: [{ scale: pulseAnim }] }]}>
+            <View style={[styles.logoRingInner, { backgroundColor: glowColor, borderColor: primaryLight }]}>
+              <ShoppingCart size={32} color={primary} />
+            </View>
+          </Animated.View>
+
+          <View style={styles.titleRow}>
+            <Text style={[styles.titleUni, { color: textPrimary }]}>UNI</Text>
+            <Text style={[styles.titleLink, { color: primary }]}>LINK</Text>
+          </View>
+
+          <View style={styles.accentBar}>
+            <View style={[styles.accentLine, { backgroundColor: primary }]} />
+            <Zap size={10} color={primary} />
+            <View style={[styles.accentLine, { backgroundColor: primary }]} />
+          </View>
+        </View>
+
+        {/* Card */}
+        <View style={[styles.card, { backgroundColor: cardBg, borderColor: cardBorder, shadowColor: primary }]}>
+          <Text style={[styles.cardTitle, { color: textPrimary }]}>Customer Login</Text>
+          <Text style={[styles.cardSubtitle, { color: textSecondary }]}>Enter your credentials to continue</Text>
+
+          {successMessage ? (
+            <View style={[styles.successBox, { backgroundColor: isDark ? 'rgba(16,185,129,0.1)' : '#F0FDF9', borderColor: '#10B981' }]}>
+              <CheckCircle size={16} color="#10B981" />
+              <Text style={[styles.successText, { color: '#10B981' }]}>{successMessage}</Text>
+            </View>
+          ) : null}
+
+          {error ? (
+            <View style={[styles.errorBox, { backgroundColor: isDark ? 'rgba(239,68,68,0.1)' : '#FFF5F5', borderColor: '#EF4444' }]}>
+              <Text style={[styles.errorText, { color: '#EF4444' }]}>{error}</Text>
+            </View>
+          ) : null}
+
+          <View style={styles.form}>
+            {/* Username */}
+            <View style={styles.inputGroup}>
+              <Text style={[styles.label, { color: textSecondary }]}>USERNAME</Text>
+              <View style={[
+                styles.inputWrapper,
+                { backgroundColor: inputBg, borderColor: usernameFocused ? inputBorderFocus : inputBorder },
+                usernameFocused && styles.inputWrapperFocused,
+              ]}>
+                <User size={16} color={usernameFocused ? primary : placeholderColor} style={styles.inputIcon} />
+                <TextInput
+                  style={[styles.input, { color: textPrimary }]}
+                  value={username}
+                  onChangeText={setUsername}
+                  placeholder="Enter username"
+                  placeholderTextColor={placeholderColor}
+                  autoCapitalize="none"
+                  onFocus={() => setUsernameFocused(true)}
+                  onBlur={() => setUsernameFocused(false)}
+                />
+              </View>
+            </View>
+
+            {/* Password */}
+            <View style={styles.inputGroup}>
+              <Text style={[styles.label, { color: textSecondary }]}>PASSWORD</Text>
+              <View style={[
+                styles.inputWrapper,
+                { backgroundColor: inputBg, borderColor: passwordFocused ? inputBorderFocus : inputBorder },
+                passwordFocused && styles.inputWrapperFocused,
+              ]}>
+                <Lock size={16} color={passwordFocused ? primary : placeholderColor} style={styles.inputIcon} />
+                <TextInput
+                  style={[styles.input, { color: textPrimary }]}
+                  value={password}
+                  onChangeText={setPassword}
+                  placeholder="Enter password"
+                  placeholderTextColor={placeholderColor}
+                  secureTextEntry
+                  onFocus={() => setPasswordFocused(true)}
+                  onBlur={() => setPasswordFocused(false)}
+                />
+              </View>
+            </View>
+
+            {/* Login button */}
+            <TouchableOpacity
+              style={[styles.loginButton, { backgroundColor: primary, opacity: loading ? 0.7 : 1 }]}
+              onPress={handleLogin}
+              disabled={loading}
+              activeOpacity={0.85}
+            >
+              <View style={styles.loginButtonInner}>
+                {loading ? (
+                  <Text style={styles.loginButtonText}>Authenticating...</Text>
+                ) : (
+                  <>
+                    <LogIn size={18} color="#fff" />
+                    <Text style={styles.loginButtonText}>Login</Text>
+                  </>
+                )}
+              </View>
+              <View style={[styles.loginButtonShine, { backgroundColor: 'rgba(255,255,255,0.08)' }]} />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Register link */}
+        <TouchableOpacity
+          style={styles.registerLink}
+          onPress={() => router.push('/customer/register')}
+          activeOpacity={0.7}
+        >
+          <Text style={[styles.registerLinkText, { color: textSecondary }]}>
+            Don't have an account?{'  '}
+            <Text style={[styles.registerLinkBold, { color: primary }]}>Register</Text>
+          </Text>
+        </TouchableOpacity>
+      </Animated.View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  bgCircle1: {
+    position: 'absolute',
+    width: 500,
+    height: 500,
+    borderRadius: 250,
+    borderWidth: 1,
+    top: -200,
+    right: -180,
+  },
+  bgCircle2: {
+    position: 'absolute',
+    width: 340,
+    height: 340,
+    borderRadius: 170,
+    borderWidth: 1,
+    bottom: -120,
+    left: -100,
+  },
+  bgDot1: {
+    position: 'absolute',
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+    top: -60,
+    left: -50,
+  },
+  bgDot2: {
+    position: 'absolute',
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    bottom: 60,
+    right: -30,
+  },
+  backButton: {
+    position: 'absolute',
+    top: 56,
+    left: 20,
+    zIndex: 10,
+  },
+  backButtonInner: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    borderWidth: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  content: {
+    flex: 1,
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 32,
+  },
+  logoArea: {
+    alignItems: 'center',
+    marginBottom: 28,
+  },
+  logoRingOuter: {
+    width: 84,
+    height: 84,
+    borderRadius: 42,
+    borderWidth: 1.5,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 14,
+  },
+  logoRingInner: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    borderWidth: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  titleUni: {
+    fontSize: 28,
+    fontWeight: '900',
+    letterSpacing: 3,
+  },
+  titleLink: {
+    fontSize: 28,
+    fontWeight: '900',
+    letterSpacing: 3,
+  },
+  accentBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  accentLine: {
+    height: 1,
+    width: 28,
+    opacity: 0.5,
+  },
+  card: {
+    borderRadius: 20,
+    borderWidth: 1,
+    padding: 28,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.12,
+    shadowRadius: 24,
+    elevation: 8,
+  },
+  cardTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  cardSubtitle: {
+    fontSize: 13,
+    textAlign: 'center',
+    marginBottom: 22,
+    letterSpacing: 0.3,
+  },
+  successBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    borderWidth: 1,
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 16,
+  },
+  successText: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  errorBox: {
+    borderWidth: 1,
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 16,
+  },
+  errorText: {
+    fontSize: 13,
+    textAlign: 'center',
+    fontWeight: '500',
+  },
+  form: {
+    gap: 18,
+  },
+  inputGroup: {
+    gap: 7,
+  },
+  label: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 1.5,
+  },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    height: 52,
+  },
+  inputWrapperFocused: {
+    shadowColor: '#1A73E8',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  inputIcon: {
+    marginRight: 10,
+  },
+  input: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '500',
+    ...(Platform.OS === 'web' ? { outlineStyle: 'none' } as any : {}),
+  },
+  loginButton: {
+    borderRadius: 14,
+    height: 54,
+    marginTop: 4,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  loginButtonInner: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+  },
+  loginButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
+  loginButtonShine: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: '50%',
+    borderTopLeftRadius: 14,
+    borderTopRightRadius: 14,
+  },
+  registerLink: {
+    paddingVertical: 20,
+    alignItems: 'center',
+  },
+  registerLinkText: {
+    fontSize: 14,
+  },
+  registerLinkBold: {
+    fontWeight: '700',
+  },
+});
