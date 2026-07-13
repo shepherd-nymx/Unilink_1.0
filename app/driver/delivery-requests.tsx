@@ -189,20 +189,6 @@ export default function DriverDeliveryRequests() {
     }
   };
 
-  const makeMapHtml = (lat: number, lng: number, color: string) => `
-<!DOCTYPE html><html><head>
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<style>html,body,#map{margin:0;padding:0;width:100%;height:100%;background:#050D1A;}</style>
-</head><body><div id="map"></div>
-<script>
-  var map=L.map('map',{zoomControl:false,attributionControl:false,dragging:false,scrollWheelZoom:false,doubleClickZoom:false,touchZoom:false}).setView([${lat},${lng}],15);
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{maxZoom:19}).addTo(map);
-  var icon=L.divIcon({className:'',html:'<div style="width:24px;height:24px;border-radius:50% 50% 50% 0;background:${color};border:3px solid white;transform:rotate(-45deg);box-shadow:0 4px 12px rgba(0,0,0,0.5);"></div>',iconSize:[24,24],iconAnchor:[12,24]});
-  L.marker([${lat},${lng}],{icon}).addTo(map);
-</script></body></html>`;
-
   const callContact = (phone: string) => {
     Linking.openURL(`tel:${phone}`);
   };
@@ -336,11 +322,6 @@ export default function DriverDeliveryRequests() {
     detailRowContent: { flex: 1 },
     detailRowLabel: { fontSize: 10, fontWeight: '700', color: TX3, letterSpacing: 1, textTransform: 'uppercase' as any, marginBottom: 2 },
     detailRowValue: { fontSize: 14, fontWeight: '600', color: TX, lineHeight: 20 },
-    detailMapWrap: {
-      marginHorizontal: 16, marginTop: 10, borderRadius: 14, overflow: 'hidden',
-      height: 160, borderWidth: 1,
-      borderColor: isDark ? 'rgba(0,229,255,0.15)' : '#e2e8f0',
-    },
     detailMapBtnRow: {
       flexDirection: 'row', gap: 8,
       marginHorizontal: 16, marginTop: 8,
@@ -668,11 +649,6 @@ export default function DriverDeliveryRequests() {
                     </View>
                   </View>
                 </View>
-                {Platform.OS === 'web' && (
-                  <View style={s.detailMapWrap}>
-                    <iframe srcDoc={makeMapHtml(buy.destination_lat, buy.destination_lng, GREEN)} style={{ width: '100%', height: '100%', border: 'none' }} title="dest-map" />
-                  </View>
-                )}
                 <View style={s.coordChip}>
                   <MapPin size={12} color={TX3} />
                   <Text style={s.coordChipText}>{buy.destination_lat.toFixed(6)}, {buy.destination_lng.toFixed(6)}</Text>
@@ -734,11 +710,6 @@ export default function DriverDeliveryRequests() {
                       );
                     })}
                   </View>
-                  {Platform.OS === 'web' && (
-                    <View style={s.detailMapWrap}>
-                      <iframe srcDoc={makeMapHtml(pickup.pickup_lat, pickup.pickup_lng, AMBER)} style={{ width: '100%', height: '100%', border: 'none' }} title="pickup-map" />
-                    </View>
-                  )}
                   <View style={s.coordChip}>
                     <MapPin size={12} color={TX3} />
                     <Text style={s.coordChipText}>{pickup.pickup_lat.toFixed(6)}, {pickup.pickup_lng.toFixed(6)}</Text>
@@ -795,11 +766,6 @@ export default function DriverDeliveryRequests() {
                       );
                     })}
                   </View>
-                  {Platform.OS === 'web' && (
-                    <View style={s.detailMapWrap}>
-                      <iframe srcDoc={makeMapHtml(pickup.destination_lat, pickup.destination_lng, GREEN)} style={{ width: '100%', height: '100%', border: 'none' }} title="dest-map" />
-                    </View>
-                  )}
                   <View style={s.coordChip}>
                     <MapPin size={12} color={TX3} />
                     <Text style={s.coordChipText}>{pickup.destination_lat.toFixed(6)}, {pickup.destination_lng.toFixed(6)}</Text>
