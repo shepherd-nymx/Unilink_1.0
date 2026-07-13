@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import {
   Image,
   Switch,
   Platform,
+  Animated,
 } from 'react-native';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { supabase } from '@/lib/supabase';
@@ -133,6 +134,9 @@ export default function CustomerDashboard() {
   const [showOpenRequestWaiting, setShowOpenRequestWaiting] = useState(false);
   const [openRequestDeliveryId, setOpenRequestDeliveryId] = useState<string | null>(null);
   const [showTutorial, setShowTutorial] = useState(false);
+  const [showScrollHint, setShowScrollHint] = useState(false);
+  const scrollHintAnim = useRef(new Animated.Value(0)).current;
+  const scrollHintTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (!customerId) {
@@ -429,6 +433,16 @@ export default function CustomerDashboard() {
         return item;
       })
     );
+    if (change > 0 && !selectedDriver && deliveryMode === 'direct') {
+      if (scrollHintTimer.current) clearTimeout(scrollHintTimer.current);
+      setShowScrollHint(true);
+      Animated.sequence([
+        Animated.timing(scrollHintAnim, { toValue: 1, duration: 300, useNativeDriver: true }),
+        Animated.delay(2800),
+        Animated.timing(scrollHintAnim, { toValue: 0, duration: 300, useNativeDriver: true }),
+      ]).start();
+      scrollHintTimer.current = setTimeout(() => setShowScrollHint(false), 3400);
+    }
   };
 
   const calculateTotal = () => {
@@ -436,6 +450,8 @@ export default function CustomerDashboard() {
     const customTotal = customItems.reduce((sum, item) => sum + item.approximate_price * item.quantity, 0);
     return groceryTotal + customTotal;
   };
+
+  const totalItems = groceryItems.reduce((sum, i) => sum + i.quantity, 0) + customItems.length;
 
   const addCustomItem = (item: CustomItem) => {
     setCustomItems(prev => [...prev, item]);
@@ -1084,6 +1100,33 @@ export default function CustomerDashboard() {
     },
     placeOrderButtonDisabled: { opacity: 0.55 },
     placeOrderButtonText: { color: '#fff', fontSize: 16, fontWeight: '800', letterSpacing: 0.3 },
+
+    scrollHintBanner: {
+      position: 'absolute',
+      bottom: 90,
+      alignSelf: 'center',
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      paddingHorizontal: 18,
+      paddingVertical: 10,
+      borderRadius: 24,
+      backgroundColor: 'rgba(26,115,232,0.92)',
+      shadowColor: '#1A73E8',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.4,
+      shadowRadius: 10,
+      elevation: 8,
+    },
+    scrollHintText: { fontSize: 13, fontWeight: '700', color: '#fff' },
+
+    driverSectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    driverNudgePill: {
+      flexDirection: 'row', alignItems: 'center', gap: 4,
+      backgroundColor: '#1A73E8', borderRadius: 12,
+      paddingHorizontal: 10, paddingVertical: 4,
+    },
+    driverNudgeText: { fontSize: 11, fontWeight: '800', color: '#fff' },
     errorText: {
       color: ERR, fontSize: 13, textAlign: 'center',
       marginHorizontal: 16, marginTop: 10, padding: 12,
@@ -1787,7 +1830,15 @@ export default function CustomerDashboard() {
               Let the driver know which shops you prefer for your groceries
             </Text>
 
-            <Text style={styles.paymentTitle}>Driver Selection</Text>
+            <View style={styles.driverSectionHeader}>
+              <Text style={styles.paymentTitle}>Driver Selection</Text>
+              {totalItems > 0 && !selectedDriver && deliveryMode === 'direct' && (
+                <View style={styles.driverNudgePill}>
+                  <ChevronDown size={11} color="#fff" strokeWidth={3} />
+                  <Text style={styles.driverNudgeText}>Select here</Text>
+                </View>
+              )}
+            </View>
 
             <TouchableOpacity
               style={[
@@ -1907,6 +1958,24 @@ export default function CustomerDashboard() {
           </View>
         )}
       </ScrollView>
+
+      {/* Scroll-down hint */}
+      {showScrollHint && (
+        <Animated.View
+          style={[
+            styles.scrollHintBanner,
+            {
+              opacity: scrollHintAnim,
+              transform: [{ translateY: scrollHintAnim.interpolate({ inputRange: [0, 1], outputRange: [12, 0] }) }],
+            },
+          ]}
+          pointerEvents="none"
+        >
+          <ChevronDown size={15} color="#fff" strokeWidth={2.5} />
+          <Text style={styles.scrollHintText}>Scroll down to select a driver</Text>
+          <ChevronDown size={15} color="#fff" strokeWidth={2.5} />
+        </Animated.View>
+      )}
 
       {/* Request Delivery FAB */}
       <TouchableOpacity

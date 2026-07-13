@@ -250,6 +250,16 @@ export default function OrderTicket() {
       backgroundColor: '#25D366',
     },
     whatsappBtnText: { fontSize: 14, fontWeight: '700', color: '#fff' },
+
+    whatsappNotice: {
+      flexDirection: 'row', alignItems: 'flex-start', gap: 12,
+      marginHorizontal: 16, marginBottom: 8, padding: 14,
+      backgroundColor: 'rgba(37,211,102,0.1)',
+      borderWidth: 1.5, borderColor: 'rgba(37,211,102,0.35)',
+      borderRadius: 14,
+    },
+    whatsappNoticeTitle: { fontSize: 13, fontWeight: '800', color: '#25D366', marginBottom: 2 },
+    whatsappNoticeBody: { fontSize: 12, color: TX2, lineHeight: 18 },
     homeButton: {
       flexDirection: 'row',
       backgroundColor: P,
@@ -366,6 +376,18 @@ export default function OrderTicket() {
             <Text style={styles.successTitle}>Order Placed!</Text>
             <Text style={styles.successSubtitle}>Your order has been received and is pending pickup</Text>
           </View>
+
+          {orderDetails?.drivers?.whatsapp_number && (
+            <View style={styles.whatsappNotice}>
+              <MessageCircle size={18} color="#25D366" />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.whatsappNoticeTitle}>Notify your driver on WhatsApp</Text>
+                <Text style={styles.whatsappNoticeBody}>
+                  Your driver has WhatsApp — tap the button below to let them know your order is ready.
+                </Text>
+              </View>
+            </View>
+          )}
 
           <View style={styles.card}>
             <View style={styles.cardHeader}>
