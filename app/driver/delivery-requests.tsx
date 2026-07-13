@@ -4,7 +4,7 @@ import {
   Platform, Linking, Modal, RefreshControl,
 } from 'react-native';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
-import { ArrowLeft, ShoppingBag, Package, MapPin, Phone, User, Clock, CircleCheck as CheckCircle, Navigation, X, ChevronRight, Truck, FileText, CircleAlert as AlertCircle, RefreshCw, MessageCircle, ExternalLink, RotateCcw } from 'lucide-react-native';
+import { ArrowLeft, ShoppingBag, Package, MapPin, Phone, User, Clock, CircleCheck as CheckCircle, Navigation, X, ChevronRight, Truck, FileText, CircleAlert as AlertCircle, RefreshCw, MessageCircle, ExternalLink, RotateCcw, Lock, TriangleAlert as AlertTriangle } from 'lucide-react-native';
 import { supabase } from '@/lib/supabase';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useDeliveryRequest } from '@/hooks/useDeliveryRequest';
@@ -39,6 +39,8 @@ export default function DriverDeliveryRequests() {
   // Undo delivered toast: shows for 10 minutes after marking delivered
   const [undoInfo, setUndoInfo] = useState<{ requestId: string; expiresAt: number } | null>(null);
   const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [tokenExpired, setTokenExpired] = useState(false);
+  const [tokenExpiryDate, setTokenExpiryDate] = useState<Date | null>(null);
 
   const P = isDark ? CYAN : '#1A73E8';
   const BG = isDark ? '#070f1c' : '#f0f4f8';
@@ -83,6 +85,24 @@ export default function DriverDeliveryRequests() {
       setRequests((available as DeliveryRequestRow[]) ?? []);
       setMyRequests((mine as DeliveryRequestRow[]) ?? []);
     } catch {}
+  }, [driverId]);
+
+  useEffect(() => {
+    if (!driverId) return;
+    supabase
+      .from('drivers')
+      .select('key_expires_at')
+      .eq('id', driverId)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.key_expires_at) {
+          const expiry = new Date(data.key_expires_at);
+          setTokenExpiryDate(expiry);
+          if (expiry <= new Date()) setTokenExpired(true);
+        } else if (data) {
+          setTokenExpired(true);
+        }
+      });
   }, [driverId]);
 
   useFocusEffect(useCallback(() => {
@@ -203,6 +223,21 @@ export default function DriverDeliveryRequests() {
 
   const s = StyleSheet.create({
     container: { flex: 1, backgroundColor: BG },
+    pausedScreen: {
+      flex: 1, justifyContent: 'center', alignItems: 'center',
+      paddingHorizontal: 36, gap: 16,
+    },
+    pausedIconWrap: {
+      width: 96, height: 96, borderRadius: 48,
+      justifyContent: 'center', alignItems: 'center',
+      backgroundColor: 'rgba(255,179,0,0.1)', borderWidth: 1.5,
+      borderColor: 'rgba(255,179,0,0.28)', marginBottom: 8,
+    },
+    pausedTitle: { fontSize: 24, fontWeight: '800', color: AMBER },
+    pausedBody: {
+      fontSize: 14, color: isDark ? '#4a7a9b' : '#64748b',
+      textAlign: 'center', lineHeight: 22,
+    },
     header: {
       flexDirection: 'row', alignItems: 'center', gap: 14,
       paddingHorizontal: 20,
@@ -865,6 +900,20 @@ export default function DriverDeliveryRequests() {
         <View style={s.liveDot} />
       </View>
 
+      {tokenExpired ? (
+        <View style={s.pausedScreen}>
+          <View style={s.pausedIconWrap}>
+            <Lock size={44} color={AMBER} strokeWidth={1.5} />
+          </View>
+          <Text style={s.pausedTitle}>Portal Paused</Text>
+          <Text style={s.pausedBody}>
+            Your monthly access token has{tokenExpiryDate
+              ? ` expired on ${tokenExpiryDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`
+              : ' not been issued yet'}.{'\n'}Contact your admin to renew access.
+          </Text>
+        </View>
+      ) : (
+        <>
       {/* Tabs */}
       <View style={s.tabs}>
         <TouchableOpacity
@@ -989,6 +1038,8 @@ export default function DriverDeliveryRequests() {
         <View style={s.toast}>
           <Text style={s.toastText}>{toastMsg}</Text>
         </View>
+      )}
+        </>
       )}
     </View>
   );

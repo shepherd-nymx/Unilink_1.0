@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { supabase } from '@/lib/supabase';
-import { Settings, MapPin, Clock, DollarSign, CircleCheck as CheckCircle, Package, Users, Key, Bell, Zap, ShoppingBag, Navigation, X, ZoomIn, Navigation2, Circle as HelpCircle, Phone, Truck, RotateCcw } from 'lucide-react-native';
+import { Settings, MapPin, Clock, DollarSign, CircleCheck as CheckCircle, Package, Users, Key, Bell, Zap, ShoppingBag, Navigation, X, ZoomIn, Navigation2, Circle as HelpCircle, Phone, Truck, RotateCcw, TriangleAlert as AlertTriangle, Lock } from 'lucide-react-native';
 import AnimatedChatIcon from '@/components/AnimatedChatIcon';
 import InAppNotificationBanner from '@/components/InAppNotificationBanner';
 import SwitchLocationModal from '@/components/SwitchLocationModal';
@@ -502,6 +502,12 @@ export default function DriverDashboard() {
 
   const isOnline = driverInfo?.is_available;
 
+  const tokenExpiry = driverInfo?.key_expires_at ? new Date(driverInfo.key_expires_at) : null;
+  const now = new Date();
+  const isTokenExpired = !tokenExpiry || tokenExpiry <= now;
+  const tokenDaysLeft = tokenExpiry ? Math.ceil((tokenExpiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)) : 0;
+  const showTokenWarning = !isTokenExpired && tokenDaysLeft <= 7;
+
   return (
     <View style={s.container}>
       <NotificationPermissionModal userType="driver" />
@@ -553,6 +559,17 @@ export default function DriverDashboard() {
         </View>
       ) : null}
 
+      {showTokenWarning && (
+        <View style={s.tokenWarningBanner}>
+          <AlertTriangle size={16} color="#000" />
+          <Text style={s.tokenWarningText}>
+            {tokenDaysLeft === 0
+              ? 'Your access token expires today — contact admin to renew.'
+              : `Access token expires in ${tokenDaysLeft} day${tokenDaysLeft === 1 ? '' : 's'} — contact admin to renew.`}
+          </Text>
+        </View>
+      )}
+
       {notification && (
         <View style={s.notifBanner}>
           <Bell size={14} color={CYAN} />
@@ -560,6 +577,25 @@ export default function DriverDashboard() {
         </View>
       )}
 
+      {isTokenExpired ? (
+        <View style={s.pausedScreen}>
+          <View style={s.pausedIconWrap}>
+            <Lock size={48} color={AMBER} strokeWidth={1.5} />
+          </View>
+          <Text style={s.pausedTitle}>Portal Paused</Text>
+          <Text style={s.pausedBody}>
+            Your monthly access token has{tokenExpiry ? ` expired on ${tokenExpiry.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}` : ' not been assigned yet'}.
+            Contact your admin to renew your token and restore full access.
+          </Text>
+          {tokenExpiry && (
+            <View style={s.pausedExpiredRow}>
+              <Key size={14} color={AMBER} />
+              <Text style={s.pausedExpiredText}>Expired: {tokenExpiry.toLocaleString()}</Text>
+            </View>
+          )}
+        </View>
+      ) : (
+        <>
       <ScrollView style={s.scroll} contentContainerStyle={{ paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
 
         {acceptedDeliveries.length > 0 && (
@@ -958,6 +994,8 @@ export default function DriverDashboard() {
           <Text style={s.navItemLabel}>Settings</Text>
         </TouchableOpacity>
       </View>
+        </>
+      )}
     </View>
   );
 }
@@ -1014,6 +1052,34 @@ const s = StyleSheet.create({
     backgroundColor: CYAN_DIM, borderRadius: 8, borderWidth: 1, borderColor: CYAN_BORDER,
   },
   notifText: { flex: 1, fontSize: 12, color: CYAN, fontWeight: '600' },
+
+  tokenWarningBanner: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    marginHorizontal: 16, marginTop: 8, paddingHorizontal: 14, paddingVertical: 12,
+    backgroundColor: AMBER, borderRadius: 10,
+  },
+  tokenWarningText: { flex: 1, fontSize: 12, fontWeight: '700', color: '#000' },
+
+  pausedScreen: {
+    flex: 1, justifyContent: 'center', alignItems: 'center',
+    paddingHorizontal: 36, gap: 16,
+  },
+  pausedIconWrap: {
+    width: 100, height: 100, borderRadius: 50,
+    justifyContent: 'center', alignItems: 'center',
+    backgroundColor: 'rgba(255,179,0,0.12)', borderWidth: 1.5,
+    borderColor: 'rgba(255,179,0,0.3)', marginBottom: 8,
+  },
+  pausedTitle: { fontSize: 26, fontWeight: '800', color: AMBER, letterSpacing: 0.3 },
+  pausedBody: {
+    fontSize: 14, color: TEXT2, textAlign: 'center', lineHeight: 22,
+  },
+  pausedExpiredRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4,
+    backgroundColor: 'rgba(255,179,0,0.08)', paddingHorizontal: 14, paddingVertical: 8,
+    borderRadius: 10, borderWidth: 1, borderColor: 'rgba(255,179,0,0.2)',
+  },
+  pausedExpiredText: { fontSize: 12, color: AMBER, fontWeight: '600' },
 
   sectionHeader: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
