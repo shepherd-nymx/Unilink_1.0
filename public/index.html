@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+
+    <!-- Prevent browsers from caching the HTML shell -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+
+    <title>UNILINK - Grocery Delivery</title>
+    <meta name="description" content="Fast grocery delivery service - Order from your favorite stores" />
+
+    <meta name="theme-color" content="#2563eb" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="UNILINK" />
+
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="icon" href="/favicon.ico" />
+    <link rel="apple-touch-icon" href="/icon-192.png" />
+
+    <style id="expo-reset">
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        overflow: hidden;
+      }
+      #root {
+        display: flex;
+        height: 100%;
+        flex: 1;
+      }
+    </style>
+
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function () {
+          navigator.serviceWorker.register('/service-worker.js').then(
+            function (registration) {
+              // Poll for updates every 60 s so users pick up new deploys quickly.
+              setInterval(function () { registration.update(); }, 60000);
+
+              registration.addEventListener('updatefound', function () {
+                var newWorker = registration.installing;
+                newWorker.addEventListener('statechange', function () {
+                  if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                    // New SW is ready – tell it to take over immediately.
+                    newWorker.postMessage({ type: 'SKIP_WAITING' });
+                  }
+                });
+              });
+            }
+          );
+
+          // When the new SW takes control, reload once so users get the latest build.
+          var refreshing = false;
+          navigator.serviceWorker.addEventListener('controllerchange', function () {
+            if (!refreshing) {
+              refreshing = true;
+              window.location.reload();
+            }
+          });
+        });
+      }
+    </script>
+  </head>
+
+  <body>
+    <noscript>
+      You need to enable JavaScript to run this app.
+    </noscript>
+    <div id="root"></div>
+  </body>
+</html>

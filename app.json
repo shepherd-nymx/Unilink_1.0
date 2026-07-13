@@ -1,0 +1,66 @@
+{
+  "expo": {
+    "name": "UNILINK",
+    "slug": "unilink-grocery-delivery",
+    "version": "1.0.1",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "unilink",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "backgroundColor": "#ffffff",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.unilink.grocerydelivery"
+    },
+    "android": {
+      "package": "com.unilink.grocerydelivery",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/icon.png",
+        "backgroundColor": "#ffffff"
+      }
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single",
+      "favicon": "./assets/images/favicon.png",
+      "name": "UNILINK",
+      "shortName": "UNILINK",
+      "description": "Fast grocery delivery service - Order from your favorite stores",
+      "themeColor": "#2563eb",
+      "backgroundColor": "#ffffff",
+      "display": "standalone",
+      "orientation": "portrait",
+      "startUrl": "/",
+      "scope": "/"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      "expo-web-browser",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/icon.png",
+          "color": "#1A73E8",
+          "sounds": [],
+          "androidMode": "default",
+          "androidCollapsedTitle": "#{unread_notifications} new notifications",
+          "iosDisplayInForeground": true
+        }
+      ]
+    ],
+    "notification": {
+      "androidMode": "default",
+      "androidCollapsedTitle": "New notification"
+    },
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "unilink-grocery-delivery"
+      }
+    }
+  }
+}
