@@ -71,28 +71,12 @@ export default function CustomerLogin() {
         return;
       }
 
-      if (data.auth_id) {
-        if (!data.email) {
-          setError('Account setup incomplete. Please contact support.');
-          setLoading(false);
-          return;
-        }
-        const { error: authError } = await supabase.auth.signInWithPassword({
-          email: data.email,
-          password,
-        });
-        if (authError) {
-          setError('Invalid username or password');
-          setLoading(false);
-          return;
-        }
-      } else {
-        const passwordHash = btoa(password);
-        if (data.password_hash !== passwordHash) {
-          setError('Invalid username or password');
-          setLoading(false);
-          return;
-        }
+      const passwordHash = btoa(password);
+
+      if (data.password_hash !== passwordHash) {
+        setError('Invalid username or password');
+        setLoading(false);
+        return;
       }
 
       saveUserData({ id: data.id, type: 'customer', name: data.full_name });
