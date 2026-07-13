@@ -16,7 +16,7 @@ import {
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import * as ImagePicker from 'expo-image-picker';
-import { ArrowLeft, Camera, User, School, Save, CircleCheck as CheckCircle, Zap, Clock, CreditCard, Bike, Car, MapPin, Navigation2 } from 'lucide-react-native';
+import { ArrowLeft, Camera, User, School, Save, CircleCheck as CheckCircle, Zap, Clock, CreditCard, Bike, Car, MapPin, Navigation2, MessageCircle } from 'lucide-react-native';
 import SwitchLocationModal from '@/components/SwitchLocationModal';
 import { useTheme } from '@/contexts/ThemeContext';
 
@@ -107,6 +107,7 @@ export default function DriverSettings() {
   const [deliveryTypes, setDeliveryTypes] = useState<string[]>(['walking']);
   const [paymentMethods, setPaymentMethods] = useState<string[]>(['pay_on_delivery']);
   const [ecocashCode, setEcocashCode] = useState('');
+  const [whatsappNumber, setWhatsappNumber] = useState('');
   const [profilePictureUrl, setProfilePictureUrl] = useState('');
   const [uploadingImage, setUploadingImage] = useState(false);
   const [availabilityStartTime, setAvailabilityStartTime] = useState('');
@@ -213,6 +214,7 @@ export default function DriverSettings() {
       setDeliveryTypes(data.delivery_type || ['walking']);
       setPaymentMethods(data.payment_methods || ['pay_on_delivery']);
       setEcocashCode(data.ecocash_code || '');
+      setWhatsappNumber(data.whatsapp_number || '');
       setProfilePictureUrl(data.profile_picture_url || '');
       setUniversityName((data.universities as any)?.name || '');
       setDefaultUniversityId(data.university_id || null);
@@ -238,7 +240,9 @@ export default function DriverSettings() {
         fee_up_to_200: parseFloat(feeUpTo200), fee_up_to_300: parseFloat(feeUpTo300),
         fee_up_to_400: parseFloat(feeUpTo400), fee_up_to_500: parseFloat(feeUpTo500),
         is_available: isAvailable, delivery_type: deliveryTypes, payment_methods: paymentMethods,
-        ecocash_code: ecocashCode.trim() || null, profile_picture_url: profilePictureUrl.trim() || null,
+        ecocash_code: ecocashCode.trim() || null,
+        whatsapp_number: whatsappNumber.trim() || null,
+        profile_picture_url: profilePictureUrl.trim() || null,
         availability_start_time: availabilityStartTime.trim() || null,
         availability_end_time: availabilityEndTime.trim() || null,
         availability_days: availabilityDays,
@@ -435,6 +439,23 @@ export default function DriverSettings() {
               onChangeText={setEcocashCode}
               placeholder="e.g. 0771234567"
               placeholderTextColor={TEXT3}
+            />
+          </View>
+        </View>
+
+        <View style={ss.section}>
+          <Text style={ss.sectionTitle}>WhatsApp Number</Text>
+          <Text style={ss.sectionDesc}>Customers will use this to notify you when an order is placed</Text>
+          <View style={ss.inputWrap}>
+            <MessageCircle size={14} color={TEXT2} />
+            <TextInput
+              style={ss.inputInline}
+              value={whatsappNumber}
+              onChangeText={setWhatsappNumber}
+              placeholder="e.g. +263771234567"
+              placeholderTextColor={TEXT3}
+              keyboardType="phone-pad"
+              autoCorrect={false}
             />
           </View>
         </View>

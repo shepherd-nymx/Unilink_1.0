@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Animated, Platform } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Animated, Platform, Linking } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { supabase } from '@/lib/supabase';
-import { CircleCheck as CheckCircle, Hop as Home, CircleAlert as AlertCircle, ArrowLeft, Package, CreditCard, Truck, User, Clock, ChevronRight } from 'lucide-react-native';
+import { CircleCheck as CheckCircle, Hop as Home, CircleAlert as AlertCircle, ArrowLeft, Package, CreditCard, Truck, User, Clock, ChevronRight, MessageCircle } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 
 export default function OrderTicket() {
@@ -62,6 +62,7 @@ export default function OrderTicket() {
           drivers (
             full_name,
             phone_number,
+            whatsapp_number,
             fee_up_to_10,
             fee_up_to_20,
             fee_up_to_30,
@@ -242,6 +243,13 @@ export default function OrderTicket() {
       borderColor: CARD_B,
     },
     chatNoticeText: { fontSize: 12, color: TX2, lineHeight: 18 },
+
+    whatsappBtn: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+      marginTop: 10, paddingVertical: 12, borderRadius: 12,
+      backgroundColor: '#25D366',
+    },
+    whatsappBtnText: { fontSize: 14, fontWeight: '700', color: '#fff' },
     homeButton: {
       flexDirection: 'row',
       backgroundColor: P,
@@ -470,6 +478,25 @@ export default function OrderTicket() {
                     Use the chat feature to communicate with your driver about order details or delivery instructions.
                   </Text>
                 </View>
+                {orderDetails.drivers.whatsapp_number && (
+                  <TouchableOpacity
+                    style={styles.whatsappBtn}
+                    activeOpacity={0.82}
+                    onPress={() => {
+                      const num = orderDetails.drivers.whatsapp_number.replace(/[^\d]/g, '');
+                      const msg = encodeURIComponent('I have sent an order for you on Unilink');
+                      const url = `https://wa.me/${num}?text=${msg}`;
+                      if (Platform.OS === 'web') {
+                        window.open(url, '_blank');
+                      } else {
+                        Linking.openURL(url);
+                      }
+                    }}
+                  >
+                    <MessageCircle size={16} color="#fff" />
+                    <Text style={styles.whatsappBtnText}>Notify driver on WhatsApp</Text>
+                  </TouchableOpacity>
+                )}
               </View>
             </View>
           )}
