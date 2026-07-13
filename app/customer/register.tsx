@@ -167,12 +167,8 @@ export default function CustomerRegister() {
 
   const handleRegister = async () => {
     setError('');
-    if (!fullName || !phoneNumber || !email || !password || !username) {
+    if (!fullName || !phoneNumber || !password || !username) {
       setError('Please fill in all required fields');
-      return;
-    }
-    if (!email.includes('@') || !email.includes('.')) {
-      setError('Please enter a valid email address');
       return;
     }
     if (!universityId) {
@@ -202,22 +198,16 @@ export default function CustomerRegister() {
     setLoading(true);
     setShowTermsModal(false);
     try {
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email,
-        password,
-      });
-      if (authError) throw authError;
-      if (!authData.user) throw new Error('Registration failed. Please try again.');
-
+      const passwordHash = btoa(password);
       const finalUniversityId = universityId === 'other' ? otherPlaceId : universityId;
       const { data: customer, error: customerError } = await supabase
         .from('customers')
         .insert({
           full_name: fullName,
           phone_number: phoneNumber,
-          email,
+          email: email || null,
           username,
-          auth_id: authData.user.id,
+          password_hash: passwordHash,
           phone_verified: false,
           latitude: location!.latitude,
           longitude: location!.longitude,
@@ -228,10 +218,7 @@ export default function CustomerRegister() {
         })
         .select()
         .single();
-      if (customerError) {
-        await supabase.auth.signOut();
-        throw customerError;
-      }
+      if (customerError) throw customerError;
       const { error: addressError } = await supabase.from('customer_addresses').insert({
         customer_id: customer.id,
         address_type: 'default',
@@ -248,7 +235,6 @@ export default function CustomerRegister() {
         user_type: 'customer',
         terms_version: termsVersion,
       });
-      await supabase.auth.signOut();
       router.replace({ pathname: '/customer/login', params: { registered: 'true' } });
     } catch (err: any) {
       setError(err.message || 'Registration failed. Please try again.');
@@ -330,7 +316,7 @@ export default function CustomerRegister() {
                 { field: 'fullName', label: 'FULL NAME', placeholder: 'Enter your full name', value: fullName, setter: setFullName, icon: <User size={16} color={isFocused('fullName') ? primary : placeholderColor} />, required: true, caps: 'words' as any },
                 { field: 'username', label: 'USERNAME', placeholder: 'Choose a username', value: username, setter: setUsername, icon: <User size={16} color={isFocused('username') ? primary : placeholderColor} />, required: true, caps: 'none' as any },
                 { field: 'phone', label: 'PHONE NUMBER', placeholder: '+263...', value: phoneNumber, setter: setPhoneNumber, icon: <Phone size={16} color={isFocused('phone') ? primary : placeholderColor} />, required: true, keyboard: 'phone-pad' as any },
-                { field: 'email', label: 'EMAIL', placeholder: 'your@email.com', value: email, setter: setEmail, icon: <Mail size={16} color={isFocused('email') ? primary : placeholderColor} />, required: true, caps: 'none' as any, keyboard: 'email-address' as any },
+                { field: 'email', label: 'EMAIL', placeholder: 'your@email.com (optional)', value: email, setter: setEmail, icon: <Mail size={16} color={isFocused('email') ? primary : placeholderColor} />, required: false, caps: 'none' as any, keyboard: 'email-address' as any },
                 { field: 'password', label: 'PASSWORD', placeholder: 'At least 6 characters', value: password, setter: setPassword, icon: <Lock size={16} color={isFocused('password') ? primary : placeholderColor} />, required: true, secure: true },
                 { field: 'confirmPassword', label: 'CONFIRM PASSWORD', placeholder: 'Re-enter password', value: confirmPassword, setter: setConfirmPassword, icon: <Lock size={16} color={isFocused('confirmPassword') ? primary : placeholderColor} />, required: true, secure: true },
               ].map(({ field, label, placeholder, value, setter, icon, required, caps, keyboard, secure }) => (
