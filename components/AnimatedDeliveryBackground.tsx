@@ -70,8 +70,12 @@ export default function AnimatedDeliveryBackground() {
     if (!ctx) return;
 
     const resize = () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      canvas.width = w;
+      canvas.height = h;
+      canvas.style.width = w + 'px';
+      canvas.style.height = h + 'px';
     };
     resize();
     window.addEventListener('resize', resize);
@@ -227,9 +231,9 @@ export default function AnimatedDeliveryBackground() {
           position: 'absolute',
           top: 0,
           left: 0,
-          width: '100%',
-          height: '100%',
           display: 'block',
+          willChange: 'contents',
+          imageRendering: 'pixelated',
         }}
       />
     </View>

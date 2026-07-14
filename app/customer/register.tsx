@@ -198,6 +198,29 @@ export default function CustomerRegister() {
     setLoading(true);
     setShowTermsModal(false);
     try {
+      // Create a Supabase Auth account for new registrations.
+      // Uses the provided email, or a synthetic internal address so all new
+      // accounts are linked to auth even when email is optional.
+      const authEmail = email.trim()
+        ? email.trim()
+        : `${username.trim().toLowerCase()}@unilink-app.internal`;
+      let authId: string | null = null;
+      try {
+        const { data: authData, error: authError } = await supabase.auth.signUp({
+          email: authEmail,
+          password,
+        });
+        if (!authError && authData.user) {
+          authId = authData.user.id;
+        }
+        // Sign out immediately — the app manages its own session separately
+        // from Supabase Auth, so we don't want an active auth session here.
+        await supabase.auth.signOut();
+      } catch {
+        // Auth signup failure is non-fatal: the customer record is still
+        // created and the legacy btoa login continues to work.
+      }
+
       const passwordHash = btoa(password);
       const finalUniversityId = universityId === 'other' ? otherPlaceId : universityId;
       const { data: customer, error: customerError } = await supabase
@@ -215,6 +238,7 @@ export default function CustomerRegister() {
           terms_accepted: true,
           terms_version: termsVersion,
           terms_accepted_at: new Date().toISOString(),
+          ...(authId ? { auth_id: authId } : {}),
         })
         .select()
         .single();

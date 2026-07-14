@@ -961,7 +961,6 @@ export default function CustomerDashboard() {
       alignItems: 'center',
       position: 'relative',
       backgroundColor: isDark ? 'rgba(56,189,248,0.06)' : 'rgba(26,115,232,0.04)',
-      transition: 'all 0.2s ease-out',
     },
     bottomNavLabel: {
       fontSize: 12,
