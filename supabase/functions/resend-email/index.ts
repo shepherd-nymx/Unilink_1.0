@@ -614,7 +614,7 @@ Deno.serve(async (req: Request) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      const req: EmailRequest = {
+      const retryReq: EmailRequest = {
         type: existing.type as EmailType,
         to: existing.recipient_email,
         userId: existing.user_id,
@@ -623,7 +623,7 @@ Deno.serve(async (req: Request) => {
         data: existing.metadata || {},
       };
       let rendered: { subject: string; html: string; text: string };
-      try { rendered = render(req); }
+      try { rendered = render(retryReq); }
       catch (e: any) {
         return new Response(JSON.stringify({ error: e.message }), {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -632,7 +632,7 @@ Deno.serve(async (req: Request) => {
       try {
         const { id: resendId } = await sendViaResend({
           from: `UniLink <${FROM_ADDRESS}>`,
-          to: req.to,
+          to: retryReq.to,
           subject: rendered.subject,
           html: emailShell(rendered.subject, rendered.html, rendered.subject),
           text: plainTextWrap(rendered.text),
@@ -655,7 +655,7 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    const req: EmailRequest = {
+    const emailReq: EmailRequest = {
       type: body.type,
       to: body.to,
       userId: body.userId ?? null,
@@ -663,7 +663,7 @@ Deno.serve(async (req: Request) => {
       orderId: body.orderId ?? null,
       data: body.data ?? {},
     };
-    const result = await sendOne(supabase, req);
+    const result = await sendOne(supabase, emailReq);
     return new Response(JSON.stringify(result), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
