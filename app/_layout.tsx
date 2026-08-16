@@ -15,6 +15,8 @@ Notifications.setNotificationHandler({
     shouldShowAlert: true,
     shouldPlaySound: true,
     shouldSetBadge: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
   }),
 });
 
@@ -67,7 +69,7 @@ async function requestAndRegister(userId: string | null): Promise<void> {
 function RootNavigator() {
   const { isDark } = useTheme();
   const router = useRouter();
-  const notificationResponseListener = useRef<Notifications.Subscription>();
+  const notificationResponseListener = useRef<Notifications.Subscription | null>(null);
   const sessionRestored = useRef(false);
 
   useEffect(() => {

@@ -1160,12 +1160,12 @@ export default function CustomerDashboard() {
     noRatingBadge: { backgroundColor: INPUT_B, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10 },
     noRatingText: { fontSize: 11, color: TX2, fontStyle: 'italic' },
     driverDetail: { fontSize: 12, color: TX2, marginTop: 2 },
-    searchContainer: {
+    driverSearchContainer: {
       flexDirection: 'row', alignItems: 'center', gap: 8,
       backgroundColor: INPUT, borderWidth: 1.5, borderColor: INPUT_B,
       borderRadius: 12, paddingHorizontal: 12, marginBottom: 14,
     },
-    searchInput: { flex: 1, padding: 11, fontSize: 14, color: TX },
+    driverSearchInput: { flex: 1, padding: 11, fontSize: 14, color: TX },
     radioButton: {
       width: 22, height: 22, borderRadius: 11, borderWidth: 2,
       borderColor: P, justifyContent: 'center', alignItems: 'center', marginLeft: 8,
