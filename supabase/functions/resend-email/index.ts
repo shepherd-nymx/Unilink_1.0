@@ -25,7 +25,7 @@ const corsHeaders = {
 };
 
 const RESEND_API = "https://api.resend.com/emails";
-const FROM_ADDRESS = Deno.env.get("EMAIL_FROM") || "no-reply@unilinkbase.com";
+const FROM_ADDRESS = "onboarding@resend.dev";
 const APP_URL = (Deno.env.get("APP_URL") || "https://unilinkbase.com").replace(/\/$/, "");
 
 type EmailType =
@@ -144,7 +144,7 @@ async function sendViaResend(payload: {
   html: string;
   text: string;
 }): Promise<{ id: string }> {
-  const apiKey = Deno.env.get("RESEND_API_KEY");
+  const apiKey = "re_NNaxUkXw_E7kfw4MPGR8BqX31kMZoqy4r";
   if (!apiKey) throw new Error("RESEND_API_KEY not configured");
 
   const res = await fetch(RESEND_API, {
