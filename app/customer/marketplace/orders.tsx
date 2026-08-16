@@ -13,18 +13,7 @@ import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { loadUserData } from '@/lib/storage-service';
 import { A } from '@/lib/admin-theme';
-import {
-  ArrowLeft,
-  ShoppingBag,
-  Store,
-  Truck,
-  Package,
-  CheckCircle,
-  Clock,
-  XCircle,
-  MapPin,
-  Phone,
-} from 'lucide-react-native';
+import { ArrowLeft, ShoppingBag, Store, Truck, Package, CircleCheck as CheckCircle, Clock, Circle as XCircle, MapPin, Phone } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 
 type ShopOrder = {

@@ -16,20 +16,7 @@ import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { loadUserData } from '@/lib/storage-service';
 import { A } from '@/lib/admin-theme';
-import {
-  ArrowLeft,
-  Store,
-  Search,
-  ShoppingCart,
-  Plus,
-  Minus,
-  X,
-  Package,
-  MapPin,
-  CreditCard,
-  CheckCircle,
-  AlertCircle,
-} from 'lucide-react-native';
+import { ArrowLeft, Store, Search, ShoppingCart, Plus, Minus, X, Package, MapPin, CreditCard, CircleCheck as CheckCircle, CircleAlert as AlertCircle } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 
 type Shop = {

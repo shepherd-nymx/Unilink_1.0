@@ -15,20 +15,7 @@ import {
 import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { A } from '@/lib/admin-theme';
-import {
-  ArrowLeft,
-  Store,
-  CheckCircle,
-  XCircle,
-  DollarSign,
-  Clock,
-  Ban,
-  Eye,
-  X,
-  AlertCircle,
-  ShoppingBag,
-  Settings,
-} from 'lucide-react-native';
+import { ArrowLeft, Store, CircleCheck as CheckCircle, Circle as XCircle, DollarSign, Clock, Ban, Eye, X, CircleAlert as AlertCircle, ShoppingBag, Settings } from 'lucide-react-native';
 
 type Shop = {
   id: string;

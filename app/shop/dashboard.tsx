@@ -16,23 +16,7 @@ import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { loadShopSession, clearShopSession, type ShopSessionData } from '@/lib/shop-session-service';
 import { A } from '@/lib/admin-theme';
-import {
-  Store,
-  Package,
-  ShoppingBag,
-  LogOut,
-  Plus,
-  Trash2,
-  CircleCheck as CheckCircle,
-  Circle as XCircle,
-  Clock,
-  Truck,
-  DollarSign,
-  TrendingUp,
-  X,
-  Image as ImageIcon,
-  AlertCircle,
-} from 'lucide-react-native';
+import { Store, Package, ShoppingBag, LogOut, Plus, Trash2, CircleCheck as CheckCircle, Circle as XCircle, Clock, Truck, DollarSign, TrendingUp, X, Image as ImageIcon, CircleAlert as AlertCircle } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 
 type ShopStatus = 'pending_approval' | 'payment_required' | 'payment_submitted' | 'active' | 'suspended' | 'rejected';
