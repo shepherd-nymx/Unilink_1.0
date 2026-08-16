@@ -167,8 +167,14 @@ export default function CustomerRegister() {
 
   const handleRegister = async () => {
     setError('');
-    if (!fullName || !phoneNumber || !password || !username) {
-      setError('Please fill in all required fields');
+    if (!fullName || !phoneNumber || !password || !username || !email.trim()) {
+      setError('Please fill in all required fields, including email');
+      return;
+    }
+    const emailTrim = email.trim().toLowerCase();
+    const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailTrim);
+    if (!emailOk) {
+      setError('Please enter a valid email address');
       return;
     }
     if (!universityId) {
@@ -198,12 +204,8 @@ export default function CustomerRegister() {
     setLoading(true);
     setShowTermsModal(false);
     try {
-      // Create a Supabase Auth account for new registrations.
-      // Uses the provided email, or a synthetic internal address so all new
-      // accounts are linked to auth even when email is optional.
-      const authEmail = email.trim()
-        ? email.trim()
-        : `${username.trim().toLowerCase()}@unilink-app.internal`;
+      const emailTrim = email.trim().toLowerCase();
+      const authEmail = emailTrim;
       let authId: string | null = null;
       try {
         const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -228,7 +230,7 @@ export default function CustomerRegister() {
         .insert({
           full_name: fullName,
           phone_number: phoneNumber,
-          email: email || null,
+          email: emailTrim,
           username,
           password_hash: passwordHash,
           phone_verified: false,
@@ -340,7 +342,7 @@ export default function CustomerRegister() {
                 { field: 'fullName', label: 'FULL NAME', placeholder: 'Enter your full name', value: fullName, setter: setFullName, icon: <User size={16} color={isFocused('fullName') ? primary : placeholderColor} />, required: true, caps: 'words' as any },
                 { field: 'username', label: 'USERNAME', placeholder: 'Choose a username', value: username, setter: setUsername, icon: <User size={16} color={isFocused('username') ? primary : placeholderColor} />, required: true, caps: 'none' as any },
                 { field: 'phone', label: 'PHONE NUMBER', placeholder: '+263...', value: phoneNumber, setter: setPhoneNumber, icon: <Phone size={16} color={isFocused('phone') ? primary : placeholderColor} />, required: true, keyboard: 'phone-pad' as any },
-                { field: 'email', label: 'EMAIL', placeholder: 'your@email.com (optional)', value: email, setter: setEmail, icon: <Mail size={16} color={isFocused('email') ? primary : placeholderColor} />, required: false, caps: 'none' as any, keyboard: 'email-address' as any },
+                { field: 'email', label: 'EMAIL', placeholder: 'your@email.com', value: email, setter: setEmail, icon: <Mail size={16} color={isFocused('email') ? primary : placeholderColor} />, required: true, caps: 'none' as any, keyboard: 'email-address' as any },
                 { field: 'password', label: 'PASSWORD', placeholder: 'At least 6 characters', value: password, setter: setPassword, icon: <Lock size={16} color={isFocused('password') ? primary : placeholderColor} />, required: true, secure: true },
                 { field: 'confirmPassword', label: 'CONFIRM PASSWORD', placeholder: 'Re-enter password', value: confirmPassword, setter: setConfirmPassword, icon: <Lock size={16} color={isFocused('confirmPassword') ? primary : placeholderColor} />, required: true, secure: true },
               ].map(({ field, label, placeholder, value, setter, icon, required, caps, keyboard, secure }) => (

@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
-import { ArrowLeft, Plus, Truck, CreditCard as Edit2, Trash2, CircleCheck as CheckCircle, Circle as XCircle, School, Key, RefreshCw } from 'lucide-react-native';
+import { ArrowLeft, Plus, Truck, CreditCard as Edit2, CreditCard, Trash2, CircleCheck as CheckCircle, Circle as XCircle, School, Key, RefreshCw } from 'lucide-react-native';
 import { A } from '@/lib/admin-theme';
 
 type Driver = {
@@ -32,6 +32,7 @@ type Driver = {
   vehicle_type?: string;
   vehicle_registration?: string;
   national_id?: string;
+  national_id_photo_url?: string | null;
   rejection_reason?: string;
   university_id?: string;
   universities?: { name: string };
@@ -55,6 +56,8 @@ export default function ManageDrivers() {
   const [driverToApprove, setDriverToApprove] = useState<Driver | null>(null);
   const [approving, setApproving] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
+  const [showIdPhotoModal, setShowIdPhotoModal] = useState(false);
+  const [idPhotoUrl, setIdPhotoUrl] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     phoneNumber: '',
@@ -564,6 +567,18 @@ export default function ManageDrivers() {
                         {driver.national_id && (
                           <Text style={{ fontSize: 12, color: A.textSub }}>ID: {driver.national_id}</Text>
                         )}
+                        {driver.national_id_photo_url && (
+                          <TouchableOpacity
+                            style={{ marginTop: 6, backgroundColor: A.cyanDim, borderWidth: 1, borderColor: A.cyan, borderRadius: 8, paddingVertical: 8, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start' }}
+                            onPress={() => {
+                              setIdPhotoUrl(driver.national_id_photo_url!);
+                              setShowIdPhotoModal(true);
+                            }}
+                          >
+                            <CreditCard size={14} color={A.cyan} />
+                            <Text style={{ color: A.cyan, fontSize: 12, fontWeight: '600' }}>View ID Card Photo</Text>
+                          </TouchableOpacity>
+                        )}
                         <Text style={{ fontSize: 12, color: A.textSub }}>
                           Delivery: {typeof driver.delivery_type === 'string' ? driver.delivery_type : (driver.delivery_type || []).join(', ')}
                         </Text>
@@ -839,6 +854,34 @@ export default function ManageDrivers() {
                 </Text>
               </TouchableOpacity>
             </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ID Photo Viewer Modal */}
+      <Modal visible={showIdPhotoModal} animationType="fade" transparent>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+          <View style={{ backgroundColor: A.surface, borderRadius: 16, padding: 20, width: '100%', maxWidth: 500, borderWidth: 1, borderColor: A.border }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <Text style={{ fontSize: 16, fontWeight: '700', color: A.text }}>National ID Card</Text>
+              <TouchableOpacity
+                onPress={() => { setShowIdPhotoModal(false); setIdPhotoUrl(null); }}
+                style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: A.surface, borderWidth: 1, borderColor: A.border, justifyContent: 'center', alignItems: 'center' }}
+              >
+                <Text style={{ color: A.textSub, fontSize: 18 }}>x</Text>
+              </TouchableOpacity>
+            </View>
+            {idPhotoUrl && Platform.OS === 'web' ? (
+              <img
+                src={idPhotoUrl}
+                style={{ width: '100%', maxHeight: 400, borderRadius: 10, objectFit: 'contain' as any }}
+                alt="National ID Card"
+              />
+            ) : (
+              <View style={{ height: 300, backgroundColor: A.card, borderRadius: 10, justifyContent: 'center', alignItems: 'center' }}>
+                <Text style={{ color: A.textSub }}>Photo not available on this platform</Text>
+              </View>
+            )}
           </View>
         </View>
       </Modal>

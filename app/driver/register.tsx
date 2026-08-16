@@ -13,7 +13,8 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
-import { ArrowLeft, CircleAlert as AlertCircle, UserCheck, Bike, Car, ChevronRight, MapPin, Phone, Mail, User, Hop as Home, CreditCard, CircleCheck as CheckCircle2 } from 'lucide-react-native';
+import { ArrowLeft, CircleAlert as AlertCircle, UserCheck, Bike, Car, ChevronRight, MapPin, Phone, Mail, User, Hop as Home, CreditCard, CircleCheck as CheckCircle2, Camera, Image as ImageIcon } from 'lucide-react-native';
+import * as ImagePicker from 'expo-image-picker';
 
 const { width } = Dimensions.get('window');
 
@@ -44,6 +45,8 @@ export default function DriverRegister() {
   const [deliveryType, setDeliveryType] = useState<'walking' | 'vehicle'>('walking');
   const [vehicleType, setVehicleType] = useState('');
   const [vehicleRegistration, setVehicleRegistration] = useState('');
+  const [idPhotoUri, setIdPhotoUri] = useState<string | null>(null);
+  const [idPhotoUploading, setIdPhotoUploading] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
 
   const [loading, setLoading] = useState(false);
@@ -75,8 +78,18 @@ export default function DriverRegister() {
   const handleRegister = async () => {
     setError('');
 
-    if (!fullName || !phoneNumber || !address || !nationalId) {
-      setError('Please fill in all required fields');
+    if (!fullName || !phoneNumber || !address || !nationalId || !email.trim()) {
+      setError('Please fill in all required fields, including email');
+      return;
+    }
+    const emailTrim = email.trim().toLowerCase();
+    const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailTrim);
+    if (!emailOk) {
+      setError('Please enter a valid email address');
+      return;
+    }
+    if (!idPhotoUri) {
+      setError('Please upload a photo of your national ID card');
       return;
     }
     if (!universityId) {
@@ -133,12 +146,46 @@ export default function DriverRegister() {
         }
       }
 
+      // Upload national ID photo to storage
+      let idPhotoUrl: string | null = null;
+      if (idPhotoUri) {
+        setIdPhotoUploading(true);
+        try {
+          const fileExt = idPhotoUri.split('.').pop()?.toLowerCase() || 'jpg';
+          const fileName = `id-card-${Date.now()}.${fileExt}`;
+          const filePath = `${fileName}`;
+
+          // Convert URI to blob for upload
+          const response = await fetch(idPhotoUri);
+          const blob = await response.blob();
+
+          const { error: uploadError } = await supabase.storage
+            .from('driver-id-cards')
+            .upload(filePath, blob, {
+              contentType: blob.type || 'image/jpeg',
+            });
+
+          if (uploadError) throw uploadError;
+
+          const { data: urlData } = supabase.storage
+            .from('driver-id-cards')
+            .getPublicUrl(filePath);
+
+          idPhotoUrl = urlData.publicUrl;
+        } catch (uploadErr: any) {
+          throw new Error('Failed to upload ID photo: ' + (uploadErr.message || 'Unknown error'));
+        } finally {
+          setIdPhotoUploading(false);
+        }
+      }
+
       const { error: insertError } = await supabase.from('drivers').insert({
         full_name: fullName,
         phone_number: phoneNumber,
-        email: email || null,
+        email: emailTrim,
         address: address,
         national_id: nationalId,
+        national_id_photo_url: idPhotoUrl,
         university_id: finalUniversityId,
         delivery_type: [deliveryType],
         vehicle_type: deliveryType === 'vehicle' ? vehicleType : null,
@@ -258,9 +305,10 @@ export default function DriverRegister() {
             <InputField
               icon={<Mail size={16} color={TEXT_MUTED} />}
               label="Email Address"
+              required
               value={email}
               onChangeText={setEmail}
-              placeholder="Optional"
+              placeholder="your@email.com"
               keyboardType="email-address"
               autoCapitalize="none"
               fieldName="email"
@@ -293,6 +341,103 @@ export default function DriverRegister() {
               focusedField={focusedField}
               setFocusedField={setFocusedField}
             />
+
+            {/* National ID Photo Upload */}
+            <View style={styles.inputGroup}>
+              <View style={styles.labelRow}>
+                <CreditCard size={14} color={TEXT_MUTED} />
+                <Text style={styles.label}>
+                  National ID Card Photo <Text style={styles.required}>*</Text>
+                </Text>
+              </View>
+              <Text style={styles.idPhotoHint}>
+                Upload a clear photo of your national ID card. Admins will review it before approving your application.
+              </Text>
+              {idPhotoUri ? (
+                <View style={styles.idPhotoPreviewContainer}>
+                  {Platform.OS === 'web' ? (
+                    <img
+                      src={idPhotoUri}
+                      style={{ width: '100%', maxHeight: 200, borderRadius: 10, objectFit: 'cover' as any }}
+                      alt="National ID"
+                    />
+                  ) : (
+                    <View style={styles.idPhotoPreview} />
+                  )}
+                  <View style={styles.idPhotoActions}>
+                    <TouchableOpacity
+                      style={styles.idPhotoRetakeBtn}
+                      onPress={async () => {
+                        const result = await ImagePicker.launchImageLibraryAsync({
+                          mediaTypes: ['images'],
+                          allowsEditing: true,
+                          aspect: [16, 10],
+                          quality: 0.8,
+                        });
+                        if (!result.canceled && result.assets[0]?.uri) {
+                          setIdPhotoUri(result.assets[0].uri);
+                        }
+                      }}
+                    >
+                      <Text style={styles.idPhotoRetakeText}>Replace Photo</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.idPhotoRemoveBtn}
+                      onPress={() => setIdPhotoUri(null)}
+                    >
+                      <Text style={styles.idPhotoRemoveText}>Remove</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ) : (
+                <View style={styles.idPhotoUploadRow}>
+                  <TouchableOpacity
+                    style={styles.idPhotoUploadBtn}
+                    onPress={async () => {
+                      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+                      if (status !== 'granted') {
+                        setError('Permission to access photos is required');
+                        return;
+                      }
+                      const result = await ImagePicker.launchImageLibraryAsync({
+                        mediaTypes: ['images'],
+                        allowsEditing: true,
+                        aspect: [16, 10],
+                        quality: 0.8,
+                      });
+                      if (!result.canceled && result.assets[0]?.uri) {
+                        setIdPhotoUri(result.assets[0].uri);
+                      }
+                    }}
+                  >
+                    <ImageIcon size={22} color={NEON_CYAN} />
+                    <Text style={styles.idPhotoUploadText}>Choose from Gallery</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.idPhotoUploadBtn}
+                    onPress={async () => {
+                      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+                      if (status !== 'granted') {
+                        setError('Permission to access camera is required');
+                        return;
+                      }
+                      const result = await ImagePicker.launchCameraAsync({
+                        mediaTypes: ['images'],
+                        allowsEditing: true,
+                        aspect: [16, 10],
+                        quality: 0.8,
+                      });
+                      if (!result.canceled && result.assets[0]?.uri) {
+                        setIdPhotoUri(result.assets[0].uri);
+                      }
+                    }}
+                  >
+                    <Camera size={22} color={NEON_CYAN} />
+                    <Text style={styles.idPhotoUploadText}>Take Photo</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
           </View>
 
           <View style={styles.sectionBlock}>
@@ -833,5 +978,73 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '800',
     letterSpacing: 0.3,
+  },
+  idPhotoHint: {
+    fontSize: 12,
+    color: TEXT_MUTED,
+    lineHeight: 17,
+    marginBottom: 8,
+  },
+  idPhotoUploadRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  idPhotoUploadBtn: {
+    flex: 1,
+    backgroundColor: DARK_CARD,
+    borderWidth: 1,
+    borderColor: DARK_BORDER,
+    borderRadius: 10,
+    paddingVertical: 18,
+    alignItems: 'center',
+    gap: 8,
+  },
+  idPhotoUploadText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: NEON_CYAN,
+  },
+  idPhotoPreviewContainer: {
+    gap: 10,
+  },
+  idPhotoPreview: {
+    width: '100%',
+    height: 200,
+    backgroundColor: DARK_CARD,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: NEON_CYAN,
+  },
+  idPhotoActions: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  idPhotoRetakeBtn: {
+    flex: 1,
+    backgroundColor: 'rgba(0,229,255,0.08)',
+    borderWidth: 1,
+    borderColor: NEON_CYAN,
+    borderRadius: 8,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  idPhotoRetakeText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: NEON_CYAN,
+  },
+  idPhotoRemoveBtn: {
+    flex: 1,
+    backgroundColor: 'rgba(255,51,102,0.08)',
+    borderWidth: 1,
+    borderColor: '#ff3366',
+    borderRadius: 8,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  idPhotoRemoveText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#ff3366',
   },
 });
