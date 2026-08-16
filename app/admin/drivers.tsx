@@ -197,7 +197,7 @@ export default function ManageDrivers() {
       phoneNumber: driver.phone_number,
       fullName: driver.full_name,
       location: driver.location || '',
-      deliveryTypes: driver.delivery_type || [],
+      deliveryTypes: Array.isArray(driver.delivery_type) ? driver.delivery_type : [driver.delivery_type].filter(Boolean),
       paymentMethods: driver.payment_methods || [],
     });
     setShowModal(true);
