@@ -540,6 +540,12 @@ export default function CustomerOrders() {
           <ArrowLeft size={18} color={TX2} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Order History</Text>
+        <TouchableOpacity
+          style={[styles.backButton, { borderColor: '#0066ff' }]}
+          onPress={() => router.push('/customer/marketplace/orders')}
+        >
+          <ShoppingBag size={18} color="#0066ff" />
+        </TouchableOpacity>
       </View>
 
       {notification && (

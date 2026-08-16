@@ -989,6 +989,13 @@ export default function DriverDashboard() {
           <Text style={s.navItemLabel}>Customers</Text>
         </TouchableOpacity>
         <TouchableOpacity style={s.navItem}
+          onPress={() => router.push('/driver/shop-deliveries' as any)}>
+          <View style={s.navIconWrap}>
+            <Package size={24} color={TEXT2} />
+          </View>
+          <Text style={s.navItemLabel}>Shop Deliveries</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={s.navItem}
           onPress={() => router.push({ pathname: '/driver/settings', params: { driverId } })}>
           <Settings size={24} color={TEXT2} />
           <Text style={s.navItemLabel}>Settings</Text>
