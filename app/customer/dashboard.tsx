@@ -16,7 +16,7 @@ import {
 } from 'react-native';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { supabase } from '@/lib/supabase';
-import { LogOut, ShoppingCart, Car, User, CircleAlert as AlertCircle, History, ChevronDown, ChevronUp, Plus, X, Package, Search, Star, CircleCheck as CheckCircle, Camera, Image as ImageIcon, MessageCircle, Circle as HelpCircle, Bell, Truck } from 'lucide-react-native';
+import { LogOut, ShoppingCart, ShoppingBag, Car, User, CircleAlert as AlertCircle, History, ChevronDown, ChevronUp, Plus, X, Package, Search, Star, CircleCheck as CheckCircle, Camera, Image as ImageIcon, MessageCircle, Circle as HelpCircle, Bell, Truck } from 'lucide-react-native';
 import * as Location from 'expo-location';
 import * as ImagePicker from 'expo-image-picker';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -1467,6 +1467,14 @@ export default function CustomerDashboard() {
           >
             <HelpCircle size={14} color="#00e5ff" />
             <Text style={styles.tutorialBtnText}>How it works</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => router.push('/customer/marketplace')}
+            style={[styles.tutorialBtn, { backgroundColor: '#00e5ff', borderColor: '#00e5ff' }]}
+            activeOpacity={0.75}
+          >
+            <ShoppingBag size={14} color="#050D1A" />
+            <Text style={[styles.tutorialBtnText, { color: '#050D1A' }]}>Shop Groceries</Text>
           </TouchableOpacity>
         </View>
         <View style={styles.headerContent}>

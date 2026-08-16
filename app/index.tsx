@@ -15,6 +15,7 @@ import {
   Truck,
   UserCog,
   UserPlus,
+  Store,
   Moon,
   Sun,
   Download,
@@ -795,8 +796,12 @@ export default function Home() {
               </TouchableOpacity>
             </View>
 
-            {/* Admin row */}
+            {/* Shop Owner + Admin row */}
             <View style={s.adminRow}>
+              <TouchableOpacity style={s.adminBtn} onPress={() => router.push('/shop/login')}>
+                <Store size={15} color={colors.textTertiary} />
+                <Text style={s.adminBtnText}>Shop Owner</Text>
+              </TouchableOpacity>
               <TouchableOpacity style={s.adminBtn} onPress={() => router.push('/admin/login')}>
                 <UserCog size={15} color={colors.textTertiary} />
                 <Text style={s.adminBtnText}>Admin</Text>

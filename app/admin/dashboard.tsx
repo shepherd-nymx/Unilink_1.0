@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, Animated } from 'react-native';
 import { useRouter } from 'expo-router';
-import { LogOut, Users, Truck, Package, UserCog, ShoppingBag, School, ChevronRight, Star, Mail } from 'lucide-react-native';
+import { LogOut, Users, Truck, Package, UserCog, ShoppingBag, School, ChevronRight, Star, Mail, Store } from 'lucide-react-native';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { clearUserData } from '@/lib/storage-service';
 import { A } from '@/lib/admin-theme';
@@ -84,6 +84,14 @@ export default function AdminDashboard() {
       color: A.cyan,
       dimColor: A.cyanDim,
       route: '/admin/emails',
+    },
+    {
+      label: 'Shops',
+      description: 'Approve shops, set fees, view orders',
+      icon: Store,
+      color: '#10b981',
+      dimColor: 'rgba(16,185,129,0.12)',
+      route: '/admin/shops',
     },
   ];
 
