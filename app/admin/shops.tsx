@@ -16,6 +16,8 @@ import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { A } from '@/lib/admin-theme';
 import { ArrowLeft, Store, CircleCheck as CheckCircle, Circle as XCircle, DollarSign, Clock, Ban, Eye, X, CircleAlert as AlertCircle, ShoppingBag, Settings } from 'lucide-react-native';
+import { SkeletonList } from '@/components/Skeleton';
+import { ConnectionBadge } from '@/components/ConnectionBadge';
 
 type Shop = {
   id: string;
@@ -79,12 +81,25 @@ export default function AdminShops() {
   const [savingFee, setSavingFee] = useState(false);
   const [feeSaved, setFeeSaved] = useState(false);
   const [error, setError] = useState('');
+  const [connState, setConnState] = useState<'connecting' | 'connected' | 'disconnected' | 'error'>('connecting');
 
   useEffect(() => {
     loadData();
     Animated.parallel([
       Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
     ]).start();
+
+    const channel = supabase
+      .channel('admin-shops-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'shops' }, () => loadData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'shop_orders' }, () => loadData())
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') setConnState('connected');
+        else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') { setConnState('error'); setTimeout(() => loadData(), 2000); }
+        else if (status === 'CLOSED') setConnState('disconnected');
+      });
+
+    return () => { supabase.removeChannel(channel); };
   }, []);
 
   const loadData = async () => {
@@ -197,8 +212,17 @@ export default function AdminShops() {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={A.cyan} />
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+            <ArrowLeft size={18} color={A.text} />
+          </TouchableOpacity>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.headerTitle}>Shop Management</Text>
+            <Text style={styles.headerSub}>Loading shops...</Text>
+          </View>
+        </View>
+        <SkeletonList count={6} lines={3} />
       </View>
     );
   }
@@ -213,6 +237,7 @@ export default function AdminShops() {
           <Text style={styles.headerTitle}>Shop Management</Text>
           <Text style={styles.headerSub}>{shops.length} shops registered</Text>
         </View>
+        <ConnectionBadge state={connState} />
       </View>
 
       <Animated.View style={{ flex: 1, opacity: fadeAnim }}>

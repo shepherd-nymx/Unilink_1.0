@@ -14,6 +14,8 @@ import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { ArrowLeft, Plus, Truck, CreditCard as Edit2, CreditCard, Trash2, CircleCheck as CheckCircle, Circle as XCircle, School, Key, RefreshCw } from 'lucide-react-native';
 import { A } from '@/lib/admin-theme';
+import { SkeletonList } from '@/components/Skeleton';
+import { ConnectionBadge } from '@/components/ConnectionBadge';
 
 type Driver = {
   id: string;
@@ -45,6 +47,7 @@ export default function ManageDrivers() {
   const [selectedUniversityFilter, setSelectedUniversityFilter] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [connState, setConnState] = useState<'connecting' | 'connected' | 'disconnected' | 'error'>('connecting');
   const [showModal, setShowModal] = useState(false);
   const [adding, setAdding] = useState(false);
   const [editingDriver, setEditingDriver] = useState<Driver | null>(null);
@@ -77,6 +80,17 @@ export default function ManageDrivers() {
       Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
       Animated.timing(slideAnim, { toValue: 0, duration: 400, useNativeDriver: true }),
     ]).start();
+
+    const channel = supabase
+      .channel('admin-drivers-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'drivers' }, () => loadDrivers())
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') setConnState('connected');
+        else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') { setConnState('error'); setTimeout(() => loadDrivers(), 2000); }
+        else if (status === 'CLOSED') setConnState('disconnected');
+      });
+
+    return () => { supabase.removeChannel(channel); };
   }, []);
 
   useEffect(() => {
@@ -333,8 +347,17 @@ export default function ManageDrivers() {
 
   if (loading) {
     return (
-      <View style={{ flex: 1, backgroundColor: A.bg, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" color={A.cyan} />
+      <View style={{ flex: 1, backgroundColor: A.bg }}>
+        <View style={{ backgroundColor: A.surface, paddingTop: 60, paddingBottom: 16, paddingHorizontal: 20, borderBottomWidth: 1, borderBottomColor: A.border, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+          <TouchableOpacity onPress={() => router.back()} style={{ width: 36, height: 36, borderRadius: 8, backgroundColor: A.cyanDim, borderWidth: 1, borderColor: A.cyan, justifyContent: 'center', alignItems: 'center' }}>
+            <ArrowLeft size={18} color={A.cyan} />
+          </TouchableOpacity>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 10, fontWeight: '700', letterSpacing: 2, color: A.textMuted, textTransform: 'uppercase' }}>FLEET MANAGEMENT</Text>
+            <Text style={{ fontSize: 22, fontWeight: '800', color: A.text }}>Manage Drivers</Text>
+          </View>
+        </View>
+        <SkeletonList count={6} lines={4} />
       </View>
     );
   }
@@ -376,6 +399,7 @@ export default function ManageDrivers() {
           </Text>
           <Text style={{ fontSize: 22, fontWeight: '800', color: A.text }}>Manage Drivers</Text>
         </View>
+        <ConnectionBadge state={connState} />
         <TouchableOpacity
           onPress={() => {
             setEditingDriver(null);

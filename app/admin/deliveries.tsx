@@ -11,6 +11,8 @@ import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { ArrowLeft, Package, User, Truck, ShoppingBag, Circle as XCircle, MapPin, Navigation } from 'lucide-react-native';
 import { A } from '@/lib/admin-theme';
+import { SkeletonList } from '@/components/Skeleton';
+import { ConnectionBadge } from '@/components/ConnectionBadge';
 import type { DeliveryRequestRow } from '@/lib/delivery-request-types';
 
 type Delivery = {
@@ -60,6 +62,7 @@ export default function ViewDeliveries() {
   const [activeTab, setActiveTab] = useState<'active' | 'declined' | 'requests'>('active');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [connState, setConnState] = useState<'connecting' | 'connected' | 'disconnected' | 'error'>('connecting');
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(20)).current;
@@ -72,6 +75,19 @@ export default function ViewDeliveries() {
       Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
       Animated.timing(slideAnim, { toValue: 0, duration: 400, useNativeDriver: true }),
     ]).start();
+
+    const channel = supabase
+      .channel('admin-deliveries-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'deliveries' }, () => loadDeliveries())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'declined_deliveries' }, () => loadDeclinedDeliveries())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'delivery_requests' }, () => loadDeliveryRequests())
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') setConnState('connected');
+        else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') { setConnState('error'); setTimeout(() => { loadDeliveries(); loadDeclinedDeliveries(); loadDeliveryRequests(); }, 2000); }
+        else if (status === 'CLOSED') setConnState('disconnected');
+      });
+
+    return () => { supabase.removeChannel(channel); };
   }, []);
 
   const loadDeliveries = async () => {
@@ -172,8 +188,17 @@ export default function ViewDeliveries() {
 
   if (loading) {
     return (
-      <View style={{ flex: 1, backgroundColor: A.bg, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" color={A.cyan} />
+      <View style={{ flex: 1, backgroundColor: A.bg }}>
+        <View style={{ backgroundColor: A.surface, paddingTop: 60, paddingBottom: 16, paddingHorizontal: 20, borderBottomWidth: 1, borderBottomColor: A.border, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+          <TouchableOpacity onPress={() => router.back()} style={{ width: 36, height: 36, borderRadius: 8, backgroundColor: A.cyanDim, borderWidth: 1, borderColor: A.cyan, justifyContent: 'center', alignItems: 'center' }}>
+            <ArrowLeft size={18} color={A.cyan} />
+          </TouchableOpacity>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 10, fontWeight: '700', letterSpacing: 2, color: A.textMuted }}>ORDER TRACKING</Text>
+            <Text style={{ fontSize: 22, fontWeight: '800', color: A.text }}>All Deliveries</Text>
+          </View>
+        </View>
+        <SkeletonList count={6} lines={3} />
       </View>
     );
   }
@@ -215,6 +240,7 @@ export default function ViewDeliveries() {
           </Text>
           <Text style={{ fontSize: 22, fontWeight: '800', color: A.text }}>All Deliveries</Text>
         </View>
+        <ConnectionBadge state={connState} />
         <View style={{ width: 36 }} />
       </View>
 

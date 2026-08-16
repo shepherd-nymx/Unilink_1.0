@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { supabase } from '@/lib/supabase';
+import { SkeletonList } from '@/components/Skeleton';
 import {
   ArrowLeft, Package, Clock, CircleCheck as CheckCircle,
   Circle as XCircle, FileText, CreditCard, Copy, CircleAlert as AlertCircle,
@@ -525,8 +526,8 @@ export default function CustomerOrders() {
 
   if (loading) {
     return (
-      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator size="large" color={P} />
+      <View style={[styles.container]}>
+        <SkeletonList count={6} lines={3} />
       </View>
     );
   }

@@ -16,6 +16,7 @@ import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { loadShopSession, clearShopSession, type ShopSessionData } from '@/lib/shop-session-service';
 import { A } from '@/lib/admin-theme';
+import { SkeletonList } from '@/components/Skeleton';
 import { Store, Package, ShoppingBag, LogOut, Plus, Trash2, CircleCheck as CheckCircle, Circle as XCircle, Clock, Truck, DollarSign, TrendingUp, X, Image as ImageIcon, CircleAlert as AlertCircle } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 
@@ -115,7 +116,7 @@ export default function ShopDashboard() {
     Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }).start();
   }, []);
 
-  // Realtime subscription for new orders
+  // Realtime subscription for new orders and products
   useEffect(() => {
     if (!shop) return;
     const channel = supabase
@@ -124,6 +125,11 @@ export default function ShopDashboard() {
         'postgres_changes' as any,
         { event: '*', table: 'shop_orders', filter: `shop_id=eq.${shop.id}` } as any,
         () => loadOrders(shop.id)
+      )
+      .on(
+        'postgres_changes' as any,
+        { event: '*', table: 'shop_products', filter: `shop_id=eq.${shop.id}` } as any,
+        () => loadProducts(shop.id)
       )
       .subscribe();
     return () => { supabase.removeChannel(channel); };
@@ -383,8 +389,8 @@ export default function ShopDashboard() {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={A.cyan} />
+      <View style={styles.container}>
+        <SkeletonList count={5} lines={3} />
       </View>
     );
   }
