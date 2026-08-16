@@ -138,18 +138,25 @@ export default function AdminShops() {
     const shop = shops.find(s => s.id === shopId);
     if (shop?.contact_email) {
       const emailType = newStatus === 'payment_required' ? 'shop_approval' :
-        newStatus === 'active' ? 'shop_activated' : '';
+        newStatus === 'active' ? 'shop_activated' :
+        newStatus === 'rejected' ? 'shop_notification' : '';
       if (emailType) {
         try {
           const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
           const anonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+          const emailData: Record<string, any> = { shopName: shop.name };
+          if (newStatus === 'rejected') {
+            emailData.action = 'rejected';
+            emailData.rejectionReason = extra?.rejection_reason || '';
+          }
           await fetch(`${supabaseUrl}/functions/v1/resend-email`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${anonKey}` },
+            headers: { 'Content-Type': 'application/json', apikey: anonKey! },
             body: JSON.stringify({
               type: emailType,
               to: shop.contact_email,
-              data: { shopName: shop.name },
+              userType: 'shop',
+              data: emailData,
             }),
           });
         } catch {}

@@ -332,6 +332,16 @@ function renderShopNotification(d: Record<string, any>): { subject: string; html
   } else if (action === "rejected") {
     heading = `Order #${orderNum} rejected`;
     body = "You rejected this order. The customer has been notified.";
+  } else if (action === "registration_received") {
+    const shopName = d.shopName || "your shop";
+    heading = "Registration received — under review";
+    body = `Thank you for registering <strong>${escapeHtml(shopName)}</strong> on UniLink. Your shop application is now pending admin approval. We'll email you once it has been reviewed.`;
+    const html = `
+      <h1>${escapeHtml(heading)}</h1>
+      <p>${body}</p>
+      <p class="small">You can check your shop status anytime from your shop dashboard.</p>`;
+    const text = `${heading}\n\nThank you for registering ${shopName} on UniLink. Your shop application is pending admin approval. We'll email you once reviewed.`;
+    return { subject: `Registration received — ${shopName}`, html, text };
   }
   const items = Array.isArray(d.items) ? d.items : [];
   const rows = items

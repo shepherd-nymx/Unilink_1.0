@@ -163,6 +163,26 @@ export default function ShopRegister() {
         shopStatus: shop.status,
       });
 
+      // Send registration confirmation email to shop owner
+      try {
+        const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
+        const anonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+        await fetch(`${supabaseUrl}/functions/v1/resend-email`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', apikey: anonKey! },
+          body: JSON.stringify({
+            type: 'shop_notification',
+            to: emailTrim,
+            userType: 'shop',
+            data: {
+              action: 'registration_received',
+              shopName: shop.name,
+              shopId: shop.id,
+            },
+          }),
+        });
+      } catch {}
+
       setSuccess(true);
       setTimeout(() => {
         router.replace('/shop/dashboard');
