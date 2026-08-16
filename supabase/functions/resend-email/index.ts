@@ -38,7 +38,13 @@ type EmailType =
   | "shop_notification"
   | "payment_success"
   | "payment_failed"
-  | "payment_refunded";
+  | "payment_refunded"
+  | "shop_approval"
+  | "shop_payment_required"
+  | "shop_activated"
+  | "shop_new_order"
+  | "shop_order_status"
+  | "shop_messenger_assigned";
 
 interface EmailRequest {
   type: EmailType;
@@ -46,7 +52,6 @@ interface EmailRequest {
   userId?: string | null;
   userType?: "customer" | "driver" | "admin" | "shop" | null;
   orderId?: string | null;
-  // Type-specific payload
   data?: Record<string, any>;
 }
 
@@ -56,11 +61,23 @@ const STATUS_LABELS: Record<string, string> = {
   in_progress: "Out for Delivery",
   delivered: "Delivered",
   cancelled: "Cancelled",
+  confirmed: "Order Confirmed",
+  preparing: "Preparing Your Order",
+  ready: "Ready for Pickup",
+  assigned: "Messenger Assigned",
+  picked_up: "Picked Up",
+  out_for_delivery: "Out for Delivery",
 };
 
-// ---------------------------------------------------------------------------
-// DB client (service role → bypasses RLS, only used server-side)
-// ---------------------------------------------------------------------------
+const SHOP_STATUS_LABELS: Record<string, string> = {
+  pending_approval: "Pending Approval",
+  payment_required: "Payment Required",
+  payment_submitted: "Payment Submitted",
+  active: "Active",
+  suspended: "Suspended",
+  rejected: "Rejected",
+};
+
 function getSupabase() {
   const url = Deno.env.get("SUPABASE_URL");
   const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -68,12 +85,6 @@ function getSupabase() {
   return createClient(url, key, { auth: { persistSession: false } });
 }
 
-// ---------------------------------------------------------------------------
-// Idempotency: insert a "pending" row. If a row already exists for the same
-// (recipient_email, type, order_id) — or (recipient_email, type) when no
-// order — the unique index rejects the insert and we treat it as "already sent".
-// Returns { id, isDuplicate }.
-// ---------------------------------------------------------------------------
 async function reserveEmailSlot(
   supabase: ReturnType<typeof getSupabase>,
   req: EmailRequest,
@@ -98,7 +109,6 @@ async function reserveEmailSlot(
     .maybeSingle();
 
   if (error) {
-    // 23505 = unique_violation → duplicate, already sent (or in flight)
     if (error.code === "23505") return { id: null, isDuplicate: true };
     throw error;
   }
@@ -123,17 +133,10 @@ async function markFailed(
 ) {
   await supabase
     .from("email_notifications")
-    .update({
-      status: "failed",
-      error_message: message,
-      attempts: 1,
-    })
+    .update({ status: "failed", error_message: message, attempts: 1 })
     .eq("id", id);
 }
 
-// ---------------------------------------------------------------------------
-// Resend API call
-// ---------------------------------------------------------------------------
 async function sendViaResend(payload: {
   from: string;
   to: string;
@@ -161,9 +164,6 @@ async function sendViaResend(payload: {
   return { id: body.id };
 }
 
-// ---------------------------------------------------------------------------
-// Branded email template (responsive HTML + plain text)
-// ---------------------------------------------------------------------------
 function logoBlock(): string {
   return `
   <div style="text-align:center;margin:0 0 24px 0;">
@@ -230,7 +230,7 @@ function plainTextWrap(body: string): string {
 }
 
 // ---------------------------------------------------------------------------
-// Per-type renderers → { subject, html, text }
+// Per-type renderers
 // ---------------------------------------------------------------------------
 function renderWelcome(d: Record<string, any>): { subject: string; html: string; text: string } {
   const name = d.name || "there";
@@ -323,7 +323,7 @@ function renderMessengerAssignment(d: Record<string, any>): { subject: string; h
 
 function renderShopNotification(d: Record<string, any>): { subject: string; html: string; text: string } {
   const orderNum = d.orderNumber || d.orderId || "—";
-  const action = d.action || "new_order"; // new_order | confirmed | rejected
+  const action = d.action || "new_order";
   let heading = "You have a new order";
   let body = `A new order (#${orderNum}) has been placed. Review the details and confirm or reject it.`;
   if (action === "confirmed") {
@@ -362,6 +362,96 @@ function renderPayment(d: Record<string, any>, kind: "success" | "failed" | "ref
   return { subject: map.s, html, text };
 }
 
+// ---------------------------------------------------------------------------
+// Shop-specific email renderers
+// ---------------------------------------------------------------------------
+function renderShopApproval(d: Record<string, any>): { subject: string; html: string; text: string } {
+  const shopName = d.shopName || "your shop";
+  const html = `
+    <h1>Your shop has been approved!</h1>
+    <p>Great news — <strong>${escapeHtml(shopName)}</strong> has been approved by the UniLink admin team.</p>
+    <p>Before your shop goes live, you'll need to pay the registration fee. Visit your shop dashboard to complete the payment.</p>
+    ${ctaButton(`${APP_URL}/shop/dashboard`, "Pay Registration Fee")}
+    <p class="small">Once payment is verified, your shop will be active and visible to customers.</p>`;
+  const text = `Your shop has been approved!\n\n${shopName} has been approved. Pay the registration fee to activate your shop.\n\nDashboard: ${APP_URL}/shop/dashboard`;
+  return { subject: `Shop approved — ${shopName}`, html, text };
+}
+
+function renderShopPaymentRequired(d: Record<string, any>): { subject: string; html: string; text: string } {
+  const shopName = d.shopName || "your shop";
+  const fee = d.fee != null ? Number(d.fee).toFixed(2) : "10.00";
+  const html = `
+    <h1>Payment required — $${fee}</h1>
+    <p>To activate <strong>${escapeHtml(shopName)}</strong>, please pay the registration fee of $${fee}.</p>
+    <p>Use EcoCash or your preferred payment method from the shop dashboard.</p>
+    ${ctaButton(`${APP_URL}/shop/dashboard`, "Pay Now")}
+    <p class="small">Your shop will become active once payment is verified by our admin team.</p>`;
+  const text = `Payment required — $${fee}\n\nTo activate ${shopName}, pay the registration fee of $${fee}.\n\nDashboard: ${APP_URL}/shop/dashboard`;
+  return { subject: `Payment required — ${shopName}`, html, text };
+}
+
+function renderShopActivated(d: Record<string, any>): { subject: string; html: string; text: string } {
+  const shopName = d.shopName || "your shop";
+  const html = `
+    <h1>Your shop is now live!</h1>
+    <p><strong>${escapeHtml(shopName)}</strong> is now active and visible to customers.</p>
+    <p>You can start adding products and receiving orders right away.</p>
+    ${ctaButton(`${APP_URL}/shop/dashboard`, "Open Dashboard")}
+    <p class="small">Welcome to the UniLink marketplace!</p>`;
+  const text = `Your shop is now live!\n\n${shopName} is active and visible to customers.\n\nDashboard: ${APP_URL}/shop/dashboard`;
+  return { subject: `Shop activated — ${shopName}`, html, text };
+}
+
+function renderShopNewOrder(d: Record<string, any>): { subject: string; html: string; text: string } {
+  const orderNum = d.orderNumber || d.orderId || "—";
+  const customerName = d.customerName || "a customer";
+  const items = Array.isArray(d.items) ? d.items : [];
+  const total = d.total != null ? Number(d.total).toFixed(2) : "—";
+  const rows = items
+    .map((it: any) => `<tr><td style="padding:6px 0;">${escapeHtml(it.name || "Item")} ×${it.qty ?? it.quantity ?? 1}</td><td style="text-align:right;padding:6px 0;">${formatMoney(it.price)}</td></tr>`)
+    .join("");
+  const html = `
+    <h1>New order received — #${orderNum}</h1>
+    <p>${escapeHtml(customerName)} just placed an order from your shop.</p>
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width:100%;font-size:14px;margin:8px 0 16px 0;">
+      ${rows}
+    </table>
+    <p><strong>Total:</strong> $${total}</p>
+    ${ctaButton(`${APP_URL}/shop/dashboard`, "Review Order")}
+    <p class="small">Confirm or reject the order from your dashboard.</p>`;
+  const text = `New order — #${orderNum}\n\n${customerName} placed an order.\n\nTotal: $${total}\n\nDashboard: ${APP_URL}/shop/dashboard`;
+  return { subject: `New order — #${orderNum}`, html, text };
+}
+
+function renderShopOrderStatus(d: Record<string, any>): { subject: string; html: string; text: string } {
+  const orderNum = d.orderNumber || d.orderId || "—";
+  const status = d.statusTo || d.status || "—";
+  const label = STATUS_LABELS[status] || status;
+  const html = `
+    <h1>Order #${orderNum} — ${escapeHtml(label)}</h1>
+    <p>Your order status has been updated.</p>
+    <p style="font-size:18px;font-weight:800;color:#0066ff;">${escapeHtml(label)}</p>
+    ${ctaButton(`${APP_URL}/customer/marketplace/orders`, "Track Order")}`;
+  const text = `Order #${orderNum} — ${label}\n\nTrack: ${APP_URL}/customer/marketplace/orders`;
+  return { subject: `Order #${orderNum}: ${label}`, html, text };
+}
+
+function renderShopMessengerAssigned(d: Record<string, any>): { subject: string; html: string; text: string } {
+  const orderNum = d.orderNumber || d.orderId || "—";
+  const messengerName = d.messengerName || "a messenger";
+  const pickup = d.pickup || "—";
+  const delivery = d.delivery || "—";
+  const html = `
+    <h1>Delivery assigned — #${orderNum}</h1>
+    <p>${escapeHtml(messengerName)} has been assigned to deliver order #${orderNum}.</p>
+    <p><strong>Pickup:</strong><br>${escapeHtml(pickup)}</p>
+    <p><strong>Drop-off:</strong><br>${escapeHtml(delivery)}</p>
+    ${ctaButton(`${APP_URL}/driver/delivery-requests`, "Open Dashboard")}
+    <p class="small">Update the delivery status from your dashboard.</p>`;
+  const text = `Delivery assigned — #${orderNum}\n\n${messengerName} assigned.\nPickup: ${pickup}\nDrop-off: ${delivery}\n\nDashboard: ${APP_URL}/driver/delivery-requests`;
+  return { subject: `Delivery assigned — #${orderNum}`, html, text };
+}
+
 function render(req: EmailRequest): { subject: string; html: string; text: string } {
   const d = req.data || {};
   switch (req.type) {
@@ -375,6 +465,12 @@ function render(req: EmailRequest): { subject: string; html: string; text: strin
     case "payment_success": return renderPayment(d, "success");
     case "payment_failed": return renderPayment(d, "failed");
     case "payment_refunded": return renderPayment(d, "refunded");
+    case "shop_approval": return renderShopApproval(d);
+    case "shop_payment_required": return renderShopPaymentRequired(d);
+    case "shop_activated": return renderShopActivated(d);
+    case "shop_new_order": return renderShopNewOrder(d);
+    case "shop_order_status": return renderShopOrderStatus(d);
+    case "shop_messenger_assigned": return renderShopMessengerAssigned(d);
     default: throw new Error(`Unknown email type: ${req.type}`);
   }
 }
@@ -390,9 +486,7 @@ function formatMoney(v: any): string {
 }
 
 // ---------------------------------------------------------------------------
-// Outbox dispatch path — used when the function is invoked by the outbox
-// dispatcher with event_type 'email.order_status'. It looks up the delivery +
-// customer email and calls the same render/send pipeline.
+// Outbox dispatch path
 // ---------------------------------------------------------------------------
 async function dispatchOutboxRow(
   supabase: ReturnType<typeof getSupabase>,
@@ -402,7 +496,6 @@ async function dispatchOutboxRow(
   const statusTo = payload.status_to;
   if (!deliveryId || !statusTo) return;
 
-  // Fetch delivery + customer email
   const { data: delivery, error: dErr } = await supabase
     .from("deliveries")
     .select("id, customer_id, total_amount, delivery_fee, items, status, formatted_address")
@@ -433,9 +526,6 @@ async function dispatchOutboxRow(
   await sendOne(supabase, req);
 }
 
-// ---------------------------------------------------------------------------
-// Single email send with idempotency + logging
-// ---------------------------------------------------------------------------
 async function sendOne(
   supabase: ReturnType<typeof getSupabase>,
   req: EmailRequest,
@@ -483,9 +573,6 @@ Deno.serve(async (req: Request) => {
     const supabase = getSupabase();
     const body = await req.json();
 
-    // Two modes:
-    //  (A) Direct send: { type, to, ... }  → send one email
-    //  (B) Outbox batch: { outbox: true, rows: [...] } → process each row
     if (body?.outbox && Array.isArray(body.rows)) {
       const results = [];
       for (const row of body.rows) {
@@ -501,7 +588,6 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // Retry path: { retry: true, id: "<email_notification id>" }
     if (body?.retry && body.id) {
       const { data: existing, error } = await supabase
         .from("email_notifications")
@@ -526,7 +612,6 @@ Deno.serve(async (req: Request) => {
         orderId: existing.order_id,
         data: existing.metadata || {},
       };
-      // Bypass idempotency reserve by reusing the existing row id
       let rendered: { subject: string; html: string; text: string };
       try { rendered = render(req); }
       catch (e: any) {
@@ -560,7 +645,6 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    // Direct send
     const req: EmailRequest = {
       type: body.type,
       to: body.to,
@@ -571,7 +655,7 @@ Deno.serve(async (req: Request) => {
     };
     const result = await sendOne(supabase, req);
     return new Response(JSON.stringify(result), {
-      status: result.status === "failed" ? 200 : 200, // never block caller on failure
+      status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err: any) {
