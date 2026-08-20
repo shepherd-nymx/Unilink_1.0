@@ -267,7 +267,7 @@ export default function ShopDashboard() {
     // Notify messenger via email if they have one
     const { data: driver } = await supabase
       .from('drivers')
-      .select('email')
+      .select('email, whatsapp_number, phone_number')
       .eq('id', driverId)
       .maybeSingle();
     if (driver?.email) {
@@ -277,6 +277,34 @@ export default function ShopDashboard() {
         pickup: shop.address || shop.name,
         delivery: selectedOrder.delivery_location || 'See app',
       }, selectedOrder.id);
+    }
+
+    // Send WhatsApp notification to the driver
+    if (driver && (driver.whatsapp_number || driver.phone_number)) {
+      try {
+        const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
+        const anonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+        await fetch(`${supabaseUrl}/functions/v1/send-whatsapp-notification`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${anonKey}` },
+          body: JSON.stringify({
+            orderId: selectedOrder.id,
+            orderNumber: selectedOrder.id.slice(0, 8),
+            driverId,
+            driverPhone: driver.phone_number,
+            driverWhatsApp: driver.whatsapp_number,
+            shopName: shop.name,
+            shopAddress: shop.address || shop.name,
+            customerName: selectedOrder.customer_name || 'Customer',
+            customerPhone: selectedOrder.customer_phone || 'N/A',
+            deliveryLocation: selectedOrder.delivery_location || 'See app',
+            items: (selectedOrder.products || []).map((p: any) => ({ name: p.name, qty: p.qty, price: p.price })),
+            totalAmount: Number(selectedOrder.total_amount) || 0,
+            deliveryFee: Number(selectedOrder.delivery_fee) || 0,
+            paymentMethod: selectedOrder.payment_method || 'pay_on_delivery',
+          }),
+        });
+      } catch {}
     }
 
     setAssigningDriver(false);
@@ -743,7 +771,7 @@ export default function ShopDashboard() {
                   )}
                   {selectedOrder.status === 'ready' && (
                     <View style={{ width: '100%' }}>
-                      <Text style={styles.assignLabel}>Assign a Messenger:</Text>
+                      <Text style={styles.assignLabel}>Assign a Messenger (Required):</Text>
                       {availableDrivers.length === 0 ? (
                         <Text style={styles.noDriversText}>No available messengers. Please check back later.</Text>
                       ) : (
@@ -751,15 +779,23 @@ export default function ShopDashboard() {
                           {availableDrivers.map(d => (
                             <TouchableOpacity
                               key={d.id}
-                              style={styles.driverRow}
+                              style={[styles.driverRow, styles.driverRowProminent]}
                               onPress={() => assignMessenger(d.id, d.full_name)}
                               disabled={assigningDriver}
+                              activeOpacity={0.85}
                             >
-                              <View>
-                                <Text style={styles.driverName}>{d.full_name}</Text>
-                                <Text style={styles.driverPhone}>{d.phone_number}</Text>
+                              <View style={styles.driverRowLeft}>
+                                <View style={styles.driverRowIcon}>
+                                  <Truck size={16} color={A.cyan} />
+                                </View>
+                                <View>
+                                  <Text style={styles.driverName}>{d.full_name}</Text>
+                                  <Text style={styles.driverPhone}>{d.phone_number}</Text>
+                                </View>
                               </View>
-                              <Truck size={18} color={A.cyan} />
+                              <View style={styles.driverRowAssignBtn}>
+                                <Text style={styles.driverRowAssignBtnText}>Assign</Text>
+                              </View>
                             </TouchableOpacity>
                           ))}
                         </ScrollView>
@@ -1035,6 +1071,19 @@ const styles = StyleSheet.create({
     paddingVertical: 12, paddingHorizontal: 14, backgroundColor: A.card,
     borderRadius: 10, marginBottom: 6, borderWidth: 1, borderColor: A.border,
   },
+  driverRowProminent: {
+    borderWidth: 1.5, borderColor: A.cyan,
+    ...(Platform.OS === 'web' ? { boxShadow: '0 1px 4px rgba(0,0,0,0.06)' } : { elevation: 2 }),
+  },
+  driverRowLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  driverRowIcon: {
+    width: 36, height: 36, borderRadius: 10, backgroundColor: A.cyanDim,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  driverRowAssignBtn: {
+    backgroundColor: A.cyan, borderRadius: 8, paddingHorizontal: 14, paddingVertical: 8,
+  },
+  driverRowAssignBtnText: { color: '#fff', fontSize: 13, fontWeight: '700' },
   driverName: { fontSize: 14, fontWeight: '600', color: A.text },
   driverPhone: { fontSize: 12, color: A.textSub, marginTop: 2 },
   inputGroup: { marginBottom: 14 },

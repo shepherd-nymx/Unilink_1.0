@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Animated, Platform } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Animated, Platform, Modal, ActivityIndicator } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { supabase } from '@/lib/supabase';
-import { ArrowLeft, CircleCheck as CheckCircle, User, Lock, ShoppingCart, Zap, LogIn } from 'lucide-react-native';
+import { ArrowLeft, CircleCheck as CheckCircle, User, Lock, ShoppingCart, Zap, LogIn, Mail, CircleAlert as AlertCircle, X } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import { saveUserData } from '@/lib/storage-service';
 import { registerForPushNotificationsOnLogin } from '@/lib/notification-service';
@@ -19,6 +19,10 @@ export default function CustomerLogin() {
   const [successMessage, setSuccessMessage] = useState('');
   const [usernameFocused, setUsernameFocused] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
+  const [showResetModal, setShowResetModal] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetMessage, setResetMessage] = useState('');
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(40)).current;
@@ -27,7 +31,7 @@ export default function CustomerLogin() {
 
   useEffect(() => {
     if (registered === 'true') {
-      setSuccessMessage('Registration successful! Please login to continue.');
+      setSuccessMessage('Registration successful! A verification email has been sent. Please verify your email, then login to continue.');
     }
 
     Animated.parallel([
@@ -46,6 +50,31 @@ export default function CustomerLogin() {
       Animated.timing(shimmerAnim, { toValue: 1, duration: 3000, useNativeDriver: false })
     ).start();
   }, [registered]);
+
+  const handleResetPassword = async () => {
+    if (!resetEmail.trim()) {
+      setResetMessage('Please enter your email address');
+      return;
+    }
+    const emailTrim = resetEmail.trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailTrim)) {
+      setResetMessage('Please enter a valid email address');
+      return;
+    }
+    setResetLoading(true);
+    setResetMessage('');
+    try {
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(emailTrim, {
+        redirectTo: `${typeof window !== 'undefined' ? window.location.origin : 'https://updates.unilinkbase.com'}/customer/login`,
+      });
+      if (resetError) throw resetError;
+      setResetMessage('Password reset email sent. Check your inbox for instructions to reset your password.');
+    } catch (err: any) {
+      setResetMessage(err.message || 'Failed to send reset email. Please try again.');
+    } finally {
+      setResetLoading(false);
+    }
+  };
 
   const handleLogin = async () => {
     if (!username || !password) {
@@ -205,6 +234,14 @@ export default function CustomerLogin() {
               </View>
             </View>
 
+            {/* Forgot password link */}
+            <TouchableOpacity
+              onPress={() => { setShowResetModal(true); setResetMessage(''); setResetEmail(''); }}
+              style={{ alignSelf: 'flex-end', marginTop: 4, marginBottom: 4 }}
+            >
+              <Text style={{ color: primary, fontSize: 12, fontWeight: '600' }}>Forgot Password?</Text>
+            </TouchableOpacity>
+
             {/* Login button */}
             <TouchableOpacity
               style={[styles.loginButton, { backgroundColor: primary, opacity: loading ? 0.7 : 1 }]}
@@ -239,6 +276,52 @@ export default function CustomerLogin() {
           </Text>
         </TouchableOpacity>
       </Animated.View>
+
+      {/* Password Reset Modal */}
+      <Modal visible={showResetModal} animationType="fade" transparent>
+        <View style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.6)' }]}>
+          <View style={[styles.resetModal, { backgroundColor: cardBg, borderColor: cardBorder }]}>
+            <View style={styles.resetModalHeader}>
+              <Text style={[styles.resetModalTitle, { color: textPrimary }]}>Reset Password</Text>
+              <TouchableOpacity onPress={() => setShowResetModal(false)}>
+                <X size={20} color={textSecondary} />
+              </TouchableOpacity>
+            </View>
+            <Text style={[styles.resetModalSub, { color: textSecondary }]}>
+              Enter your email and we'll send you a link to reset your password.
+            </Text>
+            <View style={[styles.inputWrapper, { backgroundColor: inputBg, borderColor: inputBorder, marginTop: 16 }]}>
+              <Mail size={16} color={placeholderColor} style={styles.inputIcon} />
+              <TextInput
+                style={[styles.input, { color: textPrimary }]}
+                value={resetEmail}
+                onChangeText={setResetEmail}
+                placeholder="Enter your email"
+                placeholderTextColor={placeholderColor}
+                autoCapitalize="none"
+                keyboardType="email-address"
+              />
+            </View>
+            {resetMessage ? (
+              <View style={[styles.resetMessageBox, { backgroundColor: resetMessage.includes('sent') ? (isDark ? 'rgba(16,185,129,0.1)' : '#F0FDF9') : (isDark ? 'rgba(239,68,68,0.1)' : '#FFF5F5'), borderColor: resetMessage.includes('sent') ? '#10B981' : '#EF4444' }]}>
+                {resetMessage.includes('sent') ? <CheckCircle size={14} color="#10B981" /> : <AlertCircle size={14} color="#EF4444" />}
+                <Text style={[styles.resetMessageText, { color: resetMessage.includes('sent') ? '#10B981' : '#EF4444' }]}>{resetMessage}</Text>
+              </View>
+            ) : null}
+            <TouchableOpacity
+              style={[styles.resetSubmitBtn, { backgroundColor: primary, opacity: resetLoading ? 0.7 : 1 }]}
+              onPress={handleResetPassword}
+              disabled={resetLoading}
+            >
+              {resetLoading ? (
+                <Text style={styles.resetSubmitBtnText}>Sending...</Text>
+              ) : (
+                <Text style={styles.resetSubmitBtnText}>Send Reset Link</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -466,6 +549,59 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   registerLinkBold: {
+    fontWeight: '700',
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  resetModal: {
+    width: '100%',
+    maxWidth: 380,
+    borderRadius: 18,
+    borderWidth: 1,
+    padding: 24,
+  },
+  resetModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  resetModalTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+  },
+  resetModalSub: {
+    fontSize: 13,
+    lineHeight: 19,
+  },
+  resetMessageBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    borderWidth: 1,
+    borderRadius: 10,
+    padding: 10,
+    marginTop: 12,
+  },
+  resetMessageText: {
+    flex: 1,
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  resetSubmitBtn: {
+    borderRadius: 12,
+    height: 48,
+    marginTop: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  resetSubmitBtnText: {
+    color: '#fff',
+    fontSize: 15,
     fontWeight: '700',
   },
 });

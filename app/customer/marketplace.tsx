@@ -16,7 +16,7 @@ import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { loadUserData } from '@/lib/storage-service';
 import { A } from '@/lib/admin-theme';
-import { ArrowLeft, Store, Search, ShoppingCart, Plus, Minus, X, Package, MapPin, CreditCard, CircleCheck as CheckCircle, CircleAlert as AlertCircle } from 'lucide-react-native';
+import { ArrowLeft, Store, Search, ShoppingCart, Plus, Minus, X, Package, MapPin, CreditCard, CircleCheck as CheckCircle, CircleAlert as AlertCircle, Truck, ChevronRight } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 
 type Shop = {
@@ -75,6 +75,10 @@ export default function Marketplace() {
   const [showCheckout, setShowCheckout] = useState(false);
   const [placingOrder, setPlacingOrder] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState(false);
+  const [availableDrivers, setAvailableDrivers] = useState<Array<{ id: string; full_name: string; phone_number: string; whatsapp_number?: string | null; rating?: number; vehicle_type?: string | null }>>([]);
+  const [selectedDriver, setSelectedDriver] = useState<{ id: string; full_name: string; phone_number: string; whatsapp_number?: string | null } | null>(null);
+  const [showDriverPicker, setShowDriverPicker] = useState(false);
+  const [loadingDrivers, setLoadingDrivers] = useState(false);
 
   useEffect(() => {
     const stored = loadUserData();
@@ -89,6 +93,51 @@ export default function Marketplace() {
   useEffect(() => {
     loadData();
   }, []);
+
+  const loadAvailableDrivers = async () => {
+    setLoadingDrivers(true);
+    try {
+      const { data, error } = await supabase
+        .from('drivers')
+        .select('id, full_name, phone_number, whatsapp_number, rating, vehicle_type')
+        .eq('approval_status', 'approved')
+        .eq('is_available', true)
+        .order('rating', { ascending: false });
+      if (error) throw error;
+      setAvailableDrivers(data || []);
+    } catch {
+      setAvailableDrivers([]);
+    } finally {
+      setLoadingDrivers(false);
+    }
+  };
+
+  const sendWhatsAppNotification = async (orderId: string, orderNumber: string, driver: { id: string; phone_number: string; whatsapp_number?: string | null }, shopCart: CartByShop, customerData: any, deliveryLocation: string, paymentMethod: string, deliveryFee: number) => {
+    try {
+      const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
+      const anonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+      await fetch(`${supabaseUrl}/functions/v1/send-whatsapp-notification`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${anonKey}` },
+        body: JSON.stringify({
+          orderId,
+          orderNumber,
+          driverId: driver.id,
+          driverPhone: driver.phone_number,
+          driverWhatsApp: driver.whatsapp_number,
+          shopName: shopCart.shopName,
+          shopAddress: 'See order details in app',
+          customerName: customerData?.full_name || 'Customer',
+          customerPhone: customerData?.phone_number || 'N/A',
+          deliveryLocation,
+          items: shopCart.items.map(i => ({ name: i.product.name, qty: i.quantity, price: Number(i.product.price) })),
+          totalAmount: shopCart.total,
+          deliveryFee,
+          paymentMethod,
+        }),
+      });
+    } catch {}
+  };
 
   const loadData = async () => {
     setLoading(true);
@@ -260,6 +309,14 @@ export default function Marketplace() {
           .maybeSingle();
 
         if (orderErr) throw orderErr;
+
+        // Send WhatsApp notification to the selected driver
+        if (selectedDriver) {
+          sendWhatsAppNotification(
+            order.id, order.id.slice(0, 8), selectedDriver,
+            shopCart, customer, deliveryLocation, paymentMethod, deliveryFee
+          );
+        }
 
         // Notify shop owner
         const { data: shop } = await supabase
@@ -668,6 +725,13 @@ export default function Marketplace() {
           onClose={() => setShowCheckout(false)}
           onPlaceOrder={placeOrders}
           customerId={customerId}
+          selectedDriver={selectedDriver}
+          availableDrivers={availableDrivers}
+          loadingDrivers={loadingDrivers}
+          onOpenDriverPicker={() => { loadAvailableDrivers(); setShowDriverPicker(true); }}
+          onSelectDriver={(d: any) => { setSelectedDriver(d); setShowDriverPicker(false); }}
+          showDriverPicker={showDriverPicker}
+          onCloseDriverPicker={() => setShowDriverPicker(false)}
         />
       </Modal>
     </View>
@@ -678,6 +742,8 @@ export default function Marketplace() {
 function CheckoutModal({
   cardBg, cardBorder, textPrimary, textSecondary, inputBg, inputBorder,
   placeholderColor, primary, cartByShop, cartTotal, placingOrder, error, onClose, onPlaceOrder, customerId,
+  selectedDriver, availableDrivers, loadingDrivers, onOpenDriverPicker, onSelectDriver,
+  showDriverPicker, onCloseDriverPicker,
 }: any) {
   const [deliveryLocation, setDeliveryLocation] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('pay_on_delivery');
@@ -685,6 +751,7 @@ function CheckoutModal({
 
   const handlePlace = () => {
     if (!deliveryLocation.trim()) return;
+    if (!selectedDriver) return;
     onPlaceOrder(
       deliveryLocation.trim(),
       null, null,
@@ -692,6 +759,8 @@ function CheckoutModal({
       parseFloat(deliveryFee) || 2
     );
   };
+
+  const canPlace = deliveryLocation.trim() && selectedDriver && !placingOrder;
 
   return (
     <View style={styles.modalOverlay}>
@@ -713,6 +782,105 @@ function CheckoutModal({
             placeholderTextColor={placeholderColor}
             multiline
           />
+
+          {/* DRIVER SELECTION - Required, prominently styled */}
+          <Text style={[styles.checkoutLabel, { color: textSecondary, marginTop: 16 }]}>
+            SELECT A DRIVER / MESSENGER *
+          </Text>
+          <TouchableOpacity
+            style={[styles.driverSelectBtn, {
+              backgroundColor: selectedDriver ? `${primary}15` : primary,
+              borderColor: selectedDriver ? primary : 'transparent',
+              borderWidth: selectedDriver ? 2 : 0,
+            }]}
+            onPress={onOpenDriverPicker}
+            activeOpacity={0.85}
+          >
+            {selectedDriver ? (
+              <>
+                <View style={styles.driverSelectLeft}>
+                  <View style={[styles.driverSelectAvatar, { backgroundColor: `${primary}25` }]}>
+                    <Truck size={18} color={primary} />
+                  </View>
+                  <View>
+                    <Text style={[styles.driverSelectName, { color: textPrimary }]}>{selectedDriver.full_name}</Text>
+                    <Text style={[styles.driverSelectPhone, { color: textSecondary }]}>{selectedDriver.phone_number}</Text>
+                  </View>
+                </View>
+                <View style={styles.driverSelectChange}>
+                  <Text style={styles.driverSelectChangeText}>Change</Text>
+                  <ChevronRight size={16} color={primary} />
+                </View>
+              </>
+            ) : (
+              <>
+                <View style={styles.driverSelectIconWrap}>
+                  <Truck size={20} color="#fff" />
+                </View>
+                <Text style={styles.driverSelectBtnText}>Choose Your Driver</Text>
+                <View style={styles.driverSelectArrow}>
+                  <ChevronRight size={20} color="#fff" />
+                </View>
+              </>
+            )}
+          </TouchableOpacity>
+          {!selectedDriver && (
+            <Text style={styles.driverRequiredHint}>
+              A driver must be selected before placing your order
+            </Text>
+          )}
+
+          {/* Driver Picker Sheet */}
+          {showDriverPicker && (
+            <View style={[styles.driverPickerSheet, { backgroundColor: inputBg, borderColor: inputBorder }]}>
+              <View style={styles.driverPickerHeader}>
+                <Text style={[styles.driverPickerTitle, { color: textPrimary }]}>Available Drivers</Text>
+                <TouchableOpacity onPress={onCloseDriverPicker}>
+                  <X size={18} color={textSecondary} />
+                </TouchableOpacity>
+              </View>
+              {loadingDrivers ? (
+                <View style={styles.driverPickerLoading}>
+                  <ActivityIndicator size="small" color={primary} />
+                  <Text style={{ color: textSecondary, fontSize: 13, marginTop: 8 }}>Loading drivers...</Text>
+                </View>
+              ) : availableDrivers.length === 0 ? (
+                <Text style={[styles.driverPickerEmpty, { color: textSecondary }]}>
+                  No drivers available right now. Please check back shortly.
+                </Text>
+              ) : (
+                <ScrollView style={{ maxHeight: 220 }}>
+                  {availableDrivers.map((d: any) => (
+                    <TouchableOpacity
+                      key={d.id}
+                      style={[
+                        styles.driverPickerItem,
+                        { borderBottomColor: inputBorder },
+                        selectedDriver?.id === d.id && { backgroundColor: `${primary}10` },
+                      ]}
+                      onPress={() => onSelectDriver(d)}
+                    >
+                      <View style={[styles.driverPickerAvatar, { backgroundColor: `${primary}15` }]}>
+                        <Truck size={16} color={primary} />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={[styles.driverPickerItemName, { color: textPrimary }]}>{d.full_name}</Text>
+                        <Text style={[styles.driverPickerItemPhone, { color: textSecondary }]}>{d.phone_number}</Text>
+                      </View>
+                      {d.rating != null && (
+                        <Text style={styles.driverPickerRating}>
+                          {Number(d.rating).toFixed(1)}
+                        </Text>
+                      )}
+                      {selectedDriver?.id === d.id && (
+                        <CheckCircle size={18} color={primary} />
+                      )}
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              )}
+            </View>
+          )}
 
           <Text style={[styles.checkoutLabel, { color: textSecondary, marginTop: 16 }]}>DELIVERY FEE</Text>
           <TextInput
@@ -776,19 +944,29 @@ function CheckoutModal({
         </ScrollView>
 
         <TouchableOpacity
-          style={[styles.placeOrderBtn, { backgroundColor: primary, opacity: placingOrder ? 0.6 : 1 }]}
+          style={[styles.placeOrderBtn, {
+            backgroundColor: canPlace ? primary : (isDarkPlaceholder(inputBorder) ? '#2a3a5c' : '#cbd5e1'),
+            opacity: placingOrder ? 0.6 : 1,
+          }]}
           onPress={handlePlace}
-          disabled={placingOrder || !deliveryLocation.trim()}
+          disabled={!canPlace}
+          activeOpacity={0.85}
         >
           {placingOrder ? (
             <ActivityIndicator size="small" color="#fff" />
           ) : (
-            <Text style={styles.placeOrderBtnText}>Place Order(s)</Text>
+            <Text style={styles.placeOrderBtnText}>
+              {selectedDriver ? 'Place Order(s)' : 'Select a Driver to Continue'}
+            </Text>
           )}
         </TouchableOpacity>
       </View>
     </View>
   );
+}
+
+function isDarkPlaceholder(borderColor: string): boolean {
+  return borderColor !== '#cbd5e1';
 }
 
 const styles = StyleSheet.create({
@@ -882,9 +1060,10 @@ const styles = StyleSheet.create({
   },
   checkoutBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
-    paddingHorizontal: 24, paddingVertical: 14, borderRadius: 12,
+    paddingHorizontal: 24, paddingVertical: 14, borderRadius: 14,
+    ...(Platform.OS === 'web' ? { boxShadow: '0 2px 10px rgba(0,102,255,0.25)' } : { elevation: 4 }),
   },
-  checkoutBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
+  checkoutBtnText: { color: '#fff', fontSize: 15, fontWeight: '800' },
   shopInfoRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8 },
   checkoutLabel: { fontSize: 11, fontWeight: '700', letterSpacing: 0.5, marginBottom: 6 },
   checkoutInput: {
@@ -897,10 +1076,60 @@ const styles = StyleSheet.create({
     marginTop: 20, paddingVertical: 16, borderTopWidth: 1, borderBottomWidth: 1, gap: 8,
   },
   checkoutRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  placeOrderBtn: {
-    borderRadius: 12, paddingVertical: 16, alignItems: 'center', justifyContent: 'center', marginTop: 16,
+  driverSelectBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    borderRadius: 14, paddingVertical: 16, paddingHorizontal: 16, minHeight: 60,
+    ...(Platform.OS === 'web' ? { boxShadow: '0 2px 8px rgba(0,102,255,0.25)' } : { elevation: 4 }),
   },
-  placeOrderBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  driverSelectBtnText: {
+    flex: 1, color: '#fff', fontSize: 16, fontWeight: '800', marginLeft: 12,
+  },
+  driverSelectIconWrap: {
+    width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center', alignItems: 'center',
+  },
+  driverSelectArrow: {
+    width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center', alignItems: 'center',
+  },
+  driverSelectLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
+  driverSelectAvatar: {
+    width: 42, height: 42, borderRadius: 12, justifyContent: 'center', alignItems: 'center',
+  },
+  driverSelectName: { fontSize: 15, fontWeight: '700' },
+  driverSelectPhone: { fontSize: 12, marginTop: 2 },
+  driverSelectChange: { flexDirection: 'row', alignItems: 'center', gap: 2 },
+  driverSelectChangeText: { fontSize: 13, fontWeight: '600', color: '#0066ff' },
+  driverRequiredHint: {
+    fontSize: 12, fontWeight: '600', color: '#f59e0b', marginTop: 8, textAlign: 'center',
+  },
+  driverPickerSheet: {
+    marginTop: 8, borderRadius: 14, borderWidth: 1.5, overflow: 'hidden',
+  },
+  driverPickerHeader: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    padding: 14, borderBottomWidth: 0.5, borderBottomColor: 'rgba(0,0,0,0.06)',
+  },
+  driverPickerTitle: { fontSize: 15, fontWeight: '700' },
+  driverPickerLoading: { alignItems: 'center', paddingVertical: 24 },
+  driverPickerEmpty: { fontSize: 13, padding: 20, textAlign: 'center', lineHeight: 19 },
+  driverPickerItem: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    paddingVertical: 12, paddingHorizontal: 14, borderBottomWidth: 0.5,
+  },
+  driverPickerAvatar: {
+    width: 36, height: 36, borderRadius: 10, justifyContent: 'center', alignItems: 'center',
+  },
+  driverPickerItemName: { fontSize: 14, fontWeight: '600' },
+  driverPickerItemPhone: { fontSize: 12, marginTop: 2 },
+  driverPickerRating: {
+    fontSize: 13, fontWeight: '700', color: '#f59e0b', marginRight: 8,
+  },
+  placeOrderBtn: {
+    borderRadius: 14, paddingVertical: 18, alignItems: 'center', justifyContent: 'center', marginTop: 16,
+    ...(Platform.OS === 'web' ? { boxShadow: '0 2px 12px rgba(0,102,255,0.2)' } : { elevation: 3 }),
+  },
+  placeOrderBtnText: { color: '#fff', fontSize: 16, fontWeight: '800', letterSpacing: 0.3 },
   successIcon: { width: 80, height: 80, borderRadius: 40, borderWidth: 2, justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
   successTitle: { fontSize: 22, fontWeight: '800', color: A.text, marginBottom: 8 },
   successText: { fontSize: 14, color: A.textSub, textAlign: 'center' },
