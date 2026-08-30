@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { supabase } from '@/lib/supabase';
-import { ArrowLeft, Save, MapPin, Lock, User, Mail, Phone, School, Eye, EyeOff, CircleCheck as CheckCircle, ChevronDown, Search, Navigation, X, LogOut } from 'lucide-react-native';
+import { ArrowLeft, Save, MapPin, Lock, User, Mail, Phone, School, Eye, EyeOff, CircleCheck as CheckCircle, ChevronDown, Search, Navigation, X, LogOut, Shield, ChevronRight } from 'lucide-react-native';
 import * as Location from 'expo-location';
 import { useTheme } from '@/contexts/ThemeContext';
 import { reverseGeocode } from '@/lib/map-utils';
@@ -778,6 +778,20 @@ export default function CustomerProfile() {
             </TouchableOpacity>
           </View>
         </View>
+
+        {/* Privacy Centre */}
+        <TouchableOpacity
+          style={[styles.section, { flexDirection: 'row', alignItems: 'center' }]}
+          onPress={() => router.push({ pathname: '/customer/privacy-centre', params: { customerId: customerId as string } })}
+          activeOpacity={0.8}
+        >
+          <View style={[styles.sectionHeader, { borderBottomWidth: 0, flex: 1 }]}>
+            <Shield size={14} color={P} />
+            <Text style={styles.sectionHeaderText}>Privacy Centre</Text>
+            <View style={{ flex: 1 }} />
+            <ChevronRight size={18} color={TX3} />
+          </View>
+        </TouchableOpacity>
 
         <View style={styles.bottomSpacer} />
 

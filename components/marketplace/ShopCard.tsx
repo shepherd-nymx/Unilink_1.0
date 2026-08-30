@@ -1,5 +1,5 @@
-import { TouchableOpacity, View, Text, Platform, StyleSheet } from 'react-native';
-import { Store, BadgeCheck, PackageCheck } from 'lucide-react-native';
+import { TouchableOpacity, View, Text, Platform, StyleSheet, Linking } from 'react-native';
+import { Store, BadgeCheck, PackageCheck, MapPin } from 'lucide-react-native';
 import { Shop, ThemePalette, computeShopOpen } from './types';
 
 type Props = {
@@ -12,6 +12,13 @@ export function ShopCard({ shop, palette, onPress }: Props) {
   const open = computeShopOpen(shop);
   const unavailable = !shop.is_available;
   const orders = shop.completed_orders_count ?? 0;
+  const hasCoords = shop.latitude != null && shop.longitude != null;
+
+  const openInMaps = (e: any) => {
+    e.stopPropagation?.();
+    if (!hasCoords) return;
+    Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${shop.latitude},${shop.longitude}`).catch(() => {});
+  };
 
   return (
     <TouchableOpacity
@@ -52,6 +59,17 @@ export function ShopCard({ shop, palette, onPress }: Props) {
       {shop.hours ? (
         <Text style={[styles.shopHours, { color: palette.textSecondary }]} numberOfLines={1}>{shop.hours}</Text>
       ) : null}
+
+      {hasCoords ? (
+        <TouchableOpacity
+          style={[styles.locationBtn, { backgroundColor: `${palette.primary}12`, borderColor: `${palette.primary}30` }]}
+          onPress={openInMaps}
+          activeOpacity={0.7}
+        >
+          <MapPin size={11} color={palette.primary} />
+          <Text style={[styles.locationBtnText, { color: palette.primary }]}>View Location</Text>
+        </TouchableOpacity>
+      ) : null}
     </TouchableOpacity>
   );
 }
@@ -68,4 +86,6 @@ const styles = StyleSheet.create({
   ordersRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   ordersText: { fontSize: 10 },
   shopHours: { fontSize: 10 },
+  locationBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 5, borderRadius: 8, borderWidth: 1, marginTop: 2 },
+  locationBtnText: { fontSize: 9, fontWeight: '700' },
 });
