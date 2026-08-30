@@ -65,6 +65,7 @@ export default function ShopDashboard() {
   const [registrationFee, setRegistrationFee] = useState(10);
   const [activeTab, setActiveTab] = useState<TabKey>('orders');
   const [refreshing, setRefreshing] = useState(false);
+  const [paynowLoading, setPaynowLoading] = useState(false);
   const [error, setError] = useState('');
   const [newOrderBanner, setNewOrderBanner] = useState<string | null>(null);
   const prevOrderCount = useRef(0);
@@ -435,15 +436,27 @@ export default function ShopDashboard() {
 
   const submitPayment = async () => {
     if (!shop) return;
-    const { error: err } = await supabase
-      .from('shops')
-      .update({ status: 'payment_submitted', payment_proof: 'manual_submission' })
-      .eq('id', shop.id);
-    if (err) {
-      setError(err.message);
-      return;
+    setPaynowLoading(true);
+    setError('');
+    try {
+      const { startPaynowPayment, generateReference } = await import('@/lib/paynow-service');
+      const ref = generateReference('shop_registration', shop.id);
+      const result = await startPaynowPayment({
+        paymentType: 'shop_registration',
+        entityId: shop.id,
+        amount: registrationFee,
+        reference: ref,
+        description: `UniLink Shop Registration - ${shop.name}`,
+        metadata: { shop_id: shop.id, shop_name: shop.name },
+      });
+      if (!result.success) {
+        setError(result.error || 'Failed to start Paynow payment');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Payment failed');
+    } finally {
+      setPaynowLoading(false);
     }
-    await loadShop(shop.id);
   };
 
   if (loading) {
@@ -550,10 +563,14 @@ export default function ShopDashboard() {
             <DollarSign size={24} color={A.amber} />
             <View style={{ flex: 1 }}>
               <Text style={styles.paymentTitle}>Registration Fee: ${registrationFee.toFixed(2)}</Text>
-              <Text style={styles.paymentSub}>Pay via EcoCash to activate your shop</Text>
+              <Text style={styles.paymentSub}>Pay via Paynow (EcoCash, OneMoney, Card, Bank Transfer)</Text>
             </View>
-            <TouchableOpacity style={styles.payBtn} onPress={submitPayment}>
-              <Text style={styles.payBtnText}>Submit Payment</Text>
+            <TouchableOpacity style={[styles.payBtn, { opacity: paynowLoading ? 0.6 : 1 }]} onPress={submitPayment} disabled={paynowLoading}>
+              {paynowLoading ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Text style={styles.payBtnText}>Pay via Paynow</Text>
+              )}
             </TouchableOpacity>
           </View>
         )}

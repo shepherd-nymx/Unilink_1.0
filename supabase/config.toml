@@ -1,0 +1,26 @@
+[functions.send-push-notification]
+verify_jwt = true
+
+[functions.resend-email]
+verify_jwt = false
+
+[functions.resend-webhook]
+verify_jwt = false
+
+[functions.admin-email-logs]
+verify_jwt = false
+
+[functions.send-whatsapp-notification]
+verify_jwt = false
+
+[functions.webhook-outbox-dispatcher]
+verify_jwt = true
+
+[functions.webhook-outbox-dispatcher-v2]
+verify_jwt = true
+
+[functions.paynow-initiate]
+verify_jwt = true
+
+[functions.paynow-result]
+verify_jwt = false

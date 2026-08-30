@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, TextInput, StyleSheet, ActivityIndicator, Linking } from 'react-native';
-import { X, Truck, ChevronRight, CreditCard, CircleCheck as CheckCircle, CircleAlert as AlertCircle, Star, Car, Bike, MessageCircle, Lock } from 'lucide-react-native';
+import { View, Text, ScrollView, TouchableOpacity, TextInput, StyleSheet, ActivityIndicator, Linking, Platform } from 'react-native';
+import { X, Truck, ChevronRight, CreditCard, CircleCheck as CheckCircle, CircleAlert as AlertCircle, Star, Car, Bike, MessageCircle, Lock, ExternalLink, Zap } from 'lucide-react-native';
 import { CartByShop, Driver, Shop, ThemePalette, formatPaymentMethod, getAcceptedMethods, computeShopOpen } from './types';
 
 type Props = {
@@ -84,6 +84,8 @@ export function CheckoutModal({
 
   const needsWhatsapp = !!selectedDriver?.whatsapp_number && !whatsappSent;
   const canPlace = deliveryLocation.trim() && selectedDriver && !placingOrder && !anyBlocked && !needsWhatsapp;
+  const isPaynow = paymentMethod === 'paynow';
+  const grandTotal = cartTotal + (parseFloat(deliveryFee) || 0);
 
   return (
     <View style={styles.overlay}>
@@ -311,6 +313,15 @@ export function CheckoutModal({
 
           <Text style={{ color: palette.textSecondary, fontSize: 11, marginTop: 8 }}>Note: {cartByShop.length} separate order(s) will be created, one per shop.</Text>
 
+          {isPaynow && canPlace ? (
+            <View style={[styles.paynowInfoBox, { backgroundColor: `${palette.primary}10`, borderColor: `${palette.primary}40` }]}>
+              <Zap size={14} color={palette.primary} />
+              <Text style={[styles.paynowInfoText, { color: palette.primary }]}>
+                You'll be redirected to Paynow to complete payment of ${grandTotal.toFixed(2)} after placing your order. Paynow supports EcoCash, OneMoney, Visa/Mastercard, and bank transfers.
+              </Text>
+            </View>
+          ) : null}
+
           {error ? (
             <View style={[styles.errorBox, { backgroundColor: 'rgba(239,68,68,0.1)', borderColor: '#ef4444', marginTop: 12 }]}>
               <AlertCircle size={14} color="#ef4444" />
@@ -320,7 +331,7 @@ export function CheckoutModal({
         </ScrollView>
 
         <TouchableOpacity
-          style={[styles.placeOrderBtn, { backgroundColor: canPlace ? palette.primary : (isDarkBorder(palette.inputBorder) ? '#2a3a5c' : '#cbd5e1'), opacity: placingOrder ? 0.6 : 1 }]}
+          style={[styles.placeOrderBtn, { backgroundColor: canPlace ? (isPaynow ? '#1a73e8' : palette.primary) : (isDarkBorder(palette.inputBorder) ? '#2a3a5c' : '#cbd5e1'), opacity: placingOrder ? 0.6 : 1 }]}
           onPress={handlePlace}
           disabled={!canPlace}
           activeOpacity={0.85}
@@ -328,9 +339,12 @@ export function CheckoutModal({
           {placingOrder ? (
             <ActivityIndicator size="small" color="#fff" />
           ) : (
-            <Text style={styles.placeOrderBtnText}>
-              {anyUnavailable ? 'Shop Unavailable' : anyClosed ? 'Shop Closed — No Orders' : !selectedDriver ? 'Select a Driver to Continue' : needsWhatsapp ? 'Send WhatsApp First' : 'Place Order(s)'}
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              {isPaynow && <ExternalLink size={16} color="#fff" />}
+              <Text style={styles.placeOrderBtnText}>
+                {anyUnavailable ? 'Shop Unavailable' : anyClosed ? 'Shop Closed — No Orders' : !selectedDriver ? 'Select a Driver to Continue' : needsWhatsapp ? 'Send WhatsApp First' : isPaynow ? `Pay ${grandTotal.toFixed(2)} via Paynow` : 'Place Order(s)'}
+              </Text>
+            </View>
           )}
         </TouchableOpacity>
       </View>
@@ -388,4 +402,6 @@ const styles = StyleSheet.create({
   errorBox: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12, borderRadius: 10, borderWidth: 1 },
   placeOrderBtn: { borderRadius: 14, paddingVertical: 18, alignItems: 'center', justifyContent: 'center', marginTop: 16 },
   placeOrderBtnText: { color: '#fff', fontSize: 16, fontWeight: '800', letterSpacing: 0.3 },
+  paynowInfoBox: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, padding: 12, borderRadius: 10, borderWidth: 1, marginTop: 12 },
+  paynowInfoText: { fontSize: 11, fontWeight: '600', flex: 1, lineHeight: 16 },
 });

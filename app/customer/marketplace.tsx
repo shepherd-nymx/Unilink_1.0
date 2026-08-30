@@ -381,6 +381,31 @@ export default function Marketplace() {
       setCart([]);
       setShowCart(false);
       setShowCheckout(false);
+
+      if (paymentMethod === 'paynow') {
+        const { startPaynowPayment, generateReference } = await import('@/lib/paynow-service');
+        const grandTotal = cartByShop.reduce((sum, sc) => sum + sc.total, 0) + deliveryFee;
+        const ref = generateReference('marketplace_order', customerId);
+        const result = await startPaynowPayment({
+          paymentType: 'marketplace_order',
+          entityId: customerId,
+          amount: grandTotal,
+          reference: ref,
+          description: `UniLink Marketplace Order - ${cartByShop.length} shop(s)`,
+          authEmail: customer?.email,
+          metadata: { cart_summary: cartByShop.map(sc => ({ shopId: sc.shopId, shopName: sc.shopName, total: sc.total })) },
+        });
+        if (!result.success) {
+          setError(`Order placed but Paynow payment failed to start: ${result.error}. You can retry payment from your orders page.`);
+          setOrderSuccess(true);
+          setTimeout(() => {
+            setOrderSuccess(false);
+            router.push('/customer/marketplace/orders');
+          }, 2000);
+          return;
+        }
+      }
+
       setOrderSuccess(true);
       setTimeout(() => {
         setOrderSuccess(false);

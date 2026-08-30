@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
+import { startPaynowPayment, generateReference } from '@/lib/paynow-service';
 import type {
   ServiceType,
   PaymentMethod,
@@ -73,6 +74,22 @@ export function useDeliveryRequest() {
         });
 
       if (detailErr) throw detailErr;
+
+      if (paymentMethod === 'paynow') {
+        const amount = parseFloat(form.budgetEstimate) || 0;
+        if (amount > 0) {
+          const ref = generateReference('delivery_request', req.id);
+          await startPaynowPayment({
+            paymentType: 'delivery_request',
+            entityId: req.id,
+            amount,
+            reference: ref,
+            description: `UniLink Delivery - ${form.itemName}`,
+            metadata: { request_id: req.id, item: form.itemName, shop: form.shopName },
+          });
+        }
+      }
+
       return req.id;
     } catch (err: any) {
       setError(err?.message ?? 'Failed to submit request');
@@ -124,6 +141,19 @@ export function useDeliveryRequest() {
         });
 
       if (detailErr) throw detailErr;
+
+      if (paymentMethod === 'paynow') {
+        const ref = generateReference('delivery_request', req.id);
+        await startPaynowPayment({
+          paymentType: 'delivery_request',
+          entityId: req.id,
+          amount: 5,
+          reference: ref,
+          description: `UniLink Pickup & Deliver`,
+          metadata: { request_id: req.id },
+        });
+      }
+
       return req.id;
     } catch (err: any) {
       setError(err?.message ?? 'Failed to submit request');
