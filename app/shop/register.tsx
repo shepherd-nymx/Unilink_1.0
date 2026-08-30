@@ -25,6 +25,8 @@ import {
   FileText,
   Clock,
   CircleCheck as CheckCircle2,
+  ChevronDown,
+  Check,
 } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import * as ImagePicker from 'expo-image-picker';
@@ -44,6 +46,9 @@ export default function ShopRegister() {
   const [address, setAddress] = useState('');
   const [hours, setHours] = useState('');
   const [ecocashNumber, setEcocashNumber] = useState('');
+  const [area, setArea] = useState('');
+  const [areas, setAreas] = useState<{ id: string; name: string; city: string | null }[]>([]);
+  const [showAreaPicker, setShowAreaPicker] = useState(false);
   const [logoUri, setLogoUri] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -55,7 +60,21 @@ export default function ShopRegister() {
       Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
       Animated.timing(slideAnim, { toValue: 0, duration: 400, useNativeDriver: true }),
     ]).start();
+    loadAreas();
   }, []);
+
+  const loadAreas = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('shop_areas')
+        .select('id, name, city')
+        .order('sort_order', { ascending: true });
+      if (error) throw error;
+      setAreas(data || []);
+    } catch (err) {
+      console.error('Failed to load areas:', err);
+    }
+  };
 
   const bg = isDark ? '#050b16' : '#f0f4f8';
   const cardBg = isDark ? '#0a1220' : '#ffffff';
@@ -89,8 +108,8 @@ export default function ShopRegister() {
 
   const handleRegister = async () => {
     setError('');
-    if (!shopName || !email.trim() || !password || !contactPhone || !address) {
-      setError('Please fill in all required fields');
+    if (!shopName || !email.trim() || !password || !contactPhone || !address || !area) {
+      setError('Please fill in all required fields including area');
       return;
     }
     const emailTrim = email.trim().toLowerCase();
@@ -143,6 +162,7 @@ export default function ShopRegister() {
           logo_url: logoUrl,
           description: description || null,
           address,
+          location: area,
           contact_phone: contactPhone,
           contact_email: emailTrim,
           hours: hours || null,
@@ -302,6 +322,48 @@ export default function ShopRegister() {
                   onBlur={() => setFocused(null)}
                 />
               </View>
+            </View>
+
+            {/* Area picker */}
+            <View style={styles.inputGroup}>
+              <Text style={[styles.label, { color: textSecondary }]}>
+                AREA / LOCATION <Text style={{ color: errorColor }}>*</Text>
+              </Text>
+              <TouchableOpacity
+                style={[styles.inputWrapper, { backgroundColor: inputBg, borderColor: focused === 'area' ? primary : inputBorder }]}
+                onPress={() => { setShowAreaPicker(!showAreaPicker); setFocused('area'); }}
+              >
+                <View style={styles.inputIcon}><MapPin size={16} color={focused === 'area' ? primary : placeholderColor} /></View>
+                <Text
+                  style={[styles.input, { color: area ? textPrimary : placeholderColor, flex: 1 }]}
+                  onPress={() => { setShowAreaPicker(!showAreaPicker); setFocused('area'); }}
+                >
+                  {area || 'Select your area/suburb'}
+                </Text>
+                <ChevronDown size={16} color={placeholderColor} style={{ marginRight: 4 }} />
+              </TouchableOpacity>
+
+              {showAreaPicker && (
+                <View style={[styles.areaPickerBox, { backgroundColor: inputBg, borderColor: inputBorder }]}>
+                  {areas.length === 0 ? (
+                    <Text style={{ color: placeholderColor, fontSize: 13, padding: 12 }}>No areas available</Text>
+                  ) : (
+                    <ScrollView style={{ maxHeight: 200 }} nestedScrollEnabled>
+                      {areas.map(a => (
+                        <TouchableOpacity
+                          key={a.id}
+                          style={[styles.areaPickerItem, { borderBottomColor: inputBorder }]}
+                          onPress={() => { setArea(a.name); setShowAreaPicker(false); setFocused(null); }}
+                        >
+                          <Text style={{ color: textPrimary, fontSize: 14, flex: 1 }}>{a.name}</Text>
+                          {a.city && <Text style={{ color: placeholderColor, fontSize: 11 }}>{a.city}</Text>}
+                          {area === a.name && <Check size={16} color={primary} />}
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  )}
+                </View>
+              )}
             </View>
 
             <View style={styles.inputGroup}>
@@ -495,6 +557,13 @@ const styles = StyleSheet.create({
   uploadBtn: {
     alignItems: 'center', justifyContent: 'center', gap: 8, borderRadius: 12, borderWidth: 1.5,
     paddingVertical: 24, borderStyle: 'dashed' as any,
+  },
+  areaPickerBox: {
+    borderRadius: 12, borderWidth: 1, marginTop: 6, overflow: 'hidden',
+  },
+  areaPickerItem: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    paddingHorizontal: 14, paddingVertical: 12, borderBottomWidth: 0.5,
   },
   submitBtn: { borderRadius: 12, paddingVertical: 16, alignItems: 'center', justifyContent: 'center' },
   submitBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },

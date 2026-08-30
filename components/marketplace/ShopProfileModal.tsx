@@ -73,6 +73,12 @@ export function ShopProfileModal({ shop, visible, onClose, products, cartQty, on
               <View style={styles.infoBlock}>
                 <Text style={[styles.infoLabel, { color: palette.textSecondary }]}>ADDRESS</Text>
                 <Text style={[styles.addressText, { color: palette.textPrimary }]}>{shop.address}</Text>
+                {shop.location ? (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 6 }}>
+                    <MapPin size={12} color={palette.primary} />
+                    <Text style={{ color: palette.primary, fontSize: 13, fontWeight: '600' }}>{shop.location}</Text>
+                  </View>
+                ) : null}
               </View>
             ) : null}
 

@@ -16,7 +16,7 @@ import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { loadUserData } from '@/lib/storage-service';
 import { A } from '@/lib/admin-theme';
-import { ArrowLeft, Store, Search, ShoppingCart, Plus, Minus, X, Package, CreditCard, CircleCheck as CheckCircle, CircleAlert as AlertCircle, Info, ChevronLeft, ChevronRight } from 'lucide-react-native';
+import { ArrowLeft, Store, Search, ShoppingCart, Plus, Minus, X, Package, CreditCard, CircleCheck as CheckCircle, CircleAlert as AlertCircle, Info, ChevronLeft, ChevronRight, MapPin } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Shop, Product, CartItem, CartByShop, Driver, ThemePalette, computeShopOpen } from '@/components/marketplace/types';
 import { ShopCard } from '@/components/marketplace/ShopCard';
@@ -44,6 +44,8 @@ export default function Marketplace() {
   const [selectedShop, setSelectedShop] = useState<Shop | null>(null);
   const [showShopModal, setShowShopModal] = useState(false);
   const [selectedShopId, setSelectedShopId] = useState<string | null>(null);
+  const [areas, setAreas] = useState<string[]>([]);
+  const [selectedArea, setSelectedArea] = useState<string | null>(null);
 
   const selectedShopData = selectedShopId ? shops.find(s => s.id === selectedShopId) || null : null;
   const [showCheckout, setShowCheckout] = useState(false);
@@ -146,7 +148,7 @@ export default function Marketplace() {
     try {
       const { data: shopData, error: shopErr } = await supabase
         .from('shops')
-        .select('id, name, logo_url, description, address, hours, slug, latitude, longitude, is_available, operating_hours, accepted_payment_methods, location_verified, completed_orders_count')
+        .select('id, name, logo_url, description, address, hours, slug, latitude, longitude, is_available, operating_hours, accepted_payment_methods, location_verified, completed_orders_count, location')
         .eq('status', 'active')
         .order('name');
       if (shopErr) throw shopErr;
@@ -159,6 +161,12 @@ export default function Marketplace() {
         .order('name');
       if (prodErr) throw prodErr;
       setProducts((prodData || []) as Product[]);
+
+      const { data: areaData } = await supabase
+        .from('shop_areas')
+        .select('name')
+        .order('sort_order', { ascending: true });
+      setAreas((areaData || []).map((a: any) => a.name));
     } catch (err: any) {
       setError(err.message || 'Failed to load marketplace');
     } finally {
@@ -446,6 +454,32 @@ export default function Marketplace() {
               </View>
             ) : null}
 
+            {/* Area filter chips */}
+            {areas.length > 0 && (
+              <View style={{ marginBottom: 16 }}>
+                <Text style={[styles.sectionTitle, { color: palette.textSecondary, marginBottom: 8 }]}>FILTER BY AREA</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingRight: 16 }}>
+                  <TouchableOpacity
+                    style={[styles.areaChip, { backgroundColor: !selectedArea ? palette.primary : palette.inputBg, borderColor: !selectedArea ? palette.primary : palette.inputBorder }]}
+                    onPress={() => setSelectedArea(null)}
+                  >
+                    <MapPin size={12} color={!selectedArea ? '#fff' : palette.textSecondary} />
+                    <Text style={{ color: !selectedArea ? '#fff' : palette.textSecondary, fontSize: 12, fontWeight: '600' }}>All Areas</Text>
+                  </TouchableOpacity>
+                  {areas.map(a => (
+                    <TouchableOpacity
+                      key={a}
+                      style={[styles.areaChip, { backgroundColor: selectedArea === a ? palette.primary : palette.inputBg, borderColor: selectedArea === a ? palette.primary : palette.inputBorder }]}
+                      onPress={() => setSelectedArea(selectedArea === a ? null : a)}
+                    >
+                      <MapPin size={12} color={selectedArea === a ? '#fff' : palette.textSecondary} />
+                      <Text style={{ color: selectedArea === a ? '#fff' : palette.textSecondary, fontSize: 12, fontWeight: '600' }}>{a}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
+
             <Text style={[styles.sectionTitle, { color: palette.textSecondary }]}>SELECT A SHOP TO BROWSE</Text>
             {shops.length === 0 ? (
               <View style={styles.emptyState}>
@@ -456,6 +490,7 @@ export default function Marketplace() {
               <View style={styles.shopList}>
                 {shops
                   .filter(shop => !searchQuery.trim() || shop.name.toLowerCase().includes(searchQuery.toLowerCase()))
+                  .filter(shop => !selectedArea || shop.location === selectedArea)
                   .map(shop => {
                     const open = shop.operating_hours ? computeShopOpen(shop) : true;
                     return (
@@ -478,6 +513,12 @@ export default function Marketplace() {
                             <Text style={[styles.shopSelectDesc, { color: palette.textSecondary }]} numberOfLines={2}>{shop.description}</Text>
                           ) : null}
                           <View style={styles.shopSelectMeta}>
+                            {shop.location ? (
+                              <View style={[styles.shopSelectBadge, { backgroundColor: `${palette.primary}15` }]}>
+                                <MapPin size={9} color={palette.primary} />
+                                <Text style={[styles.shopSelectBadgeText, { color: palette.primary }]}>{shop.location}</Text>
+                              </View>
+                            ) : null}
                             <View style={[styles.shopSelectBadge, { backgroundColor: open ? `${palette.success}22` : `${palette.error}22` }]}>
                               <View style={[styles.shopSelectDot, { backgroundColor: open ? palette.success : palette.error }]} />
                               <Text style={[styles.shopSelectBadgeText, { color: open ? palette.success : palette.error }]}>{open ? 'Open' : 'Closed'}</Text>
@@ -809,6 +850,10 @@ const styles = StyleSheet.create({
   shopSelectDesc: { fontSize: 12, marginTop: 2, lineHeight: 17 },
   shopSelectMeta: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 },
   shopSelectBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
+  areaChip: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, borderWidth: 1,
+  },
   shopSelectDot: { width: 6, height: 6, borderRadius: 3 },
   shopSelectBadgeText: { fontSize: 10, fontWeight: '700' },
   selectedShopBanner: {

@@ -13,6 +13,7 @@ export type Shop = {
   accepted_payment_methods: string[] | null;
   location_verified: boolean | null;
   completed_orders_count: number | null;
+  location: string | null;
 };
 
 export type Product = {

@@ -15,7 +15,7 @@ import {
 import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { A } from '@/lib/admin-theme';
-import { ArrowLeft, Store, CircleCheck as CheckCircle, Circle as XCircle, DollarSign, Clock, Ban, Eye, X, CircleAlert as AlertCircle, ShoppingBag, Settings } from 'lucide-react-native';
+import { ArrowLeft, Store, CircleCheck as CheckCircle, Circle as XCircle, DollarSign, Clock, Ban, Eye, X, CircleAlert as AlertCircle, ShoppingBag, Settings, MapPin } from 'lucide-react-native';
 import { SkeletonList } from '@/components/Skeleton';
 import { ConnectionBadge } from '@/components/ConnectionBadge';
 
@@ -30,6 +30,7 @@ type Shop = {
   hours: string | null;
   ecocash_number: string | null;
   status: string;
+  location: string | null;
   created_at: string;
   rejection_reason: string | null;
   payment_verified_at: string | null;
@@ -291,6 +292,12 @@ export default function AdminShops() {
                           <Text style={styles.shopName}>{shop.name}</Text>
                           <Text style={styles.shopContact}>{shop.contact_email} | {shop.contact_phone}</Text>
                           {shop.address && <Text style={styles.shopAddress}>{shop.address}</Text>}
+                          {shop.location && (
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}>
+                              <MapPin size={10} color={A.cyan} />
+                              <Text style={[styles.shopAddress, { color: A.cyan }]}>{shop.location}</Text>
+                            </View>
+                          )}
                         </View>
                         <View style={[styles.statusBadge, { backgroundColor: `${statusColor}20`, borderColor: statusColor }]}>
                           <Text style={[styles.statusText, { color: statusColor }]}>
@@ -452,6 +459,12 @@ export default function AdminShops() {
                     <>
                       <Text style={styles.modalLabel}>ADDRESS</Text>
                       <Text style={styles.modalValue}>{selectedShop.address}</Text>
+                    </>
+                  )}
+                  {selectedShop.location && (
+                    <>
+                      <Text style={styles.modalLabel}>AREA</Text>
+                      <Text style={styles.modalValue}>{selectedShop.location}</Text>
                     </>
                   )}
                   {selectedShop.hours && (
