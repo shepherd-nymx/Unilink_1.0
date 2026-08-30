@@ -3,8 +3,9 @@ import {
   View, Text, TouchableOpacity, StyleSheet, Modal, ScrollView,
   TextInput, Image, Platform, ActivityIndicator,
 } from 'react-native';
-import { X, Search, Star, User, Truck, Users, ChevronRight, Zap, CircleCheck as CheckCircle, DollarSign, Phone, MapPin, Radio } from 'lucide-react-native';
+import { X, Search, Star, User, Truck, Users, ChevronRight, Zap, CircleCheck as CheckCircle, DollarSign, Phone, MapPin, Radio, MessageCircle } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
+import { Linking } from 'react-native';
 import type { Driver, DeliveryMode, PaymentMethod, DeliveryMethod } from '@/lib/delivery-request-types';
 
 interface Props {
@@ -56,6 +57,7 @@ export default function DeliveryDriverSelector({
   const { colors, isDark } = useTheme();
   const [search, setSearch] = useState('');
   const [pendingDriver, setPendingDriver] = useState<Driver | null>(null);
+  const [whatsappSent, setWhatsappSent] = useState(false);
   const [activeTab, setActiveTab] = useState<'direct' | 'open'>(
     deliveryMode === 'open_request' ? 'open' : 'direct'
   );
@@ -84,12 +86,23 @@ export default function DeliveryDriverSelector({
       setPendingDriver(null);
     } else {
       setPendingDriver(driver);
+      setWhatsappSent(false);
     }
   };
 
   const handleClose = () => {
     setPendingDriver(null);
+    setWhatsappSent(false);
     onClose();
+  };
+
+  const openWhatsApp = (driver: Driver) => {
+    const num = (driver.whatsapp_number || '').replace(/[^0-9]/g, '');
+    if (!num) return;
+    const msg = encodeURIComponent(
+      `Hi ${driver.full_name}, I'd like to request a delivery through UniLink. Are you available?`
+    );
+    Linking.openURL(`https://wa.me/${num}?text=${msg}`).then(() => setWhatsappSent(true)).catch(() => {});
   };
 
   const s = StyleSheet.create({
@@ -412,20 +425,66 @@ export default function DeliveryDriverSelector({
                           placeholderTextColor={isDark ? 'rgba(0,255,136,0.4)' : '#6ee7b7'}
                         />
                       </View>
+
+                      {driver.whatsapp_number ? (
+                        <View style={{ gap: 8 }}>
+                          <TouchableOpacity
+                            style={{
+                              flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+                              paddingVertical: 12, borderRadius: 12,
+                              backgroundColor: whatsappSent
+                                ? (isDark ? 'rgba(37,211,102,0.15)' : '#dcfce7')
+                                : '#25D366',
+                              borderWidth: whatsappSent ? 1.5 : 0,
+                              borderColor: '#25D366',
+                            }}
+                            onPress={() => openWhatsApp(driver)}
+                            activeOpacity={0.8}
+                          >
+                            <MessageCircle size={16} color={whatsappSent ? '#25D366' : '#fff'} />
+                            <Text style={{
+                              fontSize: 13, fontWeight: '800',
+                              color: whatsappSent ? '#25D366' : '#fff',
+                            }}>
+                              {whatsappSent ? 'WhatsApp Sent ✓' : 'Send WhatsApp Message (Required)'}
+                            </Text>
+                          </TouchableOpacity>
+                          {!whatsappSent && (
+                            <Text style={{
+                              fontSize: 11, color: isDark ? '#f59e0b' : '#d97706',
+                              textAlign: 'center', lineHeight: 16,
+                            }}>
+                              You must send a WhatsApp message to this messenger before confirming your order.
+                            </Text>
+                          )}
+                        </View>
+                      ) : null}
+
                       <View style={s.confirmBtnRow}>
                         <TouchableOpacity
                           style={s.cancelConfirmBtn}
-                          onPress={() => setPendingDriver(null)}
+                          onPress={() => { setPendingDriver(null); setWhatsappSent(false); }}
                         >
                           <Text style={s.cancelConfirmBtnText}>Cancel</Text>
                         </TouchableOpacity>
                         <TouchableOpacity
-                          style={s.confirmBtn}
-                          onPress={() => { onSelectDirect(driver); setPendingDriver(null); }}
+                          style={[
+                            s.confirmBtn,
+                            driver.whatsapp_number && !whatsappSent && {
+                              backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : '#e5e7eb',
+                            },
+                          ]}
+                          onPress={() => { onSelectDirect(driver); setPendingDriver(null); setWhatsappSent(false); }}
                           activeOpacity={0.85}
+                          disabled={!!driver.whatsapp_number && !whatsappSent}
                         >
-                          <CheckCircle size={16} color="#051a0a" />
-                          <Text style={s.confirmBtnText}>Confirm Driver</Text>
+                          <CheckCircle size={16} color={driver.whatsapp_number && !whatsappSent ? (isDark ? '#666' : '#9ca3af') : '#051a0a'} />
+                          <Text style={[
+                            s.confirmBtnText,
+                            driver.whatsapp_number && !whatsappSent && { color: isDark ? '#666' : '#9ca3af' },
+                          ]}>
+                            {driver.whatsapp_number && !whatsappSent ? 'Send WhatsApp First' : 'Confirm Driver'}
+                          </Text>
                         </TouchableOpacity>
                       </View>
                     </View>

@@ -89,7 +89,7 @@ export default function DeliveryRequestPage() {
           fee_up_to_300, fee_up_to_400, fee_up_to_500, average_rating,
           total_ratings, ecocash_code, profile_picture_url,
           availability_start_time, availability_end_time, availability_days,
-          university_id, active_university_id
+          university_id, active_university_id, whatsapp_number
         `)
         .eq('is_available', true)
         .eq('approval_status', 'approved')

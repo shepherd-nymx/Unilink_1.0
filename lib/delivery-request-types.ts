@@ -35,6 +35,7 @@ export interface Driver {
   availability_start_time?: string;
   availability_end_time?: string;
   availability_days?: string[];
+  whatsapp_number?: string;
 }
 
 export interface BuyAndDeliverForm {

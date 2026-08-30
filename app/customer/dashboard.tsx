@@ -305,7 +305,7 @@ export default function CustomerDashboard() {
 
       const { data, error: dbError } = await supabase
         .from('drivers')
-        .select('id, full_name, phone_number, delivery_type, payment_methods, is_available, address, fee_up_to_10, fee_up_to_20, fee_up_to_30, fee_up_to_40, fee_up_to_50, fee_up_to_100, fee_up_to_200, fee_up_to_300, fee_up_to_400, fee_up_to_500, average_rating, total_ratings, ecocash_code, profile_picture_url, approval_status, university_id, active_university_id, availability_start_time, availability_end_time, availability_days')
+        .select('id, full_name, phone_number, delivery_type, payment_methods, is_available, address, fee_up_to_10, fee_up_to_20, fee_up_to_30, fee_up_to_40, fee_up_to_50, fee_up_to_100, fee_up_to_200, fee_up_to_300, fee_up_to_400, fee_up_to_500, average_rating, total_ratings, ecocash_code, profile_picture_url, approval_status, university_id, active_university_id, availability_start_time, availability_end_time, availability_days, whatsapp_number')
         .eq('is_available', true)
         .eq('approval_status', 'approved')
         .gt('key_expires_at', new Date().toISOString())

@@ -10,7 +10,8 @@ import {
   Image,
   Animated,
 } from 'react-native';
-import { X, Search, Star, User, Truck, Users, CircleCheck as CheckCircle, ChevronRight, Zap } from 'lucide-react-native';
+import { X, Search, Star, User, Truck, Users, CircleCheck as CheckCircle, ChevronRight, Zap, MessageCircle } from 'lucide-react-native';
+import { Linking } from 'react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 
 type Driver = {
@@ -38,6 +39,7 @@ type Driver = {
   availability_start_time?: string;
   availability_end_time?: string;
   availability_days?: string[];
+  whatsapp_number?: string;
 };
 
 type Props = {
@@ -71,6 +73,7 @@ export default function DriverSelectionModal({
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<'direct' | 'open'>('direct');
   const [pendingDriver, setPendingDriver] = useState<Driver | null>(null);
+  const [whatsappSent, setWhatsappSent] = useState(false);
 
   const P = '#1A73E8';
   const TEAL = '#00b894';
@@ -88,6 +91,7 @@ export default function DriverSelectionModal({
       setActiveTab(deliveryMode === 'open_request' ? 'open' : 'direct');
       setSearchQuery('');
       setPendingDriver(null);
+      setWhatsappSent(false);
     }
   }, [visible, deliveryMode]);
 
@@ -141,12 +145,22 @@ export default function DriverSelectionModal({
     return matchesMethod && matchesPayment && matchesSearch && withinWindow;
   });
 
+  const openWhatsApp = (driver: Driver) => {
+    const num = (driver.whatsapp_number || '').replace(/[^0-9]/g, '');
+    if (!num) return;
+    const msg = encodeURIComponent(
+      `Hi ${driver.full_name}, I'd like to request a delivery through UniLink. Are you available?`
+    );
+    Linking.openURL(`https://wa.me/${num}?text=${msg}`).then(() => setWhatsappSent(true)).catch(() => {});
+  };
+
   const handleSelectDirect = (driver: Driver) => {
     if (pendingDriver?.id === driver.id) {
       onSelectDirect(driver);
       onClose();
     } else {
       setPendingDriver(driver);
+      setWhatsappSent(false);
     }
   };
 
@@ -369,18 +383,64 @@ export default function DriverSelectionModal({
                                   <Text style={[styles.confirmBannerFee, { color: TX }]}>${orderTotal.toFixed(2)}</Text>.
                                 </Text>
                               </View>
+
+                              {driver.whatsapp_number ? (
+                                <View style={{ gap: 6 }}>
+                                  <TouchableOpacity
+                                    style={{
+                                      flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+                                      paddingVertical: 12, borderRadius: 12,
+                                      backgroundColor: whatsappSent
+                                        ? (isDark ? 'rgba(37,211,102,0.15)' : '#dcfce7')
+                                        : '#25D366',
+                                      borderWidth: whatsappSent ? 1.5 : 0,
+                                      borderColor: '#25D366',
+                                    }}
+                                    onPress={() => openWhatsApp(driver)}
+                                    activeOpacity={0.8}
+                                  >
+                                    <MessageCircle size={16} color={whatsappSent ? '#25D366' : '#fff'} />
+                                    <Text style={{
+                                      fontSize: 13, fontWeight: '800',
+                                      color: whatsappSent ? '#25D366' : '#fff',
+                                    }}>
+                                      {whatsappSent ? 'WhatsApp Sent ✓' : 'Send WhatsApp Message (Required)'}
+                                    </Text>
+                                  </TouchableOpacity>
+                                  {!whatsappSent && (
+                                    <Text style={{
+                                      fontSize: 11, color: isDark ? '#f59e0b' : '#d97706',
+                                      textAlign: 'center', lineHeight: 16,
+                                    }}>
+                                      You must message this messenger on WhatsApp before confirming.
+                                    </Text>
+                                  )}
+                                </View>
+                              ) : null}
+
                               <View style={styles.confirmActions}>
                                 <TouchableOpacity
                                   style={[styles.confirmCancelBtn, { borderColor: INPUT_B }]}
-                                  onPress={() => setPendingDriver(null)}
+                                  onPress={() => { setPendingDriver(null); setWhatsappSent(false); }}
                                 >
                                   <Text style={[styles.confirmCancelText, { color: TX2 }]}>Cancel</Text>
                                 </TouchableOpacity>
                                 <TouchableOpacity
-                                  style={[styles.confirmBtn, { backgroundColor: SUCCESS }]}
+                                  style={[
+                                    styles.confirmBtn,
+                                    { backgroundColor: driver.whatsapp_number && !whatsappSent
+                                      ? (isDark ? 'rgba(255,255,255,0.1)' : '#e5e7eb')
+                                      : SUCCESS },
+                                  ]}
                                   onPress={() => { onSelectDirect(driver); onClose(); }}
+                                  disabled={!!driver.whatsapp_number && !whatsappSent}
                                 >
-                                  <Text style={styles.confirmBtnText}>Confirm — ${fee.toFixed(2)} fee</Text>
+                                  <Text style={[
+                                    styles.confirmBtnText,
+                                    driver.whatsapp_number && !whatsappSent && { color: isDark ? '#666' : '#9ca3af' },
+                                  ]}>
+                                    {driver.whatsapp_number && !whatsappSent ? 'Send WhatsApp First' : `Confirm — ${fee.toFixed(2)} fee`}
+                                  </Text>
                                 </TouchableOpacity>
                               </View>
                             </View>

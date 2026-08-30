@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, TextInput, StyleSheet, ActivityIndicator } from 'react-native';
-import { X, Truck, ChevronRight, CreditCard, CircleCheck as CheckCircle, CircleAlert as AlertCircle, Star, Car, Bike } from 'lucide-react-native';
+import { View, Text, ScrollView, TouchableOpacity, TextInput, StyleSheet, ActivityIndicator, Linking } from 'react-native';
+import { X, Truck, ChevronRight, CreditCard, CircleCheck as CheckCircle, CircleAlert as AlertCircle, Star, Car, Bike, MessageCircle } from 'lucide-react-native';
 import { CartByShop, Driver, Shop, ThemePalette, formatPaymentMethod, getAcceptedMethods } from './types';
 
 type Props = {
@@ -33,6 +33,20 @@ export function CheckoutModal({
   const [deliveryLocation, setDeliveryLocation] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('pay_on_delivery');
   const [deliveryFee, setDeliveryFee] = useState('2.00');
+  const [whatsappSent, setWhatsappSent] = useState(false);
+
+  const openWhatsApp = (driver: Driver) => {
+    const num = (driver.whatsapp_number || '').replace(/[^0-9]/g, '');
+    if (!num) return;
+    const msg = encodeURIComponent(
+      `Hi ${driver.full_name}, I'd like to place a delivery order through UniLink. Are you available?`
+    );
+    Linking.openURL(`https://wa.me/${num}?text=${msg}`).then(() => setWhatsappSent(true)).catch(() => {});
+  };
+
+  useEffect(() => {
+    if (visible) setWhatsappSent(false);
+  }, [visible]);
 
   const unavailableShops = cartByShop.filter(sc => {
     const shop = shops.find(s => s.id === sc.shopId);
@@ -62,7 +76,8 @@ export function CheckoutModal({
     onPlaceOrder(deliveryLocation.trim(), null, null, paymentMethod, parseFloat(deliveryFee) || 2);
   };
 
-  const canPlace = deliveryLocation.trim() && selectedDriver && !placingOrder && !anyUnavailable;
+  const needsWhatsapp = !!selectedDriver?.whatsapp_number && !whatsappSent;
+  const canPlace = deliveryLocation.trim() && selectedDriver && !placingOrder && !anyUnavailable && !needsWhatsapp;
 
   return (
     <View style={styles.overlay}>
@@ -134,6 +149,38 @@ export function CheckoutModal({
           </TouchableOpacity>
           {!selectedDriver && !anyUnavailable ? (
             <Text style={styles.driverRequiredHint}>A driver must be selected before placing your order</Text>
+          ) : null}
+
+          {selectedDriver?.whatsapp_number ? (
+            <View style={{ marginTop: 10, gap: 6 }}>
+              <TouchableOpacity
+                style={{
+                  flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+                  paddingVertical: 12, borderRadius: 12,
+                  backgroundColor: whatsappSent ? `${palette.success}15` : '#25D366',
+                  borderWidth: whatsappSent ? 1.5 : 0,
+                  borderColor: '#25D366',
+                }}
+                onPress={() => openWhatsApp(selectedDriver)}
+                activeOpacity={0.8}
+              >
+                <MessageCircle size={16} color={whatsappSent ? '#25D366' : '#fff'} />
+                <Text style={{
+                  fontSize: 13, fontWeight: '800',
+                  color: whatsappSent ? '#25D366' : '#fff',
+                }}>
+                  {whatsappSent ? 'WhatsApp Sent ✓' : 'Send WhatsApp Message (Required)'}
+                </Text>
+              </TouchableOpacity>
+              {!whatsappSent && (
+                <Text style={{
+                  fontSize: 11, color: palette.warning,
+                  textAlign: 'center', lineHeight: 16,
+                }}>
+                  You must send a WhatsApp message to this messenger before placing your order.
+                </Text>
+              )}
+            </View>
           ) : null}
 
           {showDriverPicker ? (
@@ -269,7 +316,7 @@ export function CheckoutModal({
             <ActivityIndicator size="small" color="#fff" />
           ) : (
             <Text style={styles.placeOrderBtnText}>
-              {anyUnavailable ? 'Shop Unavailable' : selectedDriver ? 'Place Order(s)' : 'Select a Driver to Continue'}
+              {anyUnavailable ? 'Shop Unavailable' : !selectedDriver ? 'Select a Driver to Continue' : needsWhatsapp ? 'Send WhatsApp First' : 'Place Order(s)'}
             </Text>
           )}
         </TouchableOpacity>
