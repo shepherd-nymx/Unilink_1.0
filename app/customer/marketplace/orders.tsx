@@ -13,7 +13,7 @@ import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { loadUserData } from '@/lib/storage-service';
 import { A } from '@/lib/admin-theme';
-import { ArrowLeft, ShoppingBag, Store, Truck, Package, CircleCheck as CheckCircle, Clock, Circle as XCircle, MapPin, Phone } from 'lucide-react-native';
+import { ArrowLeft, ShoppingBag, Store, Truck, Package, CircleCheck as CheckCircle, Clock, Circle as XCircle, MapPin, Phone, Download } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 
 type ShopOrder = {
@@ -257,10 +257,20 @@ export default function ShopOrders() {
 
                   {/* Footer */}
                   <View style={[styles.orderFooter, { borderTopColor: cardBorder }]}>
-                    <Text style={[styles.orderTotal, { color: primary }]}>${Number(order.total_amount).toFixed(2)}</Text>
-                    <Text style={[styles.orderDate, { color: textSecondary }]}>
-                      {new Date(order.created_at).toLocaleDateString()}
-                    </Text>
+                    <View>
+                      <Text style={[styles.orderTotal, { color: primary }]}>${Number(order.total_amount).toFixed(2)}</Text>
+                      <Text style={[styles.orderDate, { color: textSecondary }]}>
+                        {new Date(order.created_at).toLocaleDateString()}
+                      </Text>
+                    </View>
+                    <TouchableOpacity
+                      style={[styles.ticketBtn, { backgroundColor: `${primary}12`, borderColor: `${primary}30` }]}
+                      onPress={() => router.push({ pathname: '/customer/marketplace/ticket', params: { orderId: order.id } })}
+                      activeOpacity={0.8}
+                    >
+                      <Download size={14} color={primary} />
+                      <Text style={[styles.ticketBtnText, { color: primary }]}>Ticket</Text>
+                    </TouchableOpacity>
                   </View>
                 </View>
               );
@@ -307,4 +317,6 @@ const styles = StyleSheet.create({
   },
   orderTotal: { fontSize: 17, fontWeight: '800' },
   orderDate: { fontSize: 11 },
+  ticketBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10, borderWidth: 1 },
+  ticketBtnText: { fontSize: 12, fontWeight: '700' },
 });
