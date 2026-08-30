@@ -16,9 +16,10 @@ import {
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import * as ImagePicker from 'expo-image-picker';
-import { ArrowLeft, Camera, User, School, Save, CircleCheck as CheckCircle, Zap, Clock, CreditCard, Bike, Car, MapPin, Navigation2, MessageCircle } from 'lucide-react-native';
+import { ArrowLeft, Camera, User, School, Save, CircleCheck as CheckCircle, Zap, Clock, CreditCard, Bike, Car, MapPin, Navigation2, MessageCircle, LogOut } from 'lucide-react-native';
 import SwitchLocationModal from '@/components/SwitchLocationModal';
 import { useTheme } from '@/contexts/ThemeContext';
+import { clearUserData } from '@/lib/storage-service';
 
 const CYAN = '#00e5ff';
 const CYAN_DIM = 'rgba(0,229,255,0.1)';
@@ -572,6 +573,23 @@ export default function DriverSettings() {
         </View>
 
         <AnimatedSaveButton onPress={saveSettings} saving={saving} />
+
+        <View style={ss.logoutSection}>
+          <Text style={ss.logoutTitle}>Account</Text>
+          <Text style={ss.logoutDesc}>Sign out of your driver account</Text>
+          <TouchableOpacity
+            style={ss.logoutBtn}
+            onPress={() => {
+              clearUserData();
+              supabase.auth.signOut();
+              router.replace('/driver/login');
+            }}
+            activeOpacity={0.85}
+          >
+            <LogOut size={18} color="#ff5555" />
+            <Text style={ss.logoutBtnText}>Logout</Text>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
     </View>
   );
@@ -719,4 +737,17 @@ const ss = StyleSheet.create({
     backgroundColor: GREEN_DIM, borderWidth: 1.5, borderColor: GREEN + '66',
   },
   saveBtnText: { fontSize: 15, fontWeight: '800', color: GREEN, letterSpacing: 0.5 },
+
+  logoutSection: {
+    backgroundColor: CARD, borderRadius: 14, borderWidth: 1, borderColor: 'rgba(239,68,68,0.2)',
+    padding: 16, marginBottom: 40, gap: 10,
+  },
+  logoutTitle: { fontSize: 13, fontWeight: '800', color: TEXT, letterSpacing: 0.5 },
+  logoutDesc: { fontSize: 11, color: TEXT2 },
+  logoutBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
+    paddingVertical: 14, borderRadius: 12,
+    backgroundColor: 'rgba(239,68,68,0.1)', borderWidth: 1.5, borderColor: 'rgba(239,68,68,0.35)',
+  },
+  logoutBtnText: { fontSize: 15, fontWeight: '800', color: '#ff5555', letterSpacing: 0.5 },
 });

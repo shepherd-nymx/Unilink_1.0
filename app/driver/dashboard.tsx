@@ -26,6 +26,37 @@ import { setCurrentUser, registerForPushNotificationsOnLogin } from '@/lib/notif
 import { saveUserData, clearUserData, loadUserData } from '@/lib/storage-service';
 import NotificationPermissionModal from '@/components/NotificationPermissionModal';
 
+function FlashingDot({ count, color = '#00e5ff' }: { count: number; color?: string }) {
+  const opacity = useRef(new Animated.Value(1)).current;
+  const scale = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    if (count === 0) return;
+    const loop = Animated.loop(
+      Animated.parallel([
+        Animated.sequence([
+          Animated.timing(opacity, { toValue: 0.3, duration: 500, useNativeDriver: true }),
+          Animated.timing(opacity, { toValue: 1, duration: 500, useNativeDriver: true }),
+        ]),
+        Animated.sequence([
+          Animated.spring(scale, { toValue: 1.3, useNativeDriver: true }),
+          Animated.spring(scale, { toValue: 1, useNativeDriver: true }),
+        ]),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [count]);
+
+  if (count === 0) return null;
+
+  return (
+    <Animated.View style={[s.requestDot, { opacity, transform: [{ scale }], backgroundColor: '#ef4444' }]}>
+      <Text style={s.requestDotText}>{count > 9 ? '9+' : count}</Text>
+    </Animated.View>
+  );
+}
+
 const CYAN = '#00e5ff';
 const CYAN_DIM = 'rgba(0,229,255,0.12)';
 const CYAN_BORDER = 'rgba(0,229,255,0.25)';
@@ -970,17 +1001,16 @@ export default function DriverDashboard() {
           onPress={() => router.push({ pathname: '/driver/delivery-requests', params: { driverId, driverName } } as any)}>
           <View style={s.navIconWrap}>
             <Truck size={24} color={pendingRequestsCount > 0 ? CYAN : TEXT2} />
-            {pendingRequestsCount > 0 && (
-              <View style={s.requestDot}>
-                <Text style={s.requestDotText}>{pendingRequestsCount > 9 ? '9+' : pendingRequestsCount}</Text>
-              </View>
-            )}
+            <FlashingDot count={pendingRequestsCount} />
           </View>
           <Text style={[s.navItemLabel, pendingRequestsCount > 0 && { color: CYAN }]}>Requests</Text>
         </TouchableOpacity>
         <TouchableOpacity style={s.navItem}
           onPress={() => router.push({ pathname: '/driver/chat', params: { driverId, driverName } })}>
-          <AnimatedChatIcon unreadCount={unreadMessageCount} iconColor={unreadMessageCount > 0 ? CYAN : TEXT2} size={24} />
+          <View style={s.navIconWrap}>
+            <AnimatedChatIcon unreadCount={unreadMessageCount} iconColor={unreadMessageCount > 0 ? CYAN : TEXT2} size={24} />
+            <FlashingDot count={unreadMessageCount} />
+          </View>
           <Text style={[s.navItemLabel, unreadMessageCount > 0 && { color: CYAN }]}>Chat</Text>
         </TouchableOpacity>
         <TouchableOpacity style={s.navItem}
@@ -991,9 +1021,10 @@ export default function DriverDashboard() {
         <TouchableOpacity style={s.navItem}
           onPress={() => router.push('/driver/shop-deliveries' as any)}>
           <View style={s.navIconWrap}>
-            <Package size={24} color={TEXT2} />
+            <Package size={24} color={pendingDeliveriesCount > 0 ? CYAN : TEXT2} />
+            <FlashingDot count={pendingDeliveriesCount} />
           </View>
-          <Text style={s.navItemLabel}>Shop Deliveries</Text>
+          <Text style={[s.navItemLabel, pendingDeliveriesCount > 0 && { color: CYAN }]}>Shop Deliveries</Text>
         </TouchableOpacity>
         <TouchableOpacity style={s.navItem}
           onPress={() => router.push({ pathname: '/driver/settings', params: { driverId } })}>
