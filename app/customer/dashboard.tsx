@@ -285,7 +285,8 @@ export default function CustomerDashboard() {
 
       setGroceryItems(data.map(item => ({ ...item, quantity: 0 })));
     } catch (err: any) {
-      setError(err.message || 'Failed to load items');
+      console.error('Failed to load items:', err);
+      setError('Could not load items. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -554,7 +555,8 @@ export default function CustomerDashboard() {
         setItemImage(result.assets[0].uri);
       }
     } catch (err: any) {
-      setError('Failed to pick image: ' + err.message);
+      console.error('Failed to pick image:', err);
+      setError('Could not pick image. Please try again.');
     }
   };
 
@@ -577,7 +579,8 @@ export default function CustomerDashboard() {
         setItemImage(result.assets[0].uri);
       }
     } catch (err: any) {
-      setError('Failed to take photo: ' + err.message);
+      console.error('Failed to take photo:', err);
+      setError('Could not take photo. Please try again.');
     }
   };
 
@@ -615,7 +618,8 @@ export default function CustomerDashboard() {
       return publicUrl;
     } catch (err: any) {
       console.error('Failed to upload image:', err);
-      setError('Failed to upload image: ' + err.message);
+      console.error('Failed to upload image:', err);
+      setError('Could not upload image. Please try again.');
       return null;
     } finally {
       setUploadingImage(false);
@@ -779,7 +783,8 @@ export default function CustomerDashboard() {
         });
       }
     } catch (err: any) {
-      setError(err.message || 'Failed to place order');
+      console.error('Failed to place order:', err);
+      setError('Could not place your order. Please try again.');
     } finally {
       setPlacingOrder(false);
     }
