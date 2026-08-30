@@ -87,7 +87,7 @@ export default function DeliveryRequestPage() {
           is_available, address, fee_up_to_10, fee_up_to_20, fee_up_to_30,
           fee_up_to_40, fee_up_to_50, fee_up_to_100, fee_up_to_200,
           fee_up_to_300, fee_up_to_400, fee_up_to_500, average_rating,
-          total_ratings, ecocash_code, profile_picture_url,
+          total_ratings, profile_picture_url,
           availability_start_time, availability_end_time, availability_days,
           university_id, active_university_id, whatsapp_number
         `)

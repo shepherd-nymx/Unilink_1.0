@@ -23,7 +23,7 @@ type Props = {
   onCloseDriverPicker: () => void;
 };
 
-const ALL_PAYMENT_METHODS = ['pay_on_delivery', 'ecocash', 'paynow', 'card', 'bank_transfer'];
+const ALL_PAYMENT_METHODS = ['pay_on_delivery', 'paynow', 'card', 'bank_transfer'];
 
 export function CheckoutModal({
   visible, palette, cartByShop, shops, cartTotal, placingOrder, error, onClose, onPlaceOrder, customerId,
@@ -64,7 +64,7 @@ export function CheckoutModal({
     if (cartByShop.length === 0) return ALL_PAYMENT_METHODS;
     const sets = cartByShop.map(sc => {
       const shop = shops.find(s => s.id === sc.shopId);
-      return shop ? new Set(getAcceptedMethods(shop)) : new Set(['pay_on_delivery', 'ecocash']);
+      return shop ? new Set(getAcceptedMethods(shop)) : new Set(['pay_on_delivery', 'paynow']);
     });
     return ALL_PAYMENT_METHODS.filter(m => sets.every(s => s.has(m)));
   })();

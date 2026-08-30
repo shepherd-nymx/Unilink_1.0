@@ -79,7 +79,6 @@ type Driver = {
   fee_up_to_500: number;
   average_rating: number;
   total_ratings: number;
-  ecocash_code?: string;
   profile_picture_url?: string;
   availability_start_time?: string;
   availability_end_time?: string;
@@ -107,7 +106,7 @@ export default function CustomerDashboard() {
   const [selectedDriver, setSelectedDriver] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [paymentOption, setPaymentOption] = useState<'pay_on_delivery' | 'ecocash'>('pay_on_delivery');
+  const [paymentOption, setPaymentOption] = useState<'pay_on_delivery' | 'paynow'>('pay_on_delivery');
   const [deliveryMethod, setDeliveryMethod] = useState<'walking' | 'vehicle'>('vehicle');
   const [placingOrder, setPlacingOrder] = useState(false);
   const [customerCoords, setCustomerCoords] = useState<{ latitude: number; longitude: number } | null>(null);
@@ -186,8 +185,7 @@ export default function CustomerDashboard() {
                 *,
                 drivers (
                   full_name,
-                  phone_number,
-                  ecocash_code
+                  phone_number
                 )
               `)
               .eq('id', payload.new.id)
@@ -305,7 +303,7 @@ export default function CustomerDashboard() {
 
       const { data, error: dbError } = await supabase
         .from('drivers')
-        .select('id, full_name, phone_number, delivery_type, payment_methods, is_available, address, fee_up_to_10, fee_up_to_20, fee_up_to_30, fee_up_to_40, fee_up_to_50, fee_up_to_100, fee_up_to_200, fee_up_to_300, fee_up_to_400, fee_up_to_500, average_rating, total_ratings, ecocash_code, profile_picture_url, approval_status, university_id, active_university_id, availability_start_time, availability_end_time, availability_days, whatsapp_number')
+        .select('id, full_name, phone_number, delivery_type, payment_methods, is_available, address, fee_up_to_10, fee_up_to_20, fee_up_to_30, fee_up_to_40, fee_up_to_50, fee_up_to_100, fee_up_to_200, fee_up_to_300, fee_up_to_400, fee_up_to_500, average_rating, total_ratings, profile_picture_url, approval_status, university_id, active_university_id, availability_start_time, availability_end_time, availability_days, whatsapp_number')
         .eq('is_available', true)
         .eq('approval_status', 'approved')
         .gt('key_expires_at', new Date().toISOString())
@@ -1184,13 +1182,6 @@ export default function CustomerDashboard() {
     },
     feeBreakdownTitle: { fontSize: 12, fontWeight: '700', color: P, marginBottom: 4, letterSpacing: 0.5 },
     feeBreakdownText: { fontSize: 11, color: P, lineHeight: 17 },
-    ecocashWarning: {
-      backgroundColor: isDark ? 'rgba(239,68,68,0.1)' : '#FFF5F5',
-      padding: 12, borderRadius: 10, borderWidth: 1, borderColor: ERR, marginBottom: 16,
-    },
-    ecocashWarningHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 },
-    ecocashWarningTitle: { fontSize: 13, fontWeight: '700', color: ERR },
-    ecocashWarningText: { fontSize: 12, color: ERR, lineHeight: 17 },
     selectDriverNotice: {
       backgroundColor: isDark ? 'rgba(245,158,11,0.1)' : '#FFFBEB',
       padding: 10, borderRadius: 10, marginBottom: 10,
@@ -1745,28 +1736,28 @@ export default function CustomerDashboard() {
               <TouchableOpacity
                 style={[
                   styles.paymentOption,
-                  paymentOption === 'ecocash' && styles.paymentOptionActive,
+                  paymentOption === 'paynow' && styles.paymentOptionActive,
                 ]}
-                onPress={() => setPaymentOption('ecocash')}
+                onPress={() => setPaymentOption('paynow')}
               >
                 <Text
                   style={[
                     styles.paymentOptionText,
-                    paymentOption === 'ecocash' && styles.paymentOptionTextActive,
+                    paymentOption === 'paynow' && styles.paymentOptionTextActive,
                   ]}
                 >
-                  EcoCash
+                  Paynow
                 </Text>
               </TouchableOpacity>
             </View>
 
-            {paymentOption === 'ecocash' && (
-              <View style={styles.ecocashWarning}>
-                <View style={styles.ecocashWarningHeader}>
-                  <AlertCircle size={20} color={colors.error} />
-                  <Text style={styles.ecocashWarningTitle}>EcoCash Payment Notice</Text>
+            {paymentOption === 'paynow' && (
+              <View style={styles.paymentCodeBox}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                  <AlertCircle size={20} color={colors.info} />
+                  <Text style={{ fontSize: 13, fontWeight: '700', color: P }}>Paynow Payment Notice</Text>
                 </View>
-                <Text style={styles.ecocashWarningText}>
+                <Text style={{ fontSize: 12, color: TX2, lineHeight: 17 }}>
                   You must send payment immediately after the driver accepts your order. Groceries will be purchased after payment is confirmed.
                 </Text>
               </View>
@@ -2130,12 +2121,12 @@ export default function CustomerDashboard() {
               </Text>
             </View>
 
-            {acceptedOrder?.payment_option === 'ecocash' && acceptedOrder?.drivers?.ecocash_code && (
+            {acceptedOrder?.payment_option === 'paynow' && (
               <View style={styles.paymentCodeSection}>
                 <Text style={styles.paymentLabel}>Send Payment To:</Text>
                 <View style={styles.paymentCodeBox}>
-                  <Text style={styles.paymentCodeLabel}>EcoCash Number</Text>
-                  <Text style={styles.paymentCode}>{acceptedOrder.drivers.ecocash_code}</Text>
+                  <Text style={styles.paymentCodeLabel}>Paynow Reference</Text>
+                  <Text style={styles.paymentCode}>{acceptedOrder?.id?.slice(0, 8).toUpperCase()}</Text>
                 </View>
                 <View style={styles.amountBox}>
                   <Text style={styles.amountLabel}>Total Amount</Text>
@@ -2144,8 +2135,8 @@ export default function CustomerDashboard() {
                   </Text>
                 </View>
                 <Text style={styles.paymentInstructions}>
-                  1. Open your EcoCash app{'\n'}
-                  2. Send Money to the number above{'\n'}
+                  1. Open your Paynow app or web portal{'\n'}
+                  2. Send Money using the reference above{'\n'}
                   3. Use the total amount shown{'\n'}
                   4. Chat with your driver to confirm payment
                 </Text>

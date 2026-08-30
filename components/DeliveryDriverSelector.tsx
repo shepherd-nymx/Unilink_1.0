@@ -397,7 +397,7 @@ export default function DeliveryDriverSelector({
                   <View style={s.driverPills}>
                     {driver.payment_methods?.map(pm => (
                       <View key={pm} style={s.pill}>
-                        <Text style={s.pillText}>{pm === 'paynow' ? '🌐 Paynow' : pm === 'ecocash' ? '📱 EcoCash' : '💵 Pay on delivery'}</Text>
+                        <Text style={s.pillText}>{pm === 'paynow' ? '🌐 Paynow' : '💵 Pay on delivery'}</Text>
                       </View>
                     ))}
                     {driver.phone_number && (

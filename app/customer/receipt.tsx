@@ -295,14 +295,14 @@ export default function Receipt() {
           </View>
         </View>
 
-        {order.payment_option === 'ecocash' && !order.payment_received && (
+        {order.payment_option === 'paynow' && !order.payment_received && (
           <View style={[r.alertBox, { backgroundColor: AMBER_DIM, borderColor: AMBER + '44' }]}>
             <AlertCircle size={16} color={AMBER} />
             <Text style={[r.alertText, { color: AMBER }]}>Awaiting payment confirmation from driver</Text>
           </View>
         )}
 
-        {order.payment_option === 'ecocash' && order.payment_received && (
+        {order.payment_option === 'paynow' && order.payment_received && (
           <View style={[r.successBox, { backgroundColor: GREEN_DIM, borderColor: GREEN + '44' }]}>
             <CheckCircle size={16} color={GREEN} />
             <Text style={[r.successText, { color: GREEN }]}>Payment received and confirmed</Text>
@@ -430,11 +430,11 @@ export default function Receipt() {
             <View style={r.infoRow}>
               <Text style={[r.infoLabel, { color: colors.textTertiary }]}>Method</Text>
               <View style={[r.payMethodBadge, {
-                backgroundColor: order.payment_option === 'ecocash' ? AMBER_DIM : GREEN_DIM,
-                borderColor: order.payment_option === 'ecocash' ? AMBER + '55' : GREEN + '55',
+                backgroundColor: order.payment_option === 'paynow' ? AMBER_DIM : GREEN_DIM,
+                borderColor: order.payment_option === 'paynow' ? AMBER + '55' : GREEN + '55',
               }]}>
-                <Text style={[r.payMethodText, { color: order.payment_option === 'ecocash' ? AMBER : GREEN }]}>
-                  {order.payment_option === 'pay_on_delivery' ? 'Cash on Delivery' : 'EcoCash'}
+                <Text style={[r.payMethodText, { color: order.payment_option === 'paynow' ? AMBER : GREEN }]}>
+                  {order.payment_option === 'pay_on_delivery' ? 'Cash on Delivery' : 'Paynow'}
                 </Text>
               </View>
             </View>

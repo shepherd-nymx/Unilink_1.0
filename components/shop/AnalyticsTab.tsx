@@ -309,7 +309,7 @@ export function AnalyticsTab({ orders, products }: { orders: ShopOrder[]; produc
           a.payEntries.map(([method, count]) => {
             const pct = (count / a.totalOrdersForPay) * 100;
             const label = PAYMENT_METHOD_LABELS[method] || method;
-            const color = method === 'ecocash' ? A.cyan : method === 'pay_on_delivery' ? A.green : A.blue;
+            const color = method === 'paynow' ? A.cyan : method === 'pay_on_delivery' ? A.green : A.blue;
             return (
               <View key={method} style={styles.payRow}>
                 <View style={styles.payRowTop}>

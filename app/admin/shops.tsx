@@ -473,12 +473,6 @@ export default function AdminShops() {
                       <Text style={styles.modalValue}>{selectedShop.hours}</Text>
                     </>
                   )}
-                  {selectedShop.ecocash_number && (
-                    <>
-                      <Text style={styles.modalLabel}>ECOCASH</Text>
-                      <Text style={styles.modalValue}>{selectedShop.ecocash_number}</Text>
-                    </>
-                  )}
                   {selectedShop.description && (
                     <>
                       <Text style={styles.modalLabel}>DESCRIPTION</Text>

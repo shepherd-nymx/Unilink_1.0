@@ -113,7 +113,7 @@ export const STATUS_COLORS: Record<string, string> = {
 
 export const PAYMENT_METHOD_LABELS: Record<string, string> = {
   pay_on_delivery: 'Pay on Delivery',
-  ecocash: 'EcoCash',
+  ecocash: 'Paynow',
   bank_transfer: 'Bank Transfer',
 };
 

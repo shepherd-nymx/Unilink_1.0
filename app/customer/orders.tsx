@@ -29,7 +29,6 @@ type Order = {
   drivers: {
     full_name: string;
     phone_number: string;
-    ecocash_code: string | null;
   } | null;
 };
 
@@ -68,7 +67,7 @@ export default function CustomerOrders() {
     try {
       const { data, error } = await supabase
         .from('deliveries')
-        .select(`*, drivers(full_name, phone_number, ecocash_code)`)
+        .select(`*, drivers(full_name, phone_number)`)
         .eq('customer_id', customerId as string)
         .order('created_at', { ascending: false });
       if (!error) setOrders(data || []);
@@ -83,7 +82,7 @@ export default function CustomerOrders() {
           *,
           delivery_request_buy_details(*),
           delivery_request_pickup_details(*),
-          drivers(full_name, phone_number, ecocash_code)
+          drivers(full_name, phone_number)
         `)
         .eq('customer_id', customerId as string)
         .order('created_at', { ascending: false });
@@ -327,7 +326,7 @@ export default function CustomerOrders() {
                 </View>
                 <View style={styles.detailRow}>
                   <Text style={styles.detailLabel}>Payment</Text>
-                  <Text style={styles.detailValue}>{order.payment_option === 'paynow' ? 'Paynow' : order.payment_option === 'ecocash' ? 'EcoCash' : 'Pay on Delivery'}</Text>
+                  <Text style={styles.detailValue}>{order.payment_option === 'paynow' ? 'Paynow' : 'Pay on Delivery'}</Text>
                 </View>
                 {order.drivers && order.status !== 'declined' && (
                   <>
@@ -347,17 +346,17 @@ export default function CustomerOrders() {
                     <Text style={{ flex: 1, fontSize: 13, color: ERR, lineHeight: 18 }}>This order was declined by the driver.</Text>
                   </View>
                 )}
-                {order.drivers?.ecocash_code && (order.status === 'accepted' || order.status === 'in_progress') && order.payment_option === 'ecocash' && (
+                {order.drivers && (order.status === 'accepted' || order.status === 'in_progress') && order.payment_option === 'paynow' && (
                   <View style={{ marginTop: 12, padding: 14, backgroundColor: isDark ? 'rgba(16,185,129,0.08)' : 'rgba(16,185,129,0.05)', borderRadius: 12, borderWidth: 1, borderColor: SUCCESS }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 }}>
                       <CreditCard size={16} color={SUCCESS} />
-                      <Text style={{ fontSize: 13, fontWeight: '700', color: SUCCESS }}>EcoCash Payment Code</Text>
+                      <Text style={{ fontSize: 13, fontWeight: '700', color: SUCCESS }}>Paynow Payment Reference</Text>
                     </View>
                     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: isDark ? 'rgba(0,0,0,0.2)' : '#fff', padding: 12, borderRadius: 8, borderWidth: 1, borderColor: SUCCESS, marginBottom: 8 }}>
-                      <Text style={{ fontSize: 16, fontWeight: '800', color: SUCCESS, letterSpacing: 0.5 }}>{order.drivers.ecocash_code}</Text>
+                      <Text style={{ fontSize: 16, fontWeight: '800', color: SUCCESS, letterSpacing: 0.5 }}>{order.id.slice(0, 8).toUpperCase()}</Text>
                       <Copy size={16} color={SUCCESS} />
                     </View>
-                    <Text style={{ fontSize: 12, color: SUCCESS, lineHeight: 16 }}>Use this code to send payment to your driver via EcoCash</Text>
+                    <Text style={{ fontSize: 12, color: SUCCESS, lineHeight: 16 }}>Use this reference to send payment to your driver via Paynow</Text>
                   </View>
                 )}
                 {(order.status === 'accepted' || order.status === 'in_progress' || order.status === 'delivered') && (
@@ -465,7 +464,7 @@ export default function CustomerOrders() {
                 </View>
                 <View style={styles.detailRow}>
                   <Text style={styles.detailLabel}>Payment</Text>
-                  <Text style={styles.detailValue}>{req.payment_method === 'paynow' ? 'Paynow' : req.payment_method === 'ecocash' ? 'EcoCash' : 'Pay on Delivery'}</Text>
+                  <Text style={styles.detailValue}>{req.payment_method === 'paynow' ? 'Paynow' : 'Pay on Delivery'}</Text>
                 </View>
                 <View style={styles.detailRow}>
                   <Text style={styles.detailLabel}>Method</Text>

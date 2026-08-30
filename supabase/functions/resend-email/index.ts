@@ -393,7 +393,7 @@ function renderShopPaymentRequired(d: Record<string, any>): { subject: string; h
   const html = `
     <h1>Payment required — $${fee}</h1>
     <p>To activate <strong>${escapeHtml(shopName)}</strong>, please pay the registration fee of $${fee}.</p>
-    <p>Use EcoCash or your preferred payment method from the shop dashboard.</p>
+    <p>Use Paynow or your preferred payment method from the shop dashboard.</p>
     ${ctaButton(`${APP_URL}/shop/dashboard`, "Pay Now")}
     <p class="small">Your shop will become active once payment is verified by our admin team.</p>`;
   const text = `Payment required — $${fee}\n\nTo activate ${shopName}, pay the registration fee of $${fee}.\n\nDashboard: ${APP_URL}/shop/dashboard`;

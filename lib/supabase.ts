@@ -60,7 +60,7 @@ export type Database = {
           items: any;
           total_amount: number;
           delivery_fee: number;
-          payment_option: 'pay_on_delivery' | 'ecocash';
+          payment_option: 'pay_on_delivery' | 'paynow';
           customer_latitude: number;
           customer_longitude: number;
           status: 'pending' | 'accepted' | 'in_progress' | 'delivered' | 'cancelled';

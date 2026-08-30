@@ -242,11 +242,11 @@ export default function OpenRequestWaitingModal({
                   <Text style={[styles.contactCta, { color: SUCCESS }]}>Tap to call</Text>
                 </TouchableOpacity>
 
-                {selectedDelivery?.payment_option === 'ecocash' && confirmedDriver.drivers?.ecocash_code && (
+                {selectedDelivery?.payment_option === 'paynow' && confirmedDriver.drivers?.ecocash_code && (
                   <View style={[styles.paymentBox, { backgroundColor: isDark ? 'rgba(26,115,232,0.08)' : '#EBF3FF', borderColor: P }]}>
                     <CreditCard size={16} color={P} />
                     <View style={{ flex: 1 }}>
-                      <Text style={[styles.contactLabel, { color: TX2 }]}>Send EcoCash Payment To</Text>
+                      <Text style={[styles.contactLabel, { color: TX2 }]}>Send Paynow Payment To</Text>
                       <Text style={[styles.paymentCode, { color: TX }]}>{confirmedDriver.drivers.ecocash_code}</Text>
                     </View>
                   </View>

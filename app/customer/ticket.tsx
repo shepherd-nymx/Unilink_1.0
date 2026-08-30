@@ -211,16 +211,16 @@ export default function OrderTicket() {
     },
     totalLabel: { fontSize: 17, fontWeight: '800', color: TX },
     totalValue: { fontSize: 18, fontWeight: '800', color: P },
-    ecocashNotice: {
+    paynowNotice: {
       borderWidth: 1.5,
       borderColor: ERR,
       borderRadius: 12,
       padding: 16,
       backgroundColor: isDark ? 'rgba(239,68,68,0.08)' : 'rgba(239,68,68,0.04)',
     },
-    ecocashNoticeHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 },
-    ecocashNoticeTitle: { fontSize: 14, fontWeight: '800', color: ERR, flex: 1 },
-    ecocashNoticeText: { fontSize: 13, color: ERR, lineHeight: 20 },
+    paynowNoticeHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 },
+    paynowNoticeTitle: { fontSize: 14, fontWeight: '800', color: ERR, flex: 1 },
+    paynowNoticeText: { fontSize: 13, color: ERR, lineHeight: 20 },
     paymentBadge: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -462,21 +462,21 @@ export default function OrderTicket() {
                 <Text style={styles.rowLabel}>Payment</Text>
                 <View style={styles.paymentBadge}>
                   <Text style={styles.paymentBadgeText}>
-                    {paymentOption === 'paynow' ? 'Paynow' : paymentOption === 'ecocash' ? 'EcoCash' : 'Pay on Delivery'}
+                    {paymentOption === 'paynow' ? 'Paynow' : 'Pay on Delivery'}
                   </Text>
                 </View>
               </View>
 
-              {paymentOption === 'ecocash' && (
+              {paymentOption === 'paynow' && (
                 <>
                   <View style={styles.divider} />
-                  <View style={styles.ecocashNotice}>
-                    <View style={styles.ecocashNoticeHeader}>
+                  <View style={styles.paynowNotice}>
+                    <View style={styles.paynowNoticeHeader}>
                       <AlertCircle size={20} color={ERR} />
-                      <Text style={styles.ecocashNoticeTitle}>Important Payment Notice</Text>
+                      <Text style={styles.paynowNoticeTitle}>Important Payment Notice</Text>
                     </View>
-                    <Text style={styles.ecocashNoticeText}>
-                      Once your order is accepted by the driver, you must send the full payment amount immediately via EcoCash. The groceries will be purchased only after your payment is received.
+                    <Text style={styles.paynowNoticeText}>
+                      Once your order is accepted by the driver, you must send the full payment amount immediately via Paynow. The groceries will be purchased only after your payment is received.
                     </Text>
                   </View>
                 </>

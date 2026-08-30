@@ -7,7 +7,7 @@ UNILINK is a grocery delivery application with separate interfaces for customers
 ### Customer Portal
 - Login using username + phone number
 - Browse and select groceries from a checklist
-- Choose payment option: Pay on Delivery or EcoCash
+- Choose payment option: Pay on Delivery or Paynow
 - Location automatically captured using GPS coordinates
 - View order ticket with all details
 

@@ -91,19 +91,19 @@ export default function OrderTicket() {
       .map((item: any) => `<tr><td style="padding:10px 12px;border-bottom:1px solid #eee;">${item.name || 'Item'}</td><td style="padding:10px 12px;border-bottom:1px solid #eee;text-align:center;">${item.qty || 1}</td><td style="padding:10px 12px;border-bottom:1px solid #eee;text-align:right;">$${Number(item.price || 0).toFixed(2)}</td><td style="padding:10px 12px;border-bottom:1px solid #eee;text-align:right;font-weight:600;">$${(Number(item.price || 0) * (item.qty || 1)).toFixed(2)}</td></tr>`)
       .join('');
 
-    const ecocashSection = order.payment_method === 'ecocash'
+    const paynowSection = order.payment_method === 'paynow'
       ? `<div style="background:#fff8e1;border:2px dashed #ffa726;border-radius:12px;padding:20px;margin:20px 0;">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
             <div style="width:36px;height:36px;border-radius:8px;background:#ffa72622;display:flex;align-items:center;justify-content:center;">
               <span style="font-size:18px;">📱</span>
             </div>
             <div>
-              <div style="font-size:14px;font-weight:800;color:#e65100;letter-spacing:0.5px;">ECOCASH PAYMENT</div>
-              <div style="font-size:11px;color:#888;">Send money to the shop's EcoCash number below</div>
+              <div style="font-size:14px;font-weight:800;color:#e65100;letter-spacing:0.5px;">PAYNOW PAYMENT</div>
+              <div style="font-size:11px;color:#888;">Send money to the shop's Paynow number below</div>
             </div>
           </div>
           <div style="background:#fff;border-radius:10px;padding:16px;border:1px solid #ffe0b2;">
-            <div style="font-size:11px;color:#888;font-weight:600;letter-spacing:1px;margin-bottom:6px;">SHOP ECOCASH NUMBER</div>
+            <div style="font-size:11px;color:#888;font-weight:600;letter-spacing:1px;margin-bottom:6px;">SHOP PAYNOW NUMBER</div>
             <div style="font-size:24px;font-weight:800;color:#e65100;letter-spacing:1px;">${shop.ecocash_number || 'Not configured'}</div>
             ${shop.ecocash_number ? `<div style="font-size:11px;color:#aaa;margin-top:6px;">Reference: Order #${order.id.slice(0, 8).toUpperCase()}</div>` : ''}
           </div>
@@ -198,7 +198,7 @@ export default function OrderTicket() {
         <div class="info-value">📍 ${order.delivery_location}</div>
       </div>` : ''}
 
-      ${ecocashSection}
+      ${paynowSection}
 
       <div class="section-title">Items</div>
       <table>
@@ -220,8 +220,8 @@ export default function OrderTicket() {
       <div class="summary-total"><span>Total</span><span>$${Number(order.total_amount).toFixed(2)}</span></div>
 
       <div class="section-title">Payment Method</div>
-      <div class="payment-method" style="background:${order.payment_method === 'ecocash' ? '#ffa72622' : '#00c85322'};color:${order.payment_method === 'ecocash' ? '#e65100' : '#00c853'};">
-        ${order.payment_method === 'ecocash' ? '📱 EcoCash' : '💵 Cash on Delivery'}
+      <div class="payment-method" style="background:${order.payment_method === 'paynow' ? '#ffa72622' : '#00c85322'};color:${order.payment_method === 'paynow' ? '#e65100' : '#00c853'};">
+        ${order.payment_method === 'paynow' ? '📱 Paynow' : '💵 Cash on Delivery'}
       </div>
 
       ${shop.latitude && shop.longitude ? `
@@ -281,7 +281,7 @@ export default function OrderTicket() {
     const itemsList = (Array.isArray(order.products) ? order.products : [])
       .map((item: any) => `${item.name} x${item.qty || 1} - $${(Number(item.price || 0) * (item.qty || 1)).toFixed(2)}`)
       .join('\n');
-    const text = `UniLink Order Ticket\n\nShop: ${shop.name}\nAddress: ${shop.address || 'N/A'}\nPhone: ${shop.contact_phone}\n\nOrder #: ${order.id.slice(0, 8).toUpperCase()}\nDate: ${formatDate(order.created_at)}\n\nItems:\n${itemsList}\n\nSubtotal: $${Number(order.total_amount - order.delivery_fee).toFixed(2)}\nDelivery: $${Number(order.delivery_fee).toFixed(2)}\nTotal: $${Number(order.total_amount).toFixed(2)}\n\nPayment: ${order.payment_method === 'ecocash' ? 'EcoCash' : 'Cash on Delivery'}${order.payment_method === 'ecocash' && shop.ecocash_number ? `\nEcoCash Number: ${shop.ecocash_number}` : ''}`;
+    const text = `UniLink Order Ticket\n\nShop: ${shop.name}\nAddress: ${shop.address || 'N/A'}\nPhone: ${shop.contact_phone}\n\nOrder #: ${order.id.slice(0, 8).toUpperCase()}\nDate: ${formatDate(order.created_at)}\n\nItems:\n${itemsList}\n\nSubtotal: ${Number(order.total_amount - order.delivery_fee).toFixed(2)}\nDelivery: ${Number(order.delivery_fee).toFixed(2)}\nTotal: ${Number(order.total_amount).toFixed(2)}\n\nPayment: ${order.payment_method === 'paynow' ? 'Paynow' : 'Cash on Delivery'}${order.payment_method === 'paynow' && shop.ecocash_number ? `\nPaynow Number: ${shop.ecocash_number}` : ''}`;
     try {
       await Share.share({ message: text });
     } catch {}
@@ -394,23 +394,23 @@ export default function OrderTicket() {
               </>
             ) : null}
 
-            {/* EcoCash payment section */}
-            {order.payment_method === 'ecocash' ? (
-              <View style={[styles.ecocashBox, { backgroundColor: isDark ? 'rgba(255,167,38,0.08)' : '#fff8e1', borderColor: AMBER }]}>
-                <View style={styles.ecocashHeader}>
-                  <View style={[styles.ecocashIcon, { backgroundColor: `${AMBER}22` }]}>
+            {/* Paynow payment section */}
+            {order.payment_method === 'paynow' ? (
+              <View style={[styles.paynowBox, { backgroundColor: isDark ? 'rgba(255,167,38,0.08)' : '#fff8e1', borderColor: AMBER }]}>
+                <View style={styles.paynowHeader}>
+                  <View style={[styles.paynowIcon, { backgroundColor: `${AMBER}22` }]}>
                     <Smartphone size={18} color={AMBER} />
                   </View>
                   <View>
-                    <Text style={[styles.ecocashTitle, { color: '#e65100' }]}>ECOCASH PAYMENT</Text>
-                    <Text style={[styles.ecocashSub, { color: TX2 }]}>Send money to the shop's EcoCash number</Text>
+                    <Text style={[styles.paynowTitle, { color: '#e65100' }]}>PAYNOW PAYMENT</Text>
+                    <Text style={[styles.paynowSub, { color: TX2 }]}>Send money to the shop's Paynow number</Text>
                   </View>
                 </View>
-                <View style={[styles.ecocashNumberBox, { backgroundColor: isDark ? '#0a1828' : '#fff', borderColor: `${AMBER}55` }]}>
-                  <Text style={[styles.ecocashNumberLabel, { color: TX3 }]}>SHOP ECOCASH NUMBER</Text>
-                  <Text style={[styles.ecocashNumber, { color: '#e65100' }]}>{shop.ecocash_number || 'Not configured'}</Text>
+                <View style={[styles.paynowNumberBox, { backgroundColor: isDark ? '#0a1828' : '#fff', borderColor: `${AMBER}55` }]}>
+                  <Text style={[styles.paynowNumberLabel, { color: TX3 }]}>SHOP PAYNOW NUMBER</Text>
+                  <Text style={[styles.paynowNumber, { color: '#e65100' }]}>{shop.ecocash_number || 'Not configured'}</Text>
                   {shop.ecocash_number ? (
-                    <Text style={[styles.ecocashRef, { color: TX3 }]}>Reference: Order #{order.id.slice(0, 8).toUpperCase()}</Text>
+                    <Text style={[styles.paynowRef, { color: TX3 }]}>Reference: Order #{order.id.slice(0, 8).toUpperCase()}</Text>
                   ) : null}
                 </View>
               </View>
@@ -451,11 +451,11 @@ export default function OrderTicket() {
 
             {/* Payment method */}
             <View style={[styles.paymentRow, { borderColor: BORDER }]}>
-              <CreditCard size={16} color={order.payment_method === 'ecocash' ? AMBER : GREEN} />
+              <CreditCard size={16} color={order.payment_method === 'paynow' ? AMBER : GREEN} />
               <Text style={[styles.paymentLabel, { color: TX2 }]}>Payment Method:</Text>
-              <View style={[styles.paymentBadge, { backgroundColor: order.payment_method === 'ecocash' ? `${AMBER}22` : `${GREEN}22` }]}>
-                <Text style={[styles.paymentBadgeText, { color: order.payment_method === 'ecocash' ? AMBER : GREEN }]}>
-                  {order.payment_method === 'ecocash' ? 'EcoCash' : 'Cash on Delivery'}
+              <View style={[styles.paymentBadge, { backgroundColor: order.payment_method === 'paynow' ? `${AMBER}22` : `${GREEN}22` }]}>
+                <Text style={[styles.paymentBadgeText, { color: order.payment_method === 'paynow' ? AMBER : GREEN }]}>
+                  {order.payment_method === 'paynow' ? 'Paynow' : 'Cash on Delivery'}
                 </Text>
               </View>
             </View>
@@ -544,15 +544,15 @@ const styles = StyleSheet.create({
   detailBox: { width: '48%', borderRadius: 10, padding: 12, borderWidth: 1 },
   detailLabel: { fontSize: 9, fontWeight: '700', letterSpacing: 1 },
   detailValue: { fontSize: 13, fontWeight: '600', marginTop: 3 },
-  ecocashBox: { borderRadius: 14, borderWidth: 1.5, padding: 16, marginTop: 16, borderStyle: 'dashed' as any },
-  ecocashHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 14 },
-  ecocashIcon: { width: 38, height: 38, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
-  ecocashTitle: { fontSize: 13, fontWeight: '800', letterSpacing: 0.5 },
-  ecocashSub: { fontSize: 11, marginTop: 2 },
-  ecocashNumberBox: { borderRadius: 12, padding: 16, borderWidth: 1 },
-  ecocashNumberLabel: { fontSize: 10, fontWeight: '700', letterSpacing: 1 },
-  ecocashNumber: { fontSize: 24, fontWeight: '800', letterSpacing: 1, marginTop: 6 },
-  ecocashRef: { fontSize: 11, marginTop: 6 },
+  paynowBox: { borderRadius: 14, borderWidth: 1.5, padding: 16, marginTop: 16, borderStyle: 'dashed' as any },
+  paynowHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 14 },
+  paynowIcon: { width: 38, height: 38, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
+  paynowTitle: { fontSize: 13, fontWeight: '800', letterSpacing: 0.5 },
+  paynowSub: { fontSize: 11, marginTop: 2 },
+  paynowNumberBox: { borderRadius: 12, padding: 16, borderWidth: 1 },
+  paynowNumberLabel: { fontSize: 10, fontWeight: '700', letterSpacing: 1 },
+  paynowNumber: { fontSize: 24, fontWeight: '800', letterSpacing: 1, marginTop: 6 },
+  paynowRef: { fontSize: 11, marginTop: 6 },
   itemsTable: { borderRadius: 10, borderWidth: 1, overflow: 'hidden' },
   itemsHeader: { flexDirection: 'row', paddingVertical: 10, paddingHorizontal: 12, borderBottomWidth: 1 },
   itemsHeaderCell: { fontSize: 11, fontWeight: '700' },

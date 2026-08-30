@@ -100,8 +100,8 @@ const STEPS: Step[] = [
     icon: null,
     title: 'Payment Method',
     description:
-      'Select how you want to pay:\n\n• Pay on Delivery — hand cash to the driver when they arrive.\n• EcoCash — send mobile money before delivery begins.',
-    tip: 'EcoCash orders require you to send payment first.',
+      'Select how you want to pay:\n\n• Pay on Delivery — hand cash to the driver when they arrive.\n• Paynow — send online payment before delivery begins.',
+    tip: 'Paynow orders require you to send payment first.',
     accentColor: '#10b981',
   },
   {

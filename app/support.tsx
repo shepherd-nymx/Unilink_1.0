@@ -53,7 +53,7 @@ const FAQS: FAQ[] = [
     category: 'Messenger',
     question: 'How do I register as a messenger/driver?',
     answer:
-      'Tap "Register" and choose "Messenger". Complete your profile including your vehicle type and EcoCash number. Your account must be approved by an admin before you go live — you\'ll be notified once approved.',
+      'Tap "Register" and choose "Messenger". Complete your profile including your vehicle type and Paynow number. Your account must be approved by an admin before you go live — you\'ll be notified once approved.',
   },
   {
     id: '3',
@@ -85,7 +85,7 @@ const FAQS: FAQ[] = [
     category: 'Payments',
     question: 'What payment methods does UniLink accept?',
     answer:
-      'UniLink currently supports Pay on Delivery (cash or card) and EcoCash mobile money. When paying via EcoCash, your messenger will share their EcoCash number after accepting the order. More payment options are coming soon.',
+      'UniLink currently supports Pay on Delivery (cash or card) and Paynow online payment. When paying via Paynow, your messenger will share their Paynow number after accepting the order. More payment options are coming soon.',
   },
   {
     id: '7',

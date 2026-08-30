@@ -373,7 +373,7 @@ export default function ViewDeliveries() {
                           )}
                           <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
                             <Text style={{ fontSize: 12, color: A.textSub }}>Payment</Text>
-                            <Text style={{ fontSize: 13, fontWeight: '600', color: A.text }}>{req.payment_method === 'paynow' ? 'Paynow' : req.payment_method === 'ecocash' ? 'EcoCash' : 'Pay on Delivery'}</Text>
+                            <Text style={{ fontSize: 13, fontWeight: '600', color: A.text }}>{req.payment_method === 'paynow' ? 'Paynow' : 'Pay on Delivery'}</Text>
                           </View>
                           <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
                             <Text style={{ fontSize: 12, color: A.textSub }}>Date</Text>
@@ -484,7 +484,7 @@ export default function ViewDeliveries() {
                           <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
                             <Text style={{ fontSize: 12, color: A.textSub }}>Payment</Text>
                             <Text style={{ fontSize: 13, fontWeight: '600', color: A.text }}>
-                              {delivery.payment_option === 'paynow' ? 'Paynow' : delivery.payment_option === 'ecocash' ? 'EcoCash' : 'Pay on Delivery'}
+                              {delivery.payment_option === 'paynow' ? 'Paynow' : 'Pay on Delivery'}
                             </Text>
                           </View>
 
@@ -611,7 +611,7 @@ export default function ViewDeliveries() {
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
                           <Text style={{ fontSize: 12, color: A.textSub }}>Payment</Text>
                           <Text style={{ fontSize: 13, fontWeight: '600', color: A.text }}>
-                            {delivery.payment_option === 'paynow' ? 'Paynow' : delivery.payment_option === 'ecocash' ? 'EcoCash' : 'Pay on Delivery'}
+                            {delivery.payment_option === 'paynow' ? 'Paynow' : 'Pay on Delivery'}
                           </Text>
                         </View>
 

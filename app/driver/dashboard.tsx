@@ -680,7 +680,7 @@ export default function DriverDashboard() {
                     </View>
                     <View style={s.infoItem}>
                       <Zap size={11} color={TEXT2} />
-                      <Text style={s.infoVal}>{delivery.payment_option === 'pay_on_delivery' ? 'Cash' : 'EcoCash'}</Text>
+                      <Text style={s.infoVal}>{delivery.payment_option === 'pay_on_delivery' ? 'Cash' : 'Paynow'}</Text>
                     </View>
                     <View style={s.infoItem}>
                       <Clock size={11} color={TEXT2} />
@@ -718,8 +718,8 @@ export default function DriverDashboard() {
                   {!delivery.payment_received && (
                     <View style={s.paymentWarningBox}>
                       <Text style={s.paymentWarningText}>
-                        {delivery.payment_option === 'ecocash'
-                          ? 'Awaiting EcoCash payment from customer'
+                        {delivery.payment_option === 'paynow'
+                          ? 'Awaiting Paynow payment from customer'
                           : 'Confirm cash received from customer'}
                       </Text>
                     </View>
@@ -835,7 +835,7 @@ export default function DriverDashboard() {
                   </View>
                   <View style={s.infoItem}>
                     <Zap size={11} color={TEXT2} />
-                    <Text style={s.infoVal}>{delivery.payment_option === 'pay_on_delivery' ? 'Cash' : 'EcoCash'}</Text>
+                    <Text style={s.infoVal}>{delivery.payment_option === 'pay_on_delivery' ? 'Cash' : 'Paynow'}</Text>
                   </View>
                   <View style={s.infoItem}>
                     <Clock size={11} color={TEXT2} />

@@ -119,7 +119,7 @@ export function formatOperatingHours(oh: Record<string, any> | null): { day: str
 export function formatPaymentMethod(method: string): string {
   switch (method) {
     case 'pay_on_delivery': return 'Pay on Delivery';
-    case 'ecocash': return 'EcoCash';
+    case 'ecocash': return 'Paynow';
     case 'paynow': return 'PayNow';
     case 'card': return 'Card';
     case 'bank_transfer': return 'Bank Transfer';
@@ -132,5 +132,5 @@ export function formatPaymentMethod(method: string): string {
 export function getAcceptedMethods(shop: Shop): string[] {
   return shop.accepted_payment_methods && shop.accepted_payment_methods.length > 0
     ? shop.accepted_payment_methods
-    : ['pay_on_delivery', 'ecocash'];
+    : ['pay_on_delivery', 'paynow'];
 }

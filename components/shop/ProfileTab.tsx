@@ -24,7 +24,7 @@ import * as Location from 'expo-location';
 
 const PAYMENT_OPTIONS: { key: string; label: string }[] = [
   { key: 'pay_on_delivery', label: 'Pay on Delivery' },
-  { key: 'ecocash', label: 'EcoCash' },
+  { key: 'paynow', label: 'Paynow' },
   { key: 'bank_transfer', label: 'Bank Transfer' },
 ];
 
@@ -63,7 +63,7 @@ export function ProfileTab({
   const [savingAvail, setSavingAvail] = useState(false);
   const [hours, setHours] = useState<OperatingHours>(shop.operating_hours || emptyHours());
   const [savingHours, setSavingHours] = useState(false);
-  const [payMethods, setPayMethods] = useState<string[]>(shop.accepted_payment_methods || ['pay_on_delivery', 'ecocash']);
+  const [payMethods, setPayMethods] = useState<string[]>(shop.accepted_payment_methods || ['pay_on_delivery', 'paynow']);
   const [savingPay, setSavingPay] = useState(false);
   const [msg, setMsg] = useState('');
 
@@ -204,12 +204,6 @@ export function ProfileTab({
           <View style={styles.row}>
             <Text style={styles.label}>Description</Text>
             <Text style={styles.value}>{shop.description}</Text>
-          </View>
-        ) : null}
-        {shop.ecocash_number ? (
-          <View style={styles.row}>
-            <Text style={styles.label}>EcoCash</Text>
-            <Text style={styles.value}>{shop.ecocash_number}</Text>
           </View>
         ) : null}
       </View>

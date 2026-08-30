@@ -82,7 +82,7 @@ Deno.serve(async (req: Request) => {
 ${itemsText}
 
 💰 *Order Total:* $${grandTotal.toFixed(2)}
-💵 *Payment:* ${paymentMethod === "pay_on_delivery" ? "Pay on Delivery" : paymentMethod === "ecocash" ? "EcoCash" : paymentMethod}
+💵 *Payment:* ${paymentMethod === "pay_on_delivery" ? "Pay on Delivery" : paymentMethod === "paynow" ? "Paynow" : paymentMethod}
 
 Please confirm you can handle this delivery. Thank you!`;
 

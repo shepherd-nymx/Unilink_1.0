@@ -45,7 +45,6 @@ export default function ShopRegister() {
   const [description, setDescription] = useState('');
   const [address, setAddress] = useState('');
   const [hours, setHours] = useState('');
-  const [ecocashNumber, setEcocashNumber] = useState('');
   const [area, setArea] = useState('');
   const [areas, setAreas] = useState<{ id: string; name: string; city: string | null }[]>([]);
   const [showAreaPicker, setShowAreaPicker] = useState(false);
@@ -166,7 +165,6 @@ export default function ShopRegister() {
           contact_phone: contactPhone,
           contact_email: emailTrim,
           hours: hours || null,
-          ecocash_number: ecocashNumber || null,
           status: 'pending_approval',
         })
         .select()
@@ -454,23 +452,6 @@ export default function ShopRegister() {
                   placeholder="e.g. Mon-Fri 8am-6pm"
                   placeholderTextColor={placeholderColor}
                   onFocus={() => setFocused('hours')}
-                  onBlur={() => setFocused(null)}
-                />
-              </View>
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: textSecondary }]}>ECOCASH NUMBER</Text>
-              <View style={[styles.inputWrapper, { backgroundColor: inputBg, borderColor: focused === 'ecocash' ? primary : inputBorder }]}>
-                <View style={styles.inputIcon}><CreditCard size={16} color={focused === 'ecocash' ? primary : placeholderColor} /></View>
-                <TextInput
-                  style={[styles.input, { color: textPrimary }]}
-                  value={ecocashNumber}
-                  onChangeText={setEcocashNumber}
-                  placeholder="EcoCash merchant number"
-                  placeholderTextColor={placeholderColor}
-                  keyboardType="phone-pad"
-                  onFocus={() => setFocused('ecocash')}
                   onBlur={() => setFocused(null)}
                 />
               </View>

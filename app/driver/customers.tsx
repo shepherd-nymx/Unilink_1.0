@@ -278,9 +278,9 @@ export default function DriverCustomers() {
                                 <Package size={11} color={TEXT2} />
                                 <Text style={cs.recordMetaText}>Fee ${record.delivery_fee.toFixed(2)}</Text>
                               </View>
-                              <View style={[cs.recordMetaItem, { backgroundColor: record.payment_method === 'ecocash' ? AMBER_DIM : record.payment_method === 'paynow' ? 'rgba(0,168,107,0.1)' : GREEN_DIM, borderColor: record.payment_method === 'ecocash' ? AMBER + '44' : record.payment_method === 'paynow' ? '#00a86b44' : GREEN + '44' }]}>
-                                <Text style={[cs.recordMetaText, { color: record.payment_method === 'ecocash' ? AMBER : record.payment_method === 'paynow' ? '#00a86b' : GREEN }]}>
-                                  {record.payment_method === 'paynow' ? 'Paynow' : record.payment_method === 'ecocash' ? 'EcoCash' : 'Cash'}
+                              <View style={[cs.recordMetaItem, { backgroundColor: record.payment_method === 'paynow' ? 'rgba(0,168,107,0.1)' : GREEN_DIM, borderColor: record.payment_method === 'paynow' ? '#00a86b44' : GREEN + '44' }]}>
+                                <Text style={[cs.recordMetaText, { color: record.payment_method === 'paynow' ? '#00a86b' : GREEN }]}>
+                                  {record.payment_method === 'paynow' ? 'Paynow' : 'Cash'}
                                 </Text>
                               </View>
                             </View>

@@ -396,10 +396,6 @@ export default function BuyAndDeliverForm({
               <Text style={{ fontSize: 18 }}>💵</Text>
               <Text style={[s.toggleOptText, paymentMethod === 'pay_on_delivery' && s.toggleOptTextActive]}>Pay on Delivery</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[s.toggleOpt, paymentMethod === 'ecocash' && s.toggleOptActive]} onPress={() => onPaymentChange('ecocash')}>
-              <Text style={{ fontSize: 18 }}>📱</Text>
-              <Text style={[s.toggleOptText, paymentMethod === 'ecocash' && s.toggleOptTextActive]}>EcoCash</Text>
-            </TouchableOpacity>
           </View>
           {/* Paynow — full-width branded button */}
           <TouchableOpacity

@@ -47,7 +47,7 @@ type Props = {
   onClose: () => void;
   drivers: Driver[];
   deliveryMethod: 'walking' | 'vehicle';
-  paymentOption: 'pay_on_delivery' | 'ecocash';
+  paymentOption: 'pay_on_delivery' | 'paynow';
   onSelectDirect: (driver: Driver) => void;
   onSelectOpenRequest: () => void;
   selectedDriverId: string | null;
