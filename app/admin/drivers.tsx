@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
-import { ArrowLeft, Plus, Truck, CreditCard as Edit2, CreditCard, Trash2, CircleCheck as CheckCircle, Circle as XCircle, School, Key, RefreshCw } from 'lucide-react-native';
+import { ArrowLeft, Plus, Truck, CreditCard as Edit2, CreditCard, Trash2, CircleCheck as CheckCircle, Circle as XCircle, School, Key, RefreshCw, ShieldCheck, ShieldAlert, Ban, Calendar, Clock } from 'lucide-react-native';
 import { A } from '@/lib/admin-theme';
 import { SkeletonList } from '@/components/Skeleton';
 import { ConnectionBadge } from '@/components/ConnectionBadge';
@@ -37,6 +37,11 @@ type Driver = {
   national_id_photo_url?: string | null;
   rejection_reason?: string;
   university_id?: string;
+  subscription_status?: 'active' | 'expired' | 'suspended' | null;
+  subscription_start?: string | null;
+  subscription_expiry?: string | null;
+  suspended?: boolean;
+  suspended_at?: string | null;
   universities?: { name: string };
 };
 
@@ -54,13 +59,14 @@ export default function ManageDrivers() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [driverToDelete, setDriverToDelete] = useState<Driver | null>(null);
   const [deleting, setDeleting] = useState(false);
-  const [activeTab, setActiveTab] = useState<'pending' | 'approved' | 'rejected'>('pending');
+  const [activeTab, setActiveTab] = useState<'pending' | 'approved' | 'rejected' | 'eligibility'>('pending');
   const [showApprovalModal, setShowApprovalModal] = useState(false);
   const [driverToApprove, setDriverToApprove] = useState<Driver | null>(null);
   const [approving, setApproving] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
   const [showIdPhotoModal, setShowIdPhotoModal] = useState(false);
   const [idPhotoUrl, setIdPhotoUrl] = useState<string | null>(null);
+  const [eligibilityMap, setEligibilityMap] = useState<Record<string, boolean>>({});
 
   const [formData, setFormData] = useState({
     phoneNumber: '',
@@ -97,11 +103,26 @@ export default function ManageDrivers() {
     loadDrivers();
   }, [activeTab, selectedUniversityFilter]);
 
+  useEffect(() => {
+    if (activeTab !== 'eligibility') return;
+    const approved = drivers.filter(d => d.approval_status === 'approved');
+    Promise.all(
+      approved.map(async (d) => {
+        const { data, error } = await supabase.rpc('is_driver_eligible', { p_driver_id: d.id });
+        return { id: d.id, eligible: error ? false : Boolean(data) };
+      })
+    ).then((results) => {
+      const map: Record<string, boolean> = {};
+      results.forEach((r) => { map[r.id] = r.eligible; });
+      setEligibilityMap(map);
+    });
+  }, [activeTab, drivers]);
+
   const loadDrivers = async () => {
     try {
       let query = supabase
         .from('drivers')
-        .select('*, universities!drivers_university_id_fkey(name)')
+        .select('*, subscription_status, subscription_start, subscription_expiry, suspended, suspended_at, universities!drivers_university_id_fkey(name)')
         .order('created_at', { ascending: false });
 
       if (selectedUniversityFilter) {
@@ -257,6 +278,9 @@ export default function ManageDrivers() {
         .update({
           current_key: newKey,
           key_expires_at: expiresAt.toISOString(),
+          subscription_status: 'active',
+          subscription_start: new Date().toISOString(),
+          subscription_expiry: expiresAt.toISOString(),
         })
         .eq('id', driverId);
 
@@ -285,6 +309,9 @@ export default function ManageDrivers() {
           current_key: monthlyKey,
           key_expires_at: expiresAt.toISOString(),
           approved_at: new Date().toISOString(),
+          subscription_status: 'active',
+          subscription_start: new Date().toISOString(),
+          subscription_expiry: expiresAt.toISOString(),
         })
         .eq('id', driverToApprove.id);
 
@@ -331,19 +358,54 @@ export default function ManageDrivers() {
     }
   };
 
-  const filteredDrivers = drivers.filter(driver => driver.approval_status === activeTab);
+  const suspendDriver = async (driverId: string) => {
+    const { error } = await supabase.from('drivers').update({ suspended: true, suspended_at: new Date().toISOString() }).eq('id', driverId);
+    if (error) { setError(error.message); return; }
+    loadDrivers();
+  };
+
+  const unsuspendDriver = async (driverId: string) => {
+    const { error } = await supabase.from('drivers').update({ suspended: false, suspended_at: null }).eq('id', driverId);
+    if (error) { setError(error.message); return; }
+    loadDrivers();
+  };
+
+  const filteredDrivers = activeTab === 'eligibility'
+    ? drivers.filter(driver => driver.approval_status === 'approved')
+    : drivers.filter(driver => driver.approval_status === activeTab);
 
   const pendingCount = drivers.filter(d => d.approval_status === 'pending').length;
   const approvedCount = drivers.filter(d => d.approval_status === 'approved').length;
   const rejectedCount = drivers.filter(d => d.approval_status === 'rejected').length;
 
-  const tabColor = activeTab === 'approved' ? A.green : activeTab === 'pending' ? A.amber : A.red;
+  const tabColor = activeTab === 'approved' ? A.green : activeTab === 'pending' ? A.amber : activeTab === 'eligibility' ? A.cyan : A.red;
 
   const getCardBorderColor = (status: string) => {
     if (status === 'approved') return A.green;
     if (status === 'pending') return A.amber;
     return A.red;
   };
+
+  const approvedDriversList = drivers.filter(d => d.approval_status === 'approved');
+
+  const getSubStatus = (driver: Driver): 'active' | 'expired' | 'suspended' | 'none' => {
+    if (driver.suspended) return 'suspended';
+    if (driver.subscription_status === 'active') return 'active';
+    if (driver.subscription_status === 'expired') return 'expired';
+    if (driver.subscription_expiry && new Date(driver.subscription_expiry) < new Date()) return 'expired';
+    return 'none';
+  };
+
+  const getDaysRemaining = (driver: Driver): number | null => {
+    if (!driver.subscription_expiry) return null;
+    const diff = new Date(driver.subscription_expiry).getTime() - Date.now();
+    return Math.ceil(diff / (1000 * 60 * 60 * 24));
+  };
+
+  const eligibleCount = approvedDriversList.filter(d => eligibilityMap[d.id] === true).length;
+  const activeSubCount = approvedDriversList.filter(d => getSubStatus(d) === 'active').length;
+  const expiredSubCount = approvedDriversList.filter(d => getSubStatus(d) === 'expired').length;
+  const suspendedCount = approvedDriversList.filter(d => getSubStatus(d) === 'suspended').length;
 
   if (loading) {
     return (
@@ -434,6 +496,7 @@ export default function ManageDrivers() {
           { key: 'pending', label: 'Pending', count: pendingCount, color: A.amber },
           { key: 'approved', label: 'Approved', count: approvedCount, color: A.green },
           { key: 'rejected', label: 'Rejected', count: rejectedCount, color: A.red },
+          { key: 'eligibility', label: 'Eligibility', count: approvedCount, color: A.cyan },
         ] as const).map(tab => (
           <TouchableOpacity
             key={tab.key}
@@ -493,6 +556,143 @@ export default function ManageDrivers() {
       </View>
 
       <ScrollView style={{ flex: 1 }}>
+        {activeTab === 'eligibility' ? (
+          <View style={{ padding: 16, gap: 12 }}>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+              <View style={{ flex: 1, minWidth: 140, backgroundColor: A.card, borderRadius: 12, borderWidth: 1, borderColor: A.border, padding: 12 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                  <ShieldCheck size={16} color={A.green} />
+                  <Text style={{ fontSize: 10, fontWeight: '700', letterSpacing: 1, color: A.textMuted }}>TOTAL ELIGIBLE</Text>
+                </View>
+                <Text style={{ fontSize: 24, fontWeight: '800', color: A.green }}>{eligibleCount}</Text>
+              </View>
+              <View style={{ flex: 1, minWidth: 140, backgroundColor: A.card, borderRadius: 12, borderWidth: 1, borderColor: A.border, padding: 12 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                  <Calendar size={16} color={A.green} />
+                  <Text style={{ fontSize: 10, fontWeight: '700', letterSpacing: 1, color: A.textMuted }}>ACTIVE SUBS</Text>
+                </View>
+                <Text style={{ fontSize: 24, fontWeight: '800', color: A.green }}>{activeSubCount}</Text>
+              </View>
+              <View style={{ flex: 1, minWidth: 140, backgroundColor: A.card, borderRadius: 12, borderWidth: 1, borderColor: A.border, padding: 12 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                  <Clock size={16} color={A.amber} />
+                  <Text style={{ fontSize: 10, fontWeight: '700', letterSpacing: 1, color: A.textMuted }}>EXPIRED SUBS</Text>
+                </View>
+                <Text style={{ fontSize: 24, fontWeight: '800', color: A.amber }}>{expiredSubCount}</Text>
+              </View>
+              <View style={{ flex: 1, minWidth: 140, backgroundColor: A.card, borderRadius: 12, borderWidth: 1, borderColor: A.border, padding: 12 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                  <Ban size={16} color={A.red} />
+                  <Text style={{ fontSize: 10, fontWeight: '700', letterSpacing: 1, color: A.textMuted }}>SUSPENDED</Text>
+                </View>
+                <Text style={{ fontSize: 24, fontWeight: '800', color: A.red }}>{suspendedCount}</Text>
+              </View>
+            </View>
+
+            <View style={{ paddingHorizontal: 4, paddingTop: 4, paddingBottom: 4 }}>
+              <Text style={{ fontSize: 10, fontWeight: '700', letterSpacing: 2, color: A.textMuted }}>
+                SUBSCRIPTION STATUS — {approvedDriversList.length}
+              </Text>
+            </View>
+
+            {approvedDriversList.length === 0 ? (
+              <View style={{ padding: 40, alignItems: 'center' }}>
+                <ShieldAlert size={40} color={A.textMuted} />
+                <Text style={{ fontSize: 15, color: A.textSub, marginTop: 12 }}>No approved drivers</Text>
+              </View>
+            ) : (
+              <Animated.View style={{ gap: 12, opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
+                {approvedDriversList.map(driver => {
+                  const subStatus = getSubStatus(driver);
+                  const daysRemaining = getDaysRemaining(driver);
+                  const isEligible = eligibilityMap[driver.id] === true;
+                  const subColor = subStatus === 'active' ? A.green : subStatus === 'expired' ? A.amber : subStatus === 'suspended' ? A.red : A.cyan;
+                  const subLabel = subStatus === 'active' ? 'Active' : subStatus === 'expired' ? 'Expired' : subStatus === 'suspended' ? 'Suspended' : 'No Subscription';
+                  return (
+                    <View key={driver.id} style={{ backgroundColor: A.card, borderRadius: 14, borderWidth: 1, borderColor: A.border, overflow: 'hidden' }}>
+                      <View style={{ flexDirection: 'row' }}>
+                        <View style={{ width: 3, backgroundColor: subColor, alignSelf: 'stretch' }} />
+                        <View style={{ flex: 1, padding: 14 }}>
+                          <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
+                            <View style={{ width: 44, height: 44, borderRadius: 10, backgroundColor: subStatus === 'active' ? A.greenDim : subStatus === 'expired' ? A.amberDim : subStatus === 'suspended' ? A.redDim : A.cyanDim, justifyContent: 'center', alignItems: 'center' }}>
+                              <Truck size={22} color={subColor} />
+                            </View>
+                            <View style={{ flex: 1 }}>
+                              <Text style={{ fontSize: 17, fontWeight: '700', color: A.text }}>{driver.full_name}</Text>
+                              <Text style={{ fontSize: 13, color: A.textSub, marginTop: 2 }}>{driver.phone_number}</Text>
+                              {driver.universities ? (
+                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 }}>
+                                  <School size={12} color={A.cyan} />
+                                  <Text style={{ fontSize: 12, color: A.cyan, fontWeight: '500' }}>{driver.universities.name}</Text>
+                                </View>
+                              ) : null}
+                            </View>
+                            <View style={{ alignItems: 'flex-end', gap: 6 }}>
+                              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: subStatus === 'active' ? A.greenDim : subStatus === 'expired' ? A.amberDim : subStatus === 'suspended' ? A.redDim : A.cyanDim, borderWidth: 1, borderColor: subStatus === 'none' ? A.border : subColor, borderRadius: 8, paddingVertical: 4, paddingHorizontal: 8 }}>
+                                {subStatus === 'active' ? <ShieldCheck size={12} color={A.green} /> : subStatus === 'suspended' ? <Ban size={12} color={A.red} /> : <ShieldAlert size={12} color={subStatus === 'none' ? A.textMuted : A.amber} />}
+                                <Text style={{ fontSize: 11, fontWeight: '700', color: subStatus === 'none' ? A.textSub : subColor }}>{subLabel}</Text>
+                              </View>
+                              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: isEligible ? A.greenDim : A.redDim, borderWidth: 1, borderColor: isEligible ? A.green : A.red, borderRadius: 8, paddingVertical: 3, paddingHorizontal: 8 }}>
+                                {isEligible ? <ShieldCheck size={11} color={A.green} /> : <ShieldAlert size={11} color={A.red} />}
+                                <Text style={{ fontSize: 10, fontWeight: '700', color: isEligible ? A.green : A.red }}>{isEligible ? 'Eligible' : 'Ineligible'}</Text>
+                              </View>
+                            </View>
+                          </View>
+
+                          <View style={{ marginTop: 10, gap: 4 }}>
+                            {driver.subscription_expiry ? (
+                              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                                <Calendar size={12} color={A.textSub} />
+                                <Text style={{ fontSize: 12, color: A.textSub }}>Expires: {new Date(driver.subscription_expiry).toLocaleDateString()}</Text>
+                              </View>
+                            ) : null}
+                            {subStatus === 'active' && daysRemaining !== null ? (
+                              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                                <Clock size={12} color={daysRemaining > 7 ? A.green : A.amber} />
+                                <Text style={{ fontSize: 12, color: daysRemaining > 7 ? A.green : A.amber, fontWeight: '600' }}>{daysRemaining} day{daysRemaining === 1 ? '' : 's'} remaining</Text>
+                              </View>
+                            ) : null}
+                            {driver.suspended && driver.suspended_at ? (
+                              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                                <Ban size={12} color={A.red} />
+                                <Text style={{ fontSize: 12, color: A.red }}>Suspended: {new Date(driver.suspended_at).toLocaleDateString()}</Text>
+                              </View>
+                            ) : null}
+                          </View>
+
+                          <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
+                            {subStatus === 'suspended' ? (
+                              <TouchableOpacity style={{ flex: 1, backgroundColor: A.greenDim, borderWidth: 1, borderColor: A.green, padding: 10, borderRadius: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }} onPress={() => unsuspendDriver(driver.id)}>
+                                <ShieldCheck size={16} color={A.green} />
+                                <Text style={{ color: A.green, fontSize: 13, fontWeight: '700' }}>Unsuspend</Text>
+                              </TouchableOpacity>
+                            ) : subStatus === 'expired' ? (
+                              <TouchableOpacity style={{ flex: 1, backgroundColor: A.amberDim, borderWidth: 1, borderColor: A.amber, padding: 10, borderRadius: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }} onPress={() => renewKey(driver.id)}>
+                                <RefreshCw size={16} color={A.amber} />
+                                <Text style={{ color: A.amber, fontSize: 13, fontWeight: '700' }}>Renew Subscription</Text>
+                              </TouchableOpacity>
+                            ) : subStatus === 'active' ? (
+                              <TouchableOpacity style={{ flex: 1, backgroundColor: A.redDim, borderWidth: 1, borderColor: A.red, padding: 10, borderRadius: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }} onPress={() => suspendDriver(driver.id)}>
+                                <Ban size={16} color={A.red} />
+                                <Text style={{ color: A.red, fontSize: 13, fontWeight: '700' }}>Suspend</Text>
+                              </TouchableOpacity>
+                            ) : (
+                              <TouchableOpacity style={{ flex: 1, backgroundColor: A.cyanDim, borderWidth: 1, borderColor: A.cyan, padding: 10, borderRadius: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }} onPress={() => renewKey(driver.id)}>
+                                <RefreshCw size={16} color={A.cyan} />
+                                <Text style={{ color: A.cyan, fontSize: 13, fontWeight: '700' }}>Activate Subscription</Text>
+                              </TouchableOpacity>
+                            )}
+                          </View>
+                        </View>
+                      </View>
+                    </View>
+                  );
+                })}
+              </Animated.View>
+            )}
+          </View>
+        ) : (
+        <>
         {/* Section title */}
         <View style={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 8 }}>
           <Text style={{ fontSize: 10, fontWeight: '700', letterSpacing: 2, color: A.textMuted }}>
@@ -521,6 +721,9 @@ export default function ManageDrivers() {
               const isExpired = driver.key_expires_at && new Date(driver.key_expires_at) < new Date();
               const isPending = driver.approval_status === 'pending';
               const accentColor = getCardBorderColor(driver.approval_status);
+              const subStatus = getSubStatus(driver);
+              const daysRemaining = getDaysRemaining(driver);
+              const subColor = subStatus === 'active' ? A.green : subStatus === 'expired' ? A.amber : subStatus === 'suspended' ? A.red : A.cyan;
 
               return (
                 <View
@@ -632,6 +835,21 @@ export default function ManageDrivers() {
                           </View>
                         )}
 
+                        {driver.approval_status === 'approved' && (
+                          <View style={{ marginTop: 6, flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: subStatus === 'active' ? A.greenDim : subStatus === 'expired' ? A.amberDim : subStatus === 'suspended' ? A.redDim : A.cyanDim, borderWidth: 1, borderColor: subStatus === 'none' ? A.border : subColor, borderRadius: 8, paddingVertical: 3, paddingHorizontal: 8 }}>
+                              {subStatus === 'active' ? <ShieldCheck size={11} color={A.green} /> : subStatus === 'suspended' ? <Ban size={11} color={A.red} /> : <ShieldAlert size={11} color={subStatus === 'none' ? A.textMuted : A.amber} />}
+                              <Text style={{ fontSize: 11, fontWeight: '700', color: subStatus === 'none' ? A.textSub : subColor }}>{subStatus === 'active' ? 'Active' : subStatus === 'expired' ? 'Expired' : subStatus === 'suspended' ? 'Suspended' : 'No Subscription'}</Text>
+                            </View>
+                            {subStatus === 'active' && daysRemaining !== null ? (
+                              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                                <Clock size={11} color={daysRemaining > 7 ? A.green : A.amber} />
+                                <Text style={{ fontSize: 11, color: daysRemaining > 7 ? A.green : A.amber, fontWeight: '600' }}>{daysRemaining}d left</Text>
+                              </View>
+                            ) : null}
+                          </View>
+                        )}
+
                         {/* Rejection reason */}
                         {driver.approval_status === 'rejected' && driver.rejection_reason && (
                           <View style={{ marginTop: 6, backgroundColor: A.redDim, borderRadius: 8, padding: 10, borderWidth: 1, borderColor: A.red }}>
@@ -686,6 +904,8 @@ export default function ManageDrivers() {
               );
             })}
           </Animated.View>
+        )}
+        </>
         )}
       </ScrollView>
 

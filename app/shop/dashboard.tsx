@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -11,90 +11,63 @@ import {
   ActivityIndicator,
   Modal,
   RefreshControl,
+  Image as RNImage,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
-import { loadShopSession, clearShopSession, type ShopSessionData } from '@/lib/shop-session-service';
+import { loadShopSession, clearShopSession } from '@/lib/shop-session-service';
 import { A } from '@/lib/admin-theme';
 import { SkeletonList } from '@/components/Skeleton';
-import { Store, Package, ShoppingBag, LogOut, Plus, Trash2, CircleCheck as CheckCircle, Circle as XCircle, Clock, Truck, DollarSign, TrendingUp, X, Image as ImageIcon, CircleAlert as AlertCircle } from 'lucide-react-native';
+import { HistoryTab } from '@/components/shop/HistoryTab';
+import { AnalyticsTab } from '@/components/shop/AnalyticsTab';
+import { ProfileTab } from '@/components/shop/ProfileTab';
+import { OrderDetailModal } from '@/components/shop/OrderDetailModal';
+import {
+  STATUS_LABELS,
+  STATUS_COLORS,
+  type ShopStatus,
+  type ShopOrder,
+  type ShopProduct,
+  type Driver,
+  type ShopData,
+} from '@/lib/shop-types';
+import {
+  Store,
+  Package,
+  ShoppingBag,
+  LogOut,
+  Plus,
+  Trash2,
+  Circle as XCircle,
+  Clock,
+  Truck,
+  DollarSign,
+  TrendingUp,
+  X,
+  Image as ImageIcon,
+  CircleAlert as AlertCircle,
+  Bell,
+  Ban,
+} from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 
-type ShopStatus = 'pending_approval' | 'payment_required' | 'payment_submitted' | 'active' | 'suspended' | 'rejected';
-
-type ShopOrder = {
-  id: string;
-  customer_name: string | null;
-  customer_phone: string | null;
-  customer_email: string | null;
-  products: any[];
-  total_amount: number;
-  delivery_fee: number;
-  delivery_location: string | null;
-  payment_method: string;
-  status: string;
-  messenger_id: string | null;
-  created_at: string;
-};
-
-type ShopProduct = {
-  id: string;
-  name: string;
-  description: string | null;
-  image_url: string | null;
-  price: number;
-  stock: number;
-  category: string | null;
-  status: string;
-};
-
-type Driver = {
-  id: string;
-  full_name: string;
-  phone_number: string;
-  approval_status: string;
-  is_available: boolean;
-};
-
-const STATUS_FLOW = ['pending', 'confirmed', 'preparing', 'ready', 'assigned', 'picked_up', 'out_for_delivery', 'delivered'];
-const STATUS_LABELS: Record<string, string> = {
-  pending: 'Pending',
-  confirmed: 'Confirmed',
-  preparing: 'Preparing',
-  ready: 'Ready',
-  assigned: 'Messenger Assigned',
-  picked_up: 'Picked Up',
-  out_for_delivery: 'Out for Delivery',
-  delivered: 'Delivered',
-  cancelled: 'Cancelled',
-};
-
-const STATUS_COLORS: Record<string, string> = {
-  pending: A.amber,
-  confirmed: A.blue,
-  preparing: A.blue,
-  ready: A.cyan,
-  assigned: A.cyan,
-  picked_up: A.orange,
-  out_for_delivery: A.orange,
-  delivered: A.green,
-  cancelled: A.red,
-};
+type TabKey = 'orders' | 'products' | 'history' | 'analytics' | 'profile';
 
 export default function ShopDashboard() {
   const router = useRouter();
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const [session, setSession] = useState<ShopSessionData | null>(null);
+  const bannerAnim = useRef(new Animated.Value(0)).current;
   const [loading, setLoading] = useState(true);
-  const [shop, setShop] = useState<any>(null);
+  const [shop, setShop] = useState<ShopData | null>(null);
   const [orders, setOrders] = useState<ShopOrder[]>([]);
   const [products, setProducts] = useState<ShopProduct[]>([]);
   const [registrationFee, setRegistrationFee] = useState(10);
-  const [activeTab, setActiveTab] = useState<'orders' | 'products' | 'profile'>('orders');
+  const [activeTab, setActiveTab] = useState<TabKey>('orders');
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
+  const [newOrderBanner, setNewOrderBanner] = useState<string | null>(null);
+  const prevOrderCount = useRef(0);
 
-  // Product modal
   const [showProductModal, setShowProductModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<ShopProduct | null>(null);
   const [productName, setProductName] = useState('');
@@ -102,21 +75,21 @@ export default function ShopDashboard() {
   const [productStock, setProductStock] = useState('');
   const [productCategory, setProductCategory] = useState('');
   const [productDesc, setProductDesc] = useState('');
+  const [productAvailable, setProductAvailable] = useState(true);
   const [productImageUri, setProductImageUri] = useState<string | null>(null);
   const [savingProduct, setSavingProduct] = useState(false);
 
-  // Order detail modal
   const [selectedOrder, setSelectedOrder] = useState<ShopOrder | null>(null);
   const [showOrderModal, setShowOrderModal] = useState(false);
   const [availableDrivers, setAvailableDrivers] = useState<Driver[]>([]);
   const [assigningDriver, setAssigningDriver] = useState(false);
+  const [assignError, setAssignError] = useState('');
 
   useEffect(() => {
     initDashboard();
     Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }).start();
   }, []);
 
-  // Realtime subscription for new orders and products
   useEffect(() => {
     if (!shop) return;
     const channel = supabase
@@ -124,16 +97,34 @@ export default function ShopDashboard() {
       .on(
         'postgres_changes' as any,
         { event: '*', table: 'shop_orders', filter: `shop_id=eq.${shop.id}` } as any,
-        () => loadOrders(shop.id)
+        () => loadOrders(shop.id),
       )
       .on(
         'postgres_changes' as any,
         { event: '*', table: 'shop_products', filter: `shop_id=eq.${shop.id}` } as any,
-        () => loadProducts(shop.id)
+        () => loadProducts(shop.id),
       )
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [shop]);
+
+  useEffect(() => {
+    const pending = orders.filter((o) => o.status === 'pending');
+    if (pending.length > prevOrderCount.current && prevOrderCount.current !== 0 && shop?.status === 'active') {
+      const latest = pending[0];
+      setNewOrderBanner(`New order from ${latest.customer_name || 'a customer'}!`);
+      Animated.timing(bannerAnim, { toValue: 1, duration: 300, useNativeDriver: true }).start();
+      const t = setTimeout(() => {
+        Animated.timing(bannerAnim, { toValue: 0, duration: 400, useNativeDriver: true }).start(() =>
+          setNewOrderBanner(null),
+        );
+      }, 4500);
+      return () => clearTimeout(t);
+    }
+    prevOrderCount.current = pending.length;
+  }, [orders, shop?.status]);
 
   const initDashboard = async () => {
     const sess = await loadShopSession();
@@ -141,7 +132,6 @@ export default function ShopDashboard() {
       router.replace('/shop/login');
       return;
     }
-    setSession(sess);
     await Promise.all([loadShop(sess.shopId), loadSettings()]);
     setLoading(false);
   };
@@ -152,9 +142,15 @@ export default function ShopDashboard() {
       .select('*')
       .eq('id', shopId)
       .maybeSingle();
-    if (err) { setError(err.message); return; }
-    if (!data) { router.replace('/shop/login'); return; }
-    setShop(data);
+    if (err) {
+      setError(err.message);
+      return;
+    }
+    if (!data) {
+      router.replace('/shop/login');
+      return;
+    }
+    setShop(data as ShopData);
     await Promise.all([loadOrders(shopId), loadProducts(shopId)]);
   };
 
@@ -164,8 +160,11 @@ export default function ShopDashboard() {
       .select('*')
       .eq('shop_id', shopId)
       .order('created_at', { ascending: false });
-    if (err) { setError(err.message); return; }
-    setOrders(data || []);
+    if (err) {
+      setError(err.message);
+      return;
+    }
+    setOrders((data || []) as ShopOrder[]);
   };
 
   const loadProducts = async (shopId: string) => {
@@ -174,8 +173,11 @@ export default function ShopDashboard() {
       .select('*')
       .eq('shop_id', shopId)
       .order('created_at', { ascending: false });
-    if (err) { setError(err.message); return; }
-    setProducts(data || []);
+    if (err) {
+      setError(err.message);
+      return;
+    }
+    setProducts((data || []) as ShopProduct[]);
   };
 
   const loadSettings = async () => {
@@ -224,9 +226,11 @@ export default function ShopDashboard() {
       .from('shop_orders')
       .update(updates)
       .eq('id', order.id);
-    if (err) { setError(err.message); return; }
+    if (err) {
+      setError(err.message);
+      return;
+    }
 
-    // Send status update email to customer
     if (order.customer_email) {
       sendEmail('shop_order_status', order.customer_email, {
         orderNumber: order.id.slice(0, 8),
@@ -242,95 +246,101 @@ export default function ShopDashboard() {
   const openOrderDetail = async (order: ShopOrder) => {
     setSelectedOrder(order);
     setShowOrderModal(true);
-    // Load available drivers
-    const { data: drivers } = await supabase
-      .from('drivers')
-      .select('id, full_name, phone_number, approval_status, is_available')
-      .eq('approval_status', 'approved')
-      .eq('is_available', true);
-    setAvailableDrivers(drivers || []);
+    setAssignError('');
+    const { data, error: rpcErr } = await supabase.rpc('get_eligible_drivers', { p_university_id: null });
+    if (rpcErr) {
+      setAvailableDrivers([]);
+      return;
+    }
+    setAvailableDrivers((data || []) as Driver[]);
   };
 
-  const assignMessenger = async (driverId: string, driverName: string) => {
+  const assignMessenger = async (driverId: string) => {
     if (!selectedOrder || !shop) return;
     setAssigningDriver(true);
-    const { error: err } = await supabase
-      .from('shop_orders')
-      .update({
-        messenger_id: driverId,
-        status: 'assigned',
-        assigned_at: new Date().toISOString(),
-      })
-      .eq('id', selectedOrder.id);
-    if (err) { setError(err.message); setAssigningDriver(false); return; }
-
-    // Notify messenger via email if they have one
-    const { data: driver } = await supabase
-      .from('drivers')
-      .select('email, whatsapp_number, phone_number')
-      .eq('id', driverId)
-      .maybeSingle();
-    if (driver?.email) {
-      sendEmail('shop_messenger_assigned', driver.email, {
-        orderNumber: selectedOrder.id.slice(0, 8),
-        messengerName: driverName,
-        pickup: shop.address || shop.name,
-        delivery: selectedOrder.delivery_location || 'See app',
-      }, selectedOrder.id);
+    setAssignError('');
+    try {
+      const { data, error: rpcErr } = await supabase.rpc('assign_shop_driver', {
+        p_order_id: selectedOrder.id,
+        p_driver_id: driverId,
+      });
+      if (rpcErr) {
+        setAssignError(rpcErr.message);
+        setAssigningDriver(false);
+        return;
+      }
+      const result = data as { success?: boolean; error?: string; driver_name?: string; driver_phone?: string; driver_whatsapp?: string } | null;
+      if (result && result.success === false) {
+        setAssignError(result.error || 'Assignment failed');
+        setAssigningDriver(false);
+        return;
+      }
+      if (result?.driver_phone || result?.driver_whatsapp) {
+        try {
+          const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
+          const anonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+          await fetch(`${supabaseUrl}/functions/v1/send-whatsapp-notification`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${anonKey}` },
+            body: JSON.stringify({
+              orderId: selectedOrder.id,
+              orderNumber: selectedOrder.id.slice(0, 8),
+              driverId,
+              driverPhone: result.driver_phone,
+              driverWhatsApp: result.driver_whatsapp,
+              shopName: shop.name,
+              shopAddress: shop.address || shop.name,
+              customerName: selectedOrder.customer_name || 'Customer',
+              customerPhone: selectedOrder.customer_phone || 'N/A',
+              deliveryLocation: selectedOrder.delivery_location || 'See app',
+              items: (selectedOrder.products || []).map((p: any) => ({ name: p.name, qty: p.qty, price: p.price })),
+              totalAmount: Number(selectedOrder.total_amount) || 0,
+              deliveryFee: Number(selectedOrder.delivery_fee) || 0,
+              paymentMethod: selectedOrder.payment_method || 'pay_on_delivery',
+            }),
+          });
+        } catch {}
+      }
+      setAssigningDriver(false);
+      setSelectedOrder(null);
+      setShowOrderModal(false);
+      loadOrders(shop.id);
+    } catch (e: any) {
+      setAssignError(e.message || 'Assignment failed');
+      setAssigningDriver(false);
     }
-
-    // Send WhatsApp notification to the driver
-    if (driver && (driver.whatsapp_number || driver.phone_number)) {
-      try {
-        const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
-        const anonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
-        await fetch(`${supabaseUrl}/functions/v1/send-whatsapp-notification`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${anonKey}` },
-          body: JSON.stringify({
-            orderId: selectedOrder.id,
-            orderNumber: selectedOrder.id.slice(0, 8),
-            driverId,
-            driverPhone: driver.phone_number,
-            driverWhatsApp: driver.whatsapp_number,
-            shopName: shop.name,
-            shopAddress: shop.address || shop.name,
-            customerName: selectedOrder.customer_name || 'Customer',
-            customerPhone: selectedOrder.customer_phone || 'N/A',
-            deliveryLocation: selectedOrder.delivery_location || 'See app',
-            items: (selectedOrder.products || []).map((p: any) => ({ name: p.name, qty: p.qty, price: p.price })),
-            totalAmount: Number(selectedOrder.total_amount) || 0,
-            deliveryFee: Number(selectedOrder.delivery_fee) || 0,
-            paymentMethod: selectedOrder.payment_method || 'pay_on_delivery',
-          }),
-        });
-      } catch {}
-    }
-
-    setAssigningDriver(false);
-    setSelectedOrder(null);
-    setShowOrderModal(false);
-    loadOrders(shop.id);
   };
 
   const openAddProduct = () => {
     setEditingProduct(null);
-    setProductName(''); setProductPrice(''); setProductStock('');
-    setProductCategory(''); setProductDesc(''); setProductImageUri(null);
+    setProductName('');
+    setProductPrice('');
+    setProductStock('');
+    setProductCategory('');
+    setProductDesc('');
+    setProductAvailable(true);
+    setProductImageUri(null);
     setShowProductModal(true);
   };
 
   const openEditProduct = (p: ShopProduct) => {
     setEditingProduct(p);
-    setProductName(p.name); setProductPrice(String(p.price));
-    setProductStock(String(p.stock)); setProductCategory(p.category || '');
-    setProductDesc(p.description || ''); setProductImageUri(null);
+    setProductName(p.name);
+    setProductPrice(String(p.price));
+    setProductStock(String(p.stock));
+    setProductCategory(p.category || '');
+    setProductDesc(p.description || '');
+    setProductAvailable(p.is_available !== false);
+    setProductImageUri(null);
     setShowProductModal(true);
   };
 
   const pickProductImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') { setError('Permission required'); return; }
+    if (status !== 'granted') {
+      setError('Permission required');
+      return;
+    }
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'] as any,
       allowsEditing: true,
@@ -372,6 +382,7 @@ export default function ShopDashboard() {
         price: parseFloat(productPrice) || 0,
         stock: parseInt(productStock) || 0,
         category: productCategory.trim() || null,
+        is_available: productAvailable,
       };
 
       if (editingProduct) {
@@ -396,12 +407,28 @@ export default function ShopDashboard() {
     }
   };
 
+  const toggleProductAvailability = async (p: ShopProduct) => {
+    const next = p.is_available === false;
+    const { error: err } = await supabase
+      .from('shop_products')
+      .update({ is_available: next })
+      .eq('id', p.id);
+    if (err) {
+      setError(err.message);
+      return;
+    }
+    if (shop) loadProducts(shop.id);
+  };
+
   const deleteProduct = async (productId: string) => {
     const { error: err } = await supabase
       .from('shop_products')
       .delete()
       .eq('id', productId);
-    if (err) { setError(err.message); return; }
+    if (err) {
+      setError(err.message);
+      return;
+    }
     if (shop) loadProducts(shop.id);
   };
 
@@ -411,7 +438,10 @@ export default function ShopDashboard() {
       .from('shops')
       .update({ status: 'payment_submitted', payment_proof: 'manual_submission' })
       .eq('id', shop.id);
-    if (err) { setError(err.message); return; }
+    if (err) {
+      setError(err.message);
+      return;
+    }
     await loadShop(shop.id);
   };
 
@@ -431,10 +461,11 @@ export default function ShopDashboard() {
     );
   }
 
-  const pendingOrders = orders.filter(o => o.status === 'pending');
-  const activeOrders = orders.filter(o => !['delivered', 'cancelled'].includes(o.status));
-  const completedOrders = orders.filter(o => o.status === 'delivered');
+  const pendingOrders = orders.filter((o) => o.status === 'pending');
+  const activeOrders = orders.filter((o) => !['delivered', 'cancelled'].includes(o.status));
+  const completedOrders = orders.filter((o) => o.status === 'delivered');
   const totalSales = completedOrders.reduce((sum, o) => sum + Number(o.total_amount), 0);
+  const canManageShop = shop.status === 'active';
 
   const renderStatusBanner = () => {
     const s = shop.status as ShopStatus;
@@ -456,11 +487,16 @@ export default function ShopDashboard() {
     );
   };
 
-  const canManageShop = shop.status === 'active';
+  const TABS: { key: TabKey; label: string; icon: any }[] = [
+    { key: 'orders', label: 'Orders', icon: ShoppingBag },
+    { key: 'products', label: 'Products', icon: Package },
+    { key: 'history', label: 'History', icon: Clock },
+    { key: 'analytics', label: 'Analytics', icon: TrendingUp },
+    { key: 'profile', label: 'Profile', icon: Store },
+  ];
 
   return (
     <View style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <View style={styles.headerLogoBox}>
@@ -471,10 +507,7 @@ export default function ShopDashboard() {
             <Text style={styles.headerSub}>{STATUS_LABELS[shop.status] || shop.status}</Text>
           </View>
         </View>
-        <TouchableOpacity
-          style={styles.logoutBtn}
-          onPress={handleLogout}
-        >
+        <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
           <LogOut size={16} color={A.red} />
           <Text style={styles.logoutText}>Logout</Text>
         </TouchableOpacity>
@@ -483,7 +516,28 @@ export default function ShopDashboard() {
       <Animated.View style={{ flex: 1, opacity: fadeAnim }}>
         {renderStatusBanner()}
 
-        {/* Payment action */}
+        {newOrderBanner && (
+          <Animated.View
+            style={[
+              styles.newOrderBanner,
+              {
+                opacity: bannerAnim,
+                transform: [
+                  {
+                    translateY: bannerAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [-40, 0],
+                    }),
+                  },
+                ],
+              },
+            ]}
+          >
+            <Bell size={16} color="#000" />
+            <Text style={styles.newOrderText}>{newOrderBanner}</Text>
+          </Animated.View>
+        )}
+
         {shop.status === 'payment_required' && (
           <View style={styles.paymentCard}>
             <DollarSign size={24} color={A.amber} />
@@ -497,7 +551,6 @@ export default function ShopDashboard() {
           </View>
         )}
 
-        {/* Stats */}
         {canManageShop && (
           <View style={styles.statsRow}>
             <View style={styles.statCard}>
@@ -523,13 +576,8 @@ export default function ShopDashboard() {
           </View>
         )}
 
-        {/* Tabs */}
         <View style={styles.tabBar}>
-          {([
-            { key: 'orders', label: 'Orders', icon: ShoppingBag },
-            { key: 'products', label: 'Products', icon: Package },
-            { key: 'profile', label: 'Profile', icon: Store },
-          ] as const).map(tab => {
+          {TABS.map((tab) => {
             const Icon = tab.icon;
             const active = activeTab === tab.key;
             return (
@@ -538,7 +586,7 @@ export default function ShopDashboard() {
                 style={[styles.tab, active && { borderBottomColor: A.cyan, borderBottomWidth: 2 }]}
                 onPress={() => setActiveTab(tab.key)}
               >
-                <Icon size={16} color={active ? A.cyan : A.textSub} />
+                <Icon size={15} color={active ? A.cyan : A.textSub} />
                 <Text style={[styles.tabText, { color: active ? A.cyan : A.textSub }]}>{tab.label}</Text>
               </TouchableOpacity>
             );
@@ -568,7 +616,7 @@ export default function ShopDashboard() {
                   <Text style={styles.emptyText}>No orders yet</Text>
                 </View>
               ) : (
-                orders.map(order => {
+                orders.map((order) => {
                   const statusColor = STATUS_COLORS[order.status] || A.textSub;
                   return (
                     <TouchableOpacity
@@ -616,215 +664,84 @@ export default function ShopDashboard() {
                   <Text style={styles.emptyText}>No products yet</Text>
                 </View>
               ) : (
-                products.map(p => (
-                  <View key={p.id} style={styles.productCard}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.productName}>{p.name}</Text>
-                      <Text style={styles.productPrice}>${Number(p.price).toFixed(2)}</Text>
-                      <View style={styles.productMeta}>
-                        <Text style={[styles.productStock, { color: p.stock > 0 ? A.green : A.red }]}>
-                          Stock: {p.stock}
-                        </Text>
-                        {p.category && <Text style={styles.productCategory}>{p.category}</Text>}
+                products.map((p) => {
+                  const outOfStock = p.stock <= 0;
+                  const avail = p.is_available !== false;
+                  return (
+                    <View key={p.id} style={styles.productCard}>
+                      {p.image_url ? (
+                        Platform.OS === 'web' ? (
+                          <img src={p.image_url} style={styles.productThumb} alt={p.name} />
+                        ) : (
+                          <RNImage source={{ uri: p.image_url }} style={styles.productThumbNative} />
+                        )
+                      ) : null}
+                      <View style={{ flex: 1 }}>
+                        <View style={styles.productNameRow}>
+                          <Text style={styles.productName}>{p.name}</Text>
+                          {outOfStock && (
+                            <View style={styles.oosBadge}>
+                              <Ban size={9} color="#fff" />
+                              <Text style={styles.oosText}>OUT OF STOCK</Text>
+                            </View>
+                          )}
+                        </View>
+                        <Text style={styles.productPrice}>${Number(p.price).toFixed(2)}</Text>
+                        <View style={styles.productMeta}>
+                          <Text style={[styles.productStock, { color: outOfStock ? A.red : A.green }]}>
+                            Stock: {p.stock}
+                          </Text>
+                          {p.category ? <Text style={styles.productCategory}>{p.category}</Text> : null}
+                        </View>
                       </View>
+                      {canManageShop && (
+                        <View style={{ gap: 8, alignItems: 'flex-end' }}>
+                          <TouchableOpacity
+                            style={[styles.availToggleSmall, { backgroundColor: avail ? A.greenDim : A.inputBg, borderColor: avail ? A.green : A.border }]}
+                            onPress={() => toggleProductAvailability(p)}
+          >
+                            <View style={[styles.availDotSmall, { backgroundColor: avail ? A.green : A.textMuted }]} />
+                            <Text style={[styles.availToggleText, { color: avail ? A.green : A.textSub }]}>
+                              {avail ? 'On' : 'Off'}
+                            </Text>
+                          </TouchableOpacity>
+                          <View style={{ flexDirection: 'row', gap: 8 }}>
+                            <TouchableOpacity style={styles.editBtn} onPress={() => openEditProduct(p)}>
+                              <Text style={styles.editBtnText}>Edit</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.deleteBtn} onPress={() => deleteProduct(p.id)}>
+                              <Trash2 size={16} color={A.red} />
+                            </TouchableOpacity>
+                          </View>
+                        </View>
+                      )}
                     </View>
-                    {canManageShop && (
-                      <View style={{ flexDirection: 'row', gap: 8 }}>
-                        <TouchableOpacity style={styles.editBtn} onPress={() => openEditProduct(p)}>
-                          <Text style={styles.editBtnText}>Edit</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.deleteBtn} onPress={() => deleteProduct(p.id)}>
-                          <Trash2 size={16} color={A.red} />
-                        </TouchableOpacity>
-                      </View>
-                    )}
-                  </View>
-                ))
+                  );
+                })
               )}
             </View>
           )}
 
-          {activeTab === 'profile' && (
-            <View style={{ gap: 16 }}>
-              <View style={styles.profileCard}>
-                <Text style={styles.profileSectionTitle}>Shop Information</Text>
-                <View style={styles.profileRow}>
-                  <Text style={styles.profileLabel}>Name</Text>
-                  <Text style={styles.profileValue}>{shop.name}</Text>
-                </View>
-                <View style={styles.profileRow}>
-                  <Text style={styles.profileLabel}>Email</Text>
-                  <Text style={styles.profileValue}>{shop.contact_email}</Text>
-                </View>
-                <View style={styles.profileRow}>
-                  <Text style={styles.profileLabel}>Phone</Text>
-                  <Text style={styles.profileValue}>{shop.contact_phone}</Text>
-                </View>
-                {shop.address && (
-                  <View style={styles.profileRow}>
-                    <Text style={styles.profileLabel}>Address</Text>
-                    <Text style={styles.profileValue}>{shop.address}</Text>
-                  </View>
-                )}
-                {shop.hours && (
-                  <View style={styles.profileRow}>
-                    <Text style={styles.profileLabel}>Hours</Text>
-                    <Text style={styles.profileValue}>{shop.hours}</Text>
-                  </View>
-                )}
-                {shop.ecocash_number && (
-                  <View style={styles.profileRow}>
-                    <Text style={styles.profileLabel}>EcoCash</Text>
-                    <Text style={styles.profileValue}>{shop.ecocash_number}</Text>
-                  </View>
-                )}
-                {shop.description && (
-                  <View style={styles.profileRow}>
-                    <Text style={styles.profileLabel}>Description</Text>
-                    <Text style={styles.profileValue}>{shop.description}</Text>
-                  </View>
-                )}
-              </View>
+          {activeTab === 'history' && <HistoryTab orders={orders} />}
 
-              <TouchableOpacity style={styles.logoutCard} onPress={handleLogout}>
-                <LogOut size={18} color={A.red} />
-                <Text style={{ color: A.red, fontSize: 15, fontWeight: '600' }}>Logout</Text>
-              </TouchableOpacity>
-            </View>
+          {activeTab === 'analytics' && <AnalyticsTab orders={orders} products={products} />}
+
+          {activeTab === 'profile' && (
+            <ProfileTab shop={shop} onLogout={handleLogout} onShopUpdated={(s) => setShop(s)} />
           )}
         </ScrollView>
       </Animated.View>
 
-      {/* Order Detail Modal */}
-      <Modal visible={showOrderModal} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            {selectedOrder && (
-              <>
-                <View style={styles.modalHeader}>
-                  <Text style={styles.modalTitle}>Order #{selectedOrder.id.slice(0, 8)}</Text>
-                  <TouchableOpacity onPress={() => { setShowOrderModal(false); setSelectedOrder(null); }}>
-                    <X size={22} color={A.textSub} />
-                  </TouchableOpacity>
-                </View>
-
-                <ScrollView style={{ maxHeight: 400 }}>
-                  <Text style={styles.modalSectionLabel}>Customer</Text>
-                  <Text style={styles.modalText}>{selectedOrder.customer_name || '—'}</Text>
-                  {selectedOrder.customer_phone && <Text style={styles.modalText}>{selectedOrder.customer_phone}</Text>}
-
-                  <Text style={styles.modalSectionLabel}>Delivery Location</Text>
-                  <Text style={styles.modalText}>{selectedOrder.delivery_location || '—'}</Text>
-
-                  <Text style={styles.modalSectionLabel}>Items</Text>
-                  {(Array.isArray(selectedOrder.products) ? selectedOrder.products : []).map((item: any, i: number) => (
-                    <View key={i} style={styles.modalItemRow}>
-                      <Text style={styles.modalItemName}>{item.name} ×{item.qty || 1}</Text>
-                      <Text style={styles.modalItemPrice}>${Number(item.price || 0).toFixed(2)}</Text>
-                    </View>
-                  ))}
-
-                  <View style={styles.modalTotalRow}>
-                    <Text style={styles.modalTotalLabel}>Total</Text>
-                    <Text style={styles.modalTotalValue}>${Number(selectedOrder.total_amount).toFixed(2)}</Text>
-                  </View>
-
-                  <Text style={styles.modalSectionLabel}>Payment Method</Text>
-                  <Text style={styles.modalText}>{selectedOrder.payment_method}</Text>
-                </ScrollView>
-
-                {/* Action buttons based on status */}
-                <View style={styles.modalActions}>
-                  {selectedOrder.status === 'pending' && (
-                    <>
-                      <TouchableOpacity
-                        style={[styles.actionBtn, { backgroundColor: A.green }] }
-                        onPress={() => updateOrderStatus(selectedOrder, 'confirmed')}
-                      >
-                        <CheckCircle size={16} color="#fff" />
-                        <Text style={styles.actionBtnText}>Accept</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={[styles.actionBtn, { backgroundColor: A.red }]}
-                        onPress={() => updateOrderStatus(selectedOrder, 'cancelled')}
-                      >
-                        <XCircle size={16} color="#fff" />
-                        <Text style={styles.actionBtnText}>Reject</Text>
-                      </TouchableOpacity>
-                    </>
-                  )}
-                  {selectedOrder.status === 'confirmed' && (
-                    <TouchableOpacity
-                      style={[styles.actionBtn, { backgroundColor: A.blue }]}
-                      onPress={() => updateOrderStatus(selectedOrder, 'preparing')}
-                    >
-                      <Text style={styles.actionBtnText}>Start Preparing</Text>
-                    </TouchableOpacity>
-                  )}
-                  {selectedOrder.status === 'preparing' && (
-                    <TouchableOpacity
-                      style={[styles.actionBtn, { backgroundColor: A.cyan }]}
-                      onPress={() => updateOrderStatus(selectedOrder, 'ready')}
-                    >
-                      <Text style={styles.actionBtnText}>Mark Ready</Text>
-                    </TouchableOpacity>
-                  )}
-                  {selectedOrder.status === 'ready' && (
-                    <View style={{ width: '100%' }}>
-                      <Text style={styles.assignLabel}>Assign a Messenger (Required):</Text>
-                      {availableDrivers.length === 0 ? (
-                        <Text style={styles.noDriversText}>No available messengers. Please check back later.</Text>
-                      ) : (
-                        <ScrollView style={{ maxHeight: 200 }}>
-                          {availableDrivers.map(d => (
-                            <TouchableOpacity
-                              key={d.id}
-                              style={[styles.driverRow, styles.driverRowProminent]}
-                              onPress={() => assignMessenger(d.id, d.full_name)}
-                              disabled={assigningDriver}
-                              activeOpacity={0.85}
-                            >
-                              <View style={styles.driverRowLeft}>
-                                <View style={styles.driverRowIcon}>
-                                  <Truck size={16} color={A.cyan} />
-                                </View>
-                                <View>
-                                  <Text style={styles.driverName}>{d.full_name}</Text>
-                                  <Text style={styles.driverPhone}>{d.phone_number}</Text>
-                                </View>
-                              </View>
-                              <View style={styles.driverRowAssignBtn}>
-                                <Text style={styles.driverRowAssignBtnText}>Assign</Text>
-                              </View>
-                            </TouchableOpacity>
-                          ))}
-                        </ScrollView>
-                      )}
-                    </View>
-                  )}
-                  {selectedOrder.status === 'picked_up' && (
-                    <TouchableOpacity
-                      style={[styles.actionBtn, { backgroundColor: A.orange }]}
-                      onPress={() => updateOrderStatus(selectedOrder, 'out_for_delivery')}
-                    >
-                      <Text style={styles.actionBtnText}>Out for Delivery</Text>
-                    </TouchableOpacity>
-                  )}
-                  {selectedOrder.status === 'out_for_delivery' && (
-                    <TouchableOpacity
-                      style={[styles.actionBtn, { backgroundColor: A.green }]}
-                      onPress={() => updateOrderStatus(selectedOrder, 'delivered')}
-                    >
-                      <CheckCircle size={16} color="#fff" />
-                      <Text style={styles.actionBtnText}>Mark Delivered</Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
-              </>
-            )}
-          </View>
-        </View>
-      </Modal>
+      <OrderDetailModal
+        visible={showOrderModal}
+        order={selectedOrder}
+        drivers={availableDrivers}
+        assigningDriver={assigningDriver}
+        assignError={assignError}
+        onClose={() => { setShowOrderModal(false); setSelectedOrder(null); }}
+        onUpdateStatus={updateOrderStatus}
+        onAssignDriver={assignMessenger}
+      />
 
       {/* Product Modal */}
       <Modal visible={showProductModal} animationType="slide" transparent>
@@ -837,7 +754,7 @@ export default function ShopDashboard() {
               </TouchableOpacity>
             </View>
 
-            <ScrollView style={{ maxHeight: 400 }}>
+            <ScrollView style={{ maxHeight: 420 }}>
               <View style={styles.inputGroup}>
                 <Text style={styles.inputLabel}>Product Name *</Text>
                 <TextInput
@@ -894,13 +811,25 @@ export default function ShopDashboard() {
                 />
               </View>
               <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Availability</Text>
+                <TouchableOpacity
+                  style={[styles.availRow, { backgroundColor: productAvailable ? A.greenDim : A.inputBg, borderColor: productAvailable ? A.green : A.border }]}
+                  onPress={() => setProductAvailable((v) => !v)}
+                >
+                  <View style={[styles.availDotSmall, { backgroundColor: productAvailable ? A.green : A.textMuted }]} />
+                  <Text style={[styles.availToggleText, { color: productAvailable ? A.green : A.textSub }]}>
+                    {productAvailable ? 'Available for sale' : 'Hidden from customers'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              <View style={styles.inputGroup}>
                 <Text style={styles.inputLabel}>Product Image</Text>
                 <TouchableOpacity style={styles.imagePickerBtn} onPress={pickProductImage}>
                   {productImageUri ? (
                     Platform.OS === 'web' ? (
                       <img src={productImageUri} style={{ width: 80, height: 80, borderRadius: 10, objectFit: 'cover' as any }} alt="Product" />
                     ) : (
-                      <ImageIcon size={24} color={A.cyan} />
+                      <RNImage source={{ uri: productImageUri }} style={{ width: 80, height: 80, borderRadius: 10 }} />
                     )
                   ) : (
                     <>
@@ -954,6 +883,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1,
   },
   statusBannerText: { fontSize: 12, flex: 1, lineHeight: 18 },
+  newOrderBanner: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    paddingHorizontal: 16, paddingVertical: 12,
+    backgroundColor: A.cyan, borderBottomWidth: 1, borderBottomColor: A.cyan,
+  },
+  newOrderText: { color: '#000', fontSize: 13, fontWeight: '700', flex: 1 },
   paymentCard: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
     margin: 16, padding: 16, backgroundColor: A.card, borderRadius: 12,
@@ -975,13 +910,13 @@ const styles = StyleSheet.create({
   statValue: { fontSize: 18, fontWeight: '800', color: A.text },
   statLabel: { fontSize: 10, color: A.textSub },
   tabBar: {
-    flexDirection: 'row', paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: A.border,
+    flexDirection: 'row', paddingHorizontal: 8, borderBottomWidth: 1, borderBottomColor: A.border,
   },
   tab: {
-    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5,
     paddingVertical: 12,
   },
-  tabText: { fontSize: 13, fontWeight: '600' },
+  tabText: { fontSize: 12, fontWeight: '600' },
   errorBar: {
     flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingVertical: 8,
     backgroundColor: A.redDim,
@@ -1010,11 +945,25 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', backgroundColor: A.card,
     borderRadius: 12, padding: 14, borderWidth: 1, borderColor: A.border, gap: 12,
   },
-  productName: { fontSize: 14, fontWeight: '600', color: A.text },
+  productThumb: { width: 48, height: 48, borderRadius: 8, objectFit: 'cover' as any, flexShrink: 0 },
+  productThumbNative: { width: 48, height: 48, borderRadius: 8, flexShrink: 0 },
+  productNameRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 },
+  productName: { fontSize: 14, fontWeight: '600', color: A.text, flexShrink: 1 },
+  oosBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 3,
+    backgroundColor: A.red, borderRadius: 4, paddingHorizontal: 5, paddingVertical: 2,
+  },
+  oosText: { color: '#fff', fontSize: 8, fontWeight: '700' },
   productPrice: { fontSize: 15, fontWeight: '700', color: A.green, marginTop: 4 },
   productMeta: { flexDirection: 'row', gap: 12, marginTop: 6 },
   productStock: { fontSize: 11, fontWeight: '500' },
   productCategory: { fontSize: 11, color: A.textSub },
+  availToggleSmall: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, borderWidth: 1,
+  },
+  availDotSmall: { width: 7, height: 7, borderRadius: 4 },
+  availToggleText: { fontSize: 10, fontWeight: '700' },
   editBtn: {
     paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6,
     backgroundColor: A.cyanDim, borderWidth: 1, borderColor: A.cyan,
@@ -1023,16 +972,6 @@ const styles = StyleSheet.create({
   deleteBtn: {
     width: 32, height: 32, borderRadius: 6, backgroundColor: A.redDim,
     borderWidth: 1, borderColor: A.red, justifyContent: 'center', alignItems: 'center',
-  },
-  profileCard: { backgroundColor: A.card, borderRadius: 12, padding: 18, borderWidth: 1, borderColor: A.border },
-  profileSectionTitle: { fontSize: 15, fontWeight: '700', color: A.text, marginBottom: 12 },
-  profileRow: { paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: A.border },
-  profileLabel: { fontSize: 11, color: A.textSub, fontWeight: '600', textTransform: 'uppercase' as any, letterSpacing: 0.5 },
-  profileValue: { fontSize: 14, color: A.text, marginTop: 4 },
-  logoutCard: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
-    backgroundColor: A.redDim, borderRadius: 12, paddingVertical: 16,
-    borderWidth: 1, borderColor: A.red,
   },
   modalOverlay: {
     flex: 1, backgroundColor: A.overlay, justifyContent: 'flex-end',
@@ -1045,53 +984,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16,
   },
   modalTitle: { fontSize: 18, fontWeight: '700', color: A.text },
-  modalSectionLabel: { fontSize: 11, fontWeight: '700', color: A.textSub, textTransform: 'uppercase' as any, letterSpacing: 0.5, marginTop: 14, marginBottom: 4 },
-  modalText: { fontSize: 14, color: A.text, lineHeight: 20 },
-  modalItemRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6 },
-  modalItemName: { fontSize: 13, color: A.text, flex: 1 },
-  modalItemPrice: { fontSize: 13, color: A.green, fontWeight: '600' },
-  modalTotalRow: {
-    flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 10,
-    borderTopWidth: 1, borderTopColor: A.border, marginTop: 8,
-  },
-  modalTotalLabel: { fontSize: 15, fontWeight: '700', color: A.text },
-  modalTotalValue: { fontSize: 17, fontWeight: '800', color: A.green },
-  modalActions: {
-    flexDirection: 'row', gap: 10, paddingTop: 16, borderTopWidth: 1, borderTopColor: A.border, marginTop: 10,
-  },
-  actionBtn: {
-    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-    borderRadius: 10, paddingVertical: 14,
-  },
-  actionBtnText: { color: '#fff', fontSize: 14, fontWeight: '700' },
-  assignLabel: { fontSize: 13, fontWeight: '600', color: A.text, marginBottom: 8 },
-  noDriversText: { fontSize: 13, color: A.textSub, paddingVertical: 12 },
-  driverRow: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingVertical: 12, paddingHorizontal: 14, backgroundColor: A.card,
-    borderRadius: 10, marginBottom: 6, borderWidth: 1, borderColor: A.border,
-  },
-  driverRowProminent: {
-    borderWidth: 1.5, borderColor: A.cyan,
-    ...(Platform.OS === 'web' ? { boxShadow: '0 1px 4px rgba(0,0,0,0.06)' } : { elevation: 2 }),
-  },
-  driverRowLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  driverRowIcon: {
-    width: 36, height: 36, borderRadius: 10, backgroundColor: A.cyanDim,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  driverRowAssignBtn: {
-    backgroundColor: A.cyan, borderRadius: 8, paddingHorizontal: 14, paddingVertical: 8,
-  },
-  driverRowAssignBtnText: { color: '#fff', fontSize: 13, fontWeight: '700' },
-  driverName: { fontSize: 14, fontWeight: '600', color: A.text },
-  driverPhone: { fontSize: 12, color: A.textSub, marginTop: 2 },
   inputGroup: { marginBottom: 14 },
   inputRow: { flexDirection: 'row', gap: 12 },
   inputLabel: { fontSize: 12, fontWeight: '600', color: A.textSub, marginBottom: 6 },
   textInput: {
     backgroundColor: A.inputBg, borderRadius: 10, borderWidth: 1, borderColor: A.inputBorder,
     paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, color: A.text,
+  },
+  availRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    borderRadius: 10, borderWidth: 1, paddingVertical: 14, paddingHorizontal: 14,
   },
   imagePickerBtn: {
     alignItems: 'center', justifyContent: 'center', gap: 8,
