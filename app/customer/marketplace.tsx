@@ -16,7 +16,7 @@ import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { loadUserData } from '@/lib/storage-service';
 import { A } from '@/lib/admin-theme';
-import { ArrowLeft, Store, Search, ShoppingCart, Plus, Minus, X, Package, CreditCard, CircleCheck as CheckCircle, CircleAlert as AlertCircle, Info, ChevronLeft, ChevronRight, MapPin } from 'lucide-react-native';
+import { ArrowLeft, Store, Search, ShoppingCart, Plus, Minus, X, Package, CreditCard, CircleCheck as CheckCircle, CircleAlert as AlertCircle, Info, ChevronLeft, ChevronRight, MapPin, Lock } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Shop, Product, CartItem, CartByShop, Driver, ThemePalette, computeShopOpen } from '@/components/marketplace/types';
 import { ShopCard } from '@/components/marketplace/ShopCard';
@@ -219,10 +219,18 @@ export default function Marketplace() {
 
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
   const cartTotal = cart.reduce((sum, item) => sum + Number(item.product.price) * item.quantity, 0);
+  const anyCartBlocked = cartByShop.some(sc => {
+    const s = shops.find(sh => sh.id === sc.shopId);
+    if (!s) return false;
+    if (!s.is_available) return true;
+    if (s.operating_hours && !computeShopOpen(s)) return true;
+    return false;
+  });
 
   const addToCart = (product: Product) => {
     const shop = shops.find(s => s.id === product.shop_id);
     if (shop && !shop.is_available) return;
+    if (shop && shop.operating_hours && !computeShopOpen(shop)) return;
     setCart(prev => {
       const existing = prev.find(i => i.product.id === product.id);
       if (existing) {
@@ -288,6 +296,15 @@ export default function Marketplace() {
         const shop = shops.find(s => s.id === shopCart.shopId);
         if (shop && !shop.is_available) {
           throw new Error(`${shop.name} is currently unavailable. Please remove its items from your cart.`);
+        }
+
+        const { data: openCheck, error: openErr } = await supabase.rpc('validate_shop_order', {
+          p_shop_id: shopCart.shopId,
+        });
+        if (openErr) throw openErr;
+        const openResult = openCheck as { allowed?: boolean; reason?: string } | null;
+        if (openResult && openResult.allowed === false) {
+          throw new Error(`${shop?.name || 'This shop'} is currently closed. ${openResult.reason || ''}`);
         }
 
         const { data: paymentOk, error: payErr } = await supabase.rpc('validate_shop_payment', {
@@ -677,6 +694,12 @@ export default function Marketplace() {
                               <Text style={[styles.cartUnavailText, { color: palette.error }]}>Unavailable</Text>
                             </View>
                           ) : null}
+                          {!shopUnavailable && shop && shop.operating_hours && !computeShopOpen(shop) ? (
+                            <View style={[styles.cartUnavailPill, { backgroundColor: `${palette.warning}22` }]}>
+                              <Lock size={9} color={palette.warning} />
+                              <Text style={[styles.cartUnavailText, { color: palette.warning }]}>Closed</Text>
+                            </View>
+                          ) : null}
                         </View>
                         {shopCart.items.map(item => (
                           <View key={item.product.id} style={styles.cartItemRow}>
@@ -692,7 +715,7 @@ export default function Marketplace() {
                               <TouchableOpacity
                                 style={[styles.qtyBtn, { backgroundColor: palette.accent }]}
                                 onPress={() => addToCart(item.product)}
-                                disabled={item.quantity >= item.product.stock || shopUnavailable}
+                                disabled={item.quantity >= item.product.stock || shopUnavailable || (shop != null && shop.operating_hours != null && !computeShopOpen(shop))}
                               >
                                 <Plus size={12} color="#fff" />
                               </TouchableOpacity>
@@ -717,11 +740,12 @@ export default function Marketplace() {
                     <Text style={{ color: palette.textPrimary, fontSize: 20, fontWeight: '800' }}>${cartTotal.toFixed(2)}</Text>
                   </View>
                   <TouchableOpacity
-                    style={[styles.checkoutBtn, { backgroundColor: palette.primary }]}
+                    style={[styles.checkoutBtn, { backgroundColor: anyCartBlocked ? (isDark ? '#2a3a5c' : '#cbd5e1') : palette.primary }]}
                     onPress={() => { setShowCart(false); setShowCheckout(true); }}
+                    disabled={anyCartBlocked}
                   >
                     <CreditCard size={18} color="#fff" />
-                    <Text style={styles.checkoutBtnText}>Checkout</Text>
+                    <Text style={styles.checkoutBtnText}>{anyCartBlocked ? 'Shop Closed' : 'Checkout'}</Text>
                   </TouchableOpacity>
                 </View>
               </>

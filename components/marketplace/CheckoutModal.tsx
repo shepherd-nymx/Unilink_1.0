@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, TextInput, StyleSheet, ActivityIndicator, Linking } from 'react-native';
-import { X, Truck, ChevronRight, CreditCard, CircleCheck as CheckCircle, CircleAlert as AlertCircle, Star, Car, Bike, MessageCircle } from 'lucide-react-native';
-import { CartByShop, Driver, Shop, ThemePalette, formatPaymentMethod, getAcceptedMethods } from './types';
+import { X, Truck, ChevronRight, CreditCard, CircleCheck as CheckCircle, CircleAlert as AlertCircle, Star, Car, Bike, MessageCircle, Lock } from 'lucide-react-native';
+import { CartByShop, Driver, Shop, ThemePalette, formatPaymentMethod, getAcceptedMethods, computeShopOpen } from './types';
 
 type Props = {
   visible: boolean;
@@ -52,7 +52,13 @@ export function CheckoutModal({
     const shop = shops.find(s => s.id === sc.shopId);
     return shop ? !shop.is_available : false;
   });
+  const closedShops = cartByShop.filter(sc => {
+    const shop = shops.find(s => s.id === sc.shopId);
+    return shop && shop.is_available && shop.operating_hours ? !computeShopOpen(shop) : false;
+  });
   const anyUnavailable = unavailableShops.length > 0;
+  const anyClosed = closedShops.length > 0;
+  const anyBlocked = anyUnavailable || anyClosed;
 
   const acceptedIntersection: string[] = (() => {
     if (cartByShop.length === 0) return ALL_PAYMENT_METHODS;
@@ -72,12 +78,12 @@ export function CheckoutModal({
   const handlePlace = () => {
     if (!deliveryLocation.trim()) return;
     if (!selectedDriver) return;
-    if (anyUnavailable) return;
+    if (anyBlocked) return;
     onPlaceOrder(deliveryLocation.trim(), null, null, paymentMethod, parseFloat(deliveryFee) || 2);
   };
 
   const needsWhatsapp = !!selectedDriver?.whatsapp_number && !whatsappSent;
-  const canPlace = deliveryLocation.trim() && selectedDriver && !placingOrder && !anyUnavailable && !needsWhatsapp;
+  const canPlace = deliveryLocation.trim() && selectedDriver && !placingOrder && !anyBlocked && !needsWhatsapp;
 
   return (
     <View style={styles.overlay}>
@@ -97,6 +103,13 @@ export function CheckoutModal({
             </View>
           ) : null}
 
+          {anyClosed ? (
+            <View style={[styles.blockBox, { backgroundColor: `${palette.warning}15`, borderColor: palette.warning }]}>
+              <Lock size={16} color={palette.warning} />
+              <Text style={[styles.blockText, { color: palette.warning }]}>One or more shops in your cart are currently closed. Orders and payments are blocked until they reopen. Please remove their items or try again later.</Text>
+            </View>
+          ) : null}
+
           <Text style={[styles.label, { color: palette.textSecondary }]}>DELIVERY LOCATION *</Text>
           <TextInput
             style={[styles.input, { backgroundColor: palette.inputBg, borderColor: palette.inputBorder, color: palette.textPrimary }]}
@@ -105,7 +118,7 @@ export function CheckoutModal({
             placeholder="Enter delivery address"
             placeholderTextColor={palette.placeholderColor}
             multiline
-            editable={!anyUnavailable}
+            editable={!anyBlocked}
           />
 
           <Text style={[styles.label, { color: palette.textSecondary, marginTop: 16 }]}>SELECT A DRIVER / MESSENGER *</Text>
@@ -117,7 +130,7 @@ export function CheckoutModal({
             }]}
             onPress={onOpenDriverPicker}
             activeOpacity={0.85}
-            disabled={anyUnavailable}
+            disabled={anyBlocked}
           >
             {selectedDriver ? (
               <>
@@ -147,7 +160,7 @@ export function CheckoutModal({
               </>
             )}
           </TouchableOpacity>
-          {!selectedDriver && !anyUnavailable ? (
+          {!selectedDriver && !anyBlocked ? (
             <Text style={styles.driverRequiredHint}>A driver must be selected before placing your order</Text>
           ) : null}
 
@@ -255,7 +268,7 @@ export function CheckoutModal({
             placeholder="2.00"
             placeholderTextColor={palette.placeholderColor}
             keyboardType="decimal-pad"
-            editable={!anyUnavailable}
+            editable={!anyBlocked}
           />
 
           <Text style={[styles.label, { color: palette.textSecondary, marginTop: 16 }]}>PAYMENT METHOD</Text>
@@ -271,7 +284,7 @@ export function CheckoutModal({
                   key={method}
                   style={[styles.paymentMethod, { backgroundColor: paymentMethod === method ? palette.primary : palette.inputBg, borderColor: paymentMethod === method ? palette.primary : palette.inputBorder }]}
                   onPress={() => setPaymentMethod(method)}
-                  disabled={anyUnavailable}
+                  disabled={anyBlocked}
                 >
                   <Text style={{ color: paymentMethod === method ? '#fff' : palette.textSecondary, fontSize: 12, fontWeight: '600' }}>
                     {formatPaymentMethod(method)}
@@ -316,7 +329,7 @@ export function CheckoutModal({
             <ActivityIndicator size="small" color="#fff" />
           ) : (
             <Text style={styles.placeOrderBtnText}>
-              {anyUnavailable ? 'Shop Unavailable' : !selectedDriver ? 'Select a Driver to Continue' : needsWhatsapp ? 'Send WhatsApp First' : 'Place Order(s)'}
+              {anyUnavailable ? 'Shop Unavailable' : anyClosed ? 'Shop Closed — No Orders' : !selectedDriver ? 'Select a Driver to Continue' : needsWhatsapp ? 'Send WhatsApp First' : 'Place Order(s)'}
             </Text>
           )}
         </TouchableOpacity>

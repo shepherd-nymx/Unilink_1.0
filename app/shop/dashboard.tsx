@@ -48,6 +48,7 @@ import {
   CircleAlert as AlertCircle,
   Bell,
   Ban,
+  ShieldCheck,
 } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 
@@ -507,10 +508,16 @@ export default function ShopDashboard() {
             <Text style={styles.headerSub}>{STATUS_LABELS[shop.status] || shop.status}</Text>
           </View>
         </View>
-        <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
-          <LogOut size={16} color={A.red} />
-          <Text style={styles.logoutText}>Logout</Text>
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          <TouchableOpacity style={styles.logoutBtn} onPress={() => router.push('/shop/merchant-policy')}>
+            <ShieldCheck size={16} color={A.cyan} />
+            <Text style={[styles.logoutText, { color: A.cyan }]}>Policy</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
+            <LogOut size={16} color={A.red} />
+            <Text style={styles.logoutText}>Logout</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <Animated.View style={{ flex: 1, opacity: fadeAnim }}>

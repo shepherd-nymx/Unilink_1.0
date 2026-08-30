@@ -1,6 +1,6 @@
 import { TouchableOpacity, View, Text, Platform, StyleSheet } from 'react-native';
-import { Plus, Minus, Package, CircleAlert as AlertCircle } from 'lucide-react-native';
-import { Product, Shop, ThemePalette } from './types';
+import { Plus, Minus, Package, CircleAlert as AlertCircle, Lock } from 'lucide-react-native';
+import { Product, Shop, ThemePalette, computeShopOpen } from './types';
 
 type Props = {
   product: Product;
@@ -14,7 +14,8 @@ type Props = {
 export function ProductCard({ product, shop, qty, onAdd, onRemove, palette }: Props) {
   const outOfStock = product.stock <= 0;
   const shopUnavailable = shop ? !shop.is_available : false;
-  const disabled = outOfStock || shopUnavailable;
+  const shopClosed = shop && shop.is_available && shop.operating_hours ? !computeShopOpen(shop) : false;
+  const disabled = outOfStock || shopUnavailable || shopClosed;
 
   return (
     <View style={[styles.productCard, { backgroundColor: palette.cardBg, borderColor: palette.cardBorder }]}>
@@ -40,13 +41,20 @@ export function ProductCard({ product, shop, qty, onAdd, onRemove, palette }: Pr
         </View>
       ) : null}
 
+      {shopClosed ? (
+        <View style={[styles.unavailBanner, { backgroundColor: `${palette.warning}18`, borderColor: `${palette.warning}55` }]}>
+          <Lock size={11} color={palette.warning} />
+          <Text style={[styles.unavailText, { color: palette.warning }]}>Shop closed</Text>
+        </View>
+      ) : null}
+
       <Text style={[styles.productName, { color: palette.textPrimary }]} numberOfLines={2}>{product.name}</Text>
       {shop ? <Text style={[styles.productShop, { color: palette.textSecondary }]} numberOfLines={1}>{shop.name}</Text> : null}
 
       <View style={styles.productBottom}>
         <Text style={[styles.productPrice, { color: palette.primary }]}>${Number(product.price).toFixed(2)}</Text>
         {disabled ? (
-          <Text style={{ color: palette.error, fontSize: 11, fontWeight: '600' }}>{outOfStock ? 'Out of stock' : 'Unavailable'}</Text>
+          <Text style={{ color: palette.error, fontSize: 11, fontWeight: '600' }}>{outOfStock ? 'Out of stock' : shopClosed ? 'Closed' : 'Unavailable'}</Text>
         ) : qty > 0 ? (
           <View style={styles.qtyControl}>
             <TouchableOpacity style={[styles.qtyBtn, { backgroundColor: palette.accent }]} onPress={() => onRemove(product.id)}>
