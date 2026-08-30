@@ -1,9 +1,29 @@
 import { createClient } from '@supabase/supabase-js';
+import { Platform } from 'react-native';
 
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: Platform.OS === 'web',
+    storage: Platform.OS === 'web' && typeof window !== 'undefined'
+      ? {
+          getItem: (key: string) => {
+            try { return localStorage.getItem(key); } catch { return null; }
+          },
+          setItem: (key: string, value: string) => {
+            try { localStorage.setItem(key, value); } catch {}
+          },
+          removeItem: (key: string) => {
+            try { localStorage.removeItem(key); } catch {}
+          },
+        }
+      : undefined,
+  },
+});
 
 export type Database = {
   public: {
@@ -22,6 +42,9 @@ export type Database = {
           username: string;
           phone_number: string;
           full_name: string;
+          email: string;
+          auth_id: string | null;
+          password_hash: string;
           created_at: string;
           created_by_admin_id: string | null;
         };
@@ -30,6 +53,7 @@ export type Database = {
         Row: {
           id: string;
           phone_number: string;
+          email: string;
           full_name: string;
           current_key: string;
           key_expires_at: string;

@@ -212,15 +212,25 @@ export default function CustomerRegister() {
           email: authEmail,
           password,
         });
-        if (!authError && authData.user) {
+        if (authError) throw authError;
+        if (authData.user) {
           authId = authData.user.id;
         }
-        // Sign out immediately — the app manages its own session separately
-        // from Supabase Auth, so we don't want an active auth session here.
-        await supabase.auth.signOut();
-      } catch {
-        // Auth signup failure is non-fatal: the customer record is still
-        // created and the legacy btoa login continues to work.
+        // Keep the Supabase Auth session active — the app now uses
+        // Supabase Auth for customer authentication.
+      } catch (authErr: any) {
+        // If the email is already registered, try signing in instead
+        if (authErr?.message?.includes('already') || authErr?.message?.includes('registered')) {
+          const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+            email: authEmail,
+            password,
+          });
+          if (!signInError && signInData.user) {
+            authId = signInData.user.id;
+          }
+        } else {
+          throw authErr;
+        }
       }
 
       const passwordHash = btoa(password);
@@ -261,7 +271,16 @@ export default function CustomerRegister() {
         user_type: 'customer',
         terms_version: termsVersion,
       });
-      router.replace({ pathname: '/customer/login', params: { registered: 'true' } });
+      const { saveUserData } = await import('@/lib/storage-service');
+      const { registerForPushNotificationsOnLogin } = await import('@/lib/notification-service');
+      const { registerDeviceToken } = await import('@/lib/device-token-service');
+      saveUserData({ id: customer.id, type: 'customer', name: customer.full_name });
+      registerForPushNotificationsOnLogin(customer.id, 'customer').catch(() => {});
+      registerDeviceToken(customer.id).catch(() => {});
+      router.replace({
+        pathname: '/customer/dashboard',
+        params: { customerId: customer.id, customerName: customer.full_name },
+      });
     } catch (err: any) {
       setError(err.message || 'Registration failed. Please try again.');
     } finally {
