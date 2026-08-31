@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { loadSession, clearSession, refreshSession, type SessionData } from '@/lib/session-service';
 import { registerDeviceToken } from '@/lib/device-token-service';
 import { registerForPushNotificationsOnLogin } from '@/lib/notification-service';
-import { supabase } from '@/lib/supabase';
 
 export type SessionStatus = 'loading' | 'authenticated' | 'unauthenticated';
 
@@ -20,49 +19,21 @@ export function useSession(): UseSessionResult {
     try {
       const stored = await loadSession();
 
-      if (stored) {
-        await refreshSession();
-
-        if (stored.type !== 'admin') {
-          registerForPushNotificationsOnLogin(stored.id, stored.type as 'driver' | 'customer').catch(() => {});
-          registerDeviceToken(stored.id).catch(() => {});
-        }
-
-        setSession(stored);
-        setStatus('authenticated');
+      if (!stored) {
+        setStatus('unauthenticated');
+        setSession(null);
         return;
       }
 
-      // No custom session — check if there's an active Supabase Auth session
-      // (e.g. customer who logged in via Supabase Auth and reloads the page)
-      const { data: authData } = await supabase.auth.getSession();
-      if (authData.session?.user) {
-        const authUser = authData.session.user;
-        // Look up the customer record linked to this auth user
-        const { data: customer } = await supabase
-          .from('customers')
-          .select('id, full_name')
-          .eq('auth_id', authUser.id)
-          .maybeSingle();
+      await refreshSession();
 
-        if (customer) {
-          const newSession: Omit<SessionData, 'expiresAt'> = {
-            id: customer.id,
-            type: 'customer',
-            name: customer.full_name,
-          };
-          const { saveSession } = await import('@/lib/session-service');
-          await saveSession(newSession);
-          registerForPushNotificationsOnLogin(customer.id, 'customer').catch(() => {});
-          registerDeviceToken(customer.id).catch(() => {});
-          setSession({ ...newSession, expiresAt: Date.now() + 30 * 24 * 60 * 60 * 1000 });
-          setStatus('authenticated');
-          return;
-        }
+      if (stored.type !== 'admin') {
+        registerForPushNotificationsOnLogin(stored.id, stored.type as 'driver' | 'customer').catch(() => {});
+        registerDeviceToken(stored.id).catch(() => {});
       }
 
-      setStatus('unauthenticated');
-      setSession(null);
+      setSession(stored);
+      setStatus('authenticated');
     } catch {
       setStatus('unauthenticated');
       setSession(null);
@@ -75,9 +46,6 @@ export function useSession(): UseSessionResult {
 
   const signOut = useCallback(async () => {
     await clearSession();
-    try {
-      await supabase.auth.signOut();
-    } catch {}
     setSession(null);
     setStatus('unauthenticated');
   }, []);
