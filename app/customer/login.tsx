@@ -86,47 +86,37 @@ export default function CustomerLogin() {
     setError('');
 
     try {
-      const { data: customer, error: dbError } = await supabase
+      const { data, error: dbError } = await supabase
         .from('customers')
-        .select('id, email, full_name, auth_id')
+        .select('*')
         .eq('username', username)
         .maybeSingle();
 
       if (dbError) throw dbError;
 
-      if (!customer) {
+      if (!data) {
         setError('Invalid username or password');
         setLoading(false);
         return;
       }
 
-      if (!customer.email) {
-        setError('No email linked to this account. Please contact support.');
-        setLoading(false);
-        return;
-      }
+      const passwordHash = btoa(password);
 
-      const { error: authError } = await supabase.auth.signInWithPassword({
-        email: customer.email,
-        password,
-      });
-
-      if (authError) {
+      if (data.password_hash !== passwordHash) {
         setError('Invalid username or password');
         setLoading(false);
         return;
       }
 
-      saveUserData({ id: customer.id, type: 'customer', name: customer.full_name });
-      registerForPushNotificationsOnLogin(customer.id, 'customer').catch(() => {});
-      registerDeviceToken(customer.id).catch(() => {});
+      saveUserData({ id: data.id, type: 'customer', name: data.full_name });
+      registerForPushNotificationsOnLogin(data.id, 'customer').catch(() => {});
+      registerDeviceToken(data.id).catch(() => {});
       router.replace({
         pathname: '/customer/dashboard',
-        params: { customerId: customer.id, customerName: customer.full_name },
+        params: { customerId: data.id, customerName: data.full_name },
       });
     } catch (err: any) {
-      console.error('Customer login failed:', err);
-      setError('Login failed. Please try again.');
+      setError(err.message || 'Login failed');
     } finally {
       setLoading(false);
     }
