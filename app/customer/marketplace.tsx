@@ -32,6 +32,7 @@ export default function Marketplace() {
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   const [customerId, setCustomerId] = useState<string | undefined>();
+  const [customerAddress, setCustomerAddress] = useState<{ formatted_address: string | null; latitude: number | null; longitude: number | null } | null>(null);
   const [shops, setShops] = useState<Shop[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
@@ -138,9 +139,16 @@ export default function Marketplace() {
       if (customerId) {
         const { data: customer } = await supabase
           .from('customers')
-          .select('university_id')
+          .select('university_id, customer_latitude, customer_longitude, formatted_address')
           .eq('id', customerId)
           .maybeSingle();
+        if (customer) {
+          setCustomerAddress({
+            formatted_address: (customer as any).formatted_address || null,
+            latitude: (customer as any).customer_latitude != null ? Number((customer as any).customer_latitude) : null,
+            longitude: (customer as any).customer_longitude != null ? Number((customer as any).customer_longitude) : null,
+          });
+        }
         if (customer?.university_id) {
           setCustomerUniversityId(customer.university_id);
           const { data: uni } = await supabase
@@ -879,6 +887,7 @@ export default function Marketplace() {
           onClose={() => setShowCheckout(false)}
           onPlaceOrder={placeOrders}
           customerId={customerId}
+          customerAddress={customerAddress}
           deliveryFeeTiers={deliveryFeeTiers}
         />
       </Modal>

@@ -3,7 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, TextInput, StyleSheet, Activi
 import {
   X, Truck, CreditCard, CircleAlert as AlertCircle, Lock, ExternalLink, Zap,
   MessageCircle, Store, MapPin, Phone, Navigation, Package, CircleCheck as CheckCircle,
-  CircleAlert as AlertTriangle, FileText, ChevronRight, ChevronDown, ChevronUp,
+  CircleAlert as AlertTriangle, FileText, ChevronRight, ChevronDown, ChevronUp, Crosshair, Home,
 } from 'lucide-react-native';
 import { CartByShop, Shop, ThemePalette, formatPaymentMethod, getAcceptedMethods, computeShopOpen, formatOperatingHours, DeliveryFeeTier, computeTierDeliveryFee } from './types';
 import * as Location from 'expo-location';
@@ -19,13 +19,14 @@ type Props = {
   onClose: () => void;
   onPlaceOrder: (deliveryLocation: string, lat: number | null, lng: number | null, paymentMethod: string, deliveryFee: number, ecocashFeeAmount: number, ecocashPop: string | null) => void;
   customerId?: string;
+  customerAddress?: { formatted_address: string | null; latitude: number | null; longitude: number | null } | null;
   deliveryFeeTiers?: Record<string, DeliveryFeeTier[]>;
 };
 
 const ALL_PAYMENT_METHODS = ['pay_on_delivery', 'ecocash', 'paynow', 'card', 'bank_transfer'];
 
 export function CheckoutModal({
-  visible, palette, cartByShop, shops, cartTotal, placingOrder, error, onClose, onPlaceOrder, customerId, deliveryFeeTiers = {},
+  visible, palette, cartByShop, shops, cartTotal, placingOrder, error, onClose, onPlaceOrder, customerId, customerAddress, deliveryFeeTiers = {},
 }: Props) {
   const [deliveryLocation, setDeliveryLocation] = useState('');
   const [confirmedLatitude, setConfirmedLatitude] = useState<number | null>(null);
@@ -38,6 +39,8 @@ export function CheckoutModal({
   const [expandedShopId, setExpandedShopId] = useState<string | null>(null);
   const [showOrderSummary, setShowOrderSummary] = useState(false);
   const [ecocashPop, setEcocashPop] = useState('');
+  const [locationMode, setLocationMode] = useState<'registered' | 'current' | 'manual'>('manual');
+  const [detectingLocation, setDetectingLocation] = useState(false);
 
   useEffect(() => {
     if (visible) {
@@ -48,6 +51,18 @@ export function CheckoutModal({
       setShowOrderSummary(false);
       setExpandedShopId(null);
       setEcocashPop('');
+      setLocationMode(customerAddress?.formatted_address ? 'registered' : 'manual');
+      if (customerAddress?.formatted_address) {
+        setDeliveryLocation(customerAddress.formatted_address);
+        setConfirmedLatitude(customerAddress.latitude);
+        setConfirmedLongitude(customerAddress.longitude);
+        setLocationConfirmed(true);
+      } else {
+        setDeliveryLocation('');
+        setConfirmedLatitude(null);
+        setConfirmedLongitude(null);
+        setLocationConfirmed(false);
+      }
     }
   }, [visible]);
 
@@ -116,6 +131,43 @@ export function CheckoutModal({
   const whatsappNumber = firstWhatsappShop?.whatsapp_number || '';
 
   const effectiveDeliveryFee = shopHasOwnFee ? String(tierBasedDeliveryFee.toFixed(2)) : deliveryFee;
+
+  const detectMyLocation = async () => {
+    setDetectingLocation(true);
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        setDetectingLocation(false);
+        return;
+      }
+      const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      setConfirmedLatitude(pos.coords.latitude);
+      setConfirmedLongitude(pos.coords.longitude);
+      setDeliveryLocation(`Current location (${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)})`);
+      setLocationConfirmed(true);
+      setLocationMode('current');
+    } catch {
+    } finally {
+      setDetectingLocation(false);
+    }
+  };
+
+  const useRegisteredLocation = () => {
+    if (!customerAddress?.formatted_address) return;
+    setDeliveryLocation(customerAddress.formatted_address);
+    setConfirmedLatitude(customerAddress.latitude);
+    setConfirmedLongitude(customerAddress.longitude);
+    setLocationConfirmed(true);
+    setLocationMode('registered');
+  };
+
+  const switchToManual = () => {
+    setLocationMode('manual');
+    setDeliveryLocation('');
+    setConfirmedLatitude(null);
+    setConfirmedLongitude(null);
+    setLocationConfirmed(false);
+  };
 
   const confirmLocation = async () => {
     if (!deliveryLocation.trim()) return;
@@ -311,19 +363,63 @@ export function CheckoutModal({
             </View>
           )}
 
-          {/* === LOCATION CONFIRMATION — customer confirms right before order === */}
+          {/* === LOCATION CONFIRMATION — customer chooses registered, current, or manual === */}
           <Text style={[styles.label, { color: palette.textSecondary, marginTop: 16 }]}>DELIVERY LOCATION *</Text>
+
+          {/* Location mode selector */}
+          <View style={{ flexDirection: 'row', gap: 8, marginBottom: 10 }}>
+            {customerAddress?.formatted_address ? (
+              <TouchableOpacity
+                style={[styles.locModeBtn, { backgroundColor: locationMode === 'registered' ? palette.primary : palette.inputBg, borderColor: locationMode === 'registered' ? palette.primary : palette.inputBorder }]}
+                onPress={useRegisteredLocation}
+                disabled={anyBlocked}
+              >
+                <Home size={13} color={locationMode === 'registered' ? '#fff' : palette.textSecondary} />
+                <Text style={{ fontSize: 11, fontWeight: '700', color: locationMode === 'registered' ? '#fff' : palette.textSecondary }}>Registered</Text>
+              </TouchableOpacity>
+            ) : null}
+            <TouchableOpacity
+              style={[styles.locModeBtn, { backgroundColor: locationMode === 'current' ? palette.primary : palette.inputBg, borderColor: locationMode === 'current' ? palette.primary : palette.inputBorder }]}
+              onPress={detectMyLocation}
+              disabled={anyBlocked || detectingLocation}
+            >
+              {detectingLocation ? <ActivityIndicator size="small" color={locationMode === 'current' ? '#fff' : palette.primary} /> : <Crosshair size={13} color={locationMode === 'current' ? '#fff' : palette.textSecondary} />}
+              <Text style={{ fontSize: 11, fontWeight: '700', color: locationMode === 'current' ? '#fff' : palette.textSecondary }}>My Location</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.locModeBtn, { backgroundColor: locationMode === 'manual' ? palette.primary : palette.inputBg, borderColor: locationMode === 'manual' ? palette.primary : palette.inputBorder }]}
+              onPress={switchToManual}
+              disabled={anyBlocked}
+            >
+              <MapPin size={13} color={locationMode === 'manual' ? '#fff' : palette.textSecondary} />
+              <Text style={{ fontSize: 11, fontWeight: '700', color: locationMode === 'manual' ? '#fff' : palette.textSecondary }}>Enter Manually</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Manual text input — always visible so user can edit/override */}
           <TextInput
             style={[styles.input, { backgroundColor: palette.inputBg, borderColor: palette.inputBorder, color: palette.textPrimary }]}
             value={deliveryLocation}
-            onChangeText={(v) => { setDeliveryLocation(v); setLocationConfirmed(false); setConfirmedLatitude(null); setConfirmedLongitude(null); }}
-            placeholder="Enter delivery address"
+            onChangeText={(v) => {
+              setDeliveryLocation(v);
+              if (locationMode !== 'manual') {
+                setLocationMode('manual');
+                setLocationConfirmed(false);
+                setConfirmedLatitude(null);
+                setConfirmedLongitude(null);
+              } else {
+                setLocationConfirmed(false);
+                setConfirmedLatitude(null);
+                setConfirmedLongitude(null);
+              }
+            }}
+            placeholder="Enter delivery address or use buttons above"
             placeholderTextColor={palette.placeholderColor}
             multiline
             editable={!anyBlocked}
           />
 
-          {!locationConfirmed && deliveryLocation.trim() ? (
+          {!locationConfirmed && deliveryLocation.trim() && locationMode === 'manual' ? (
             <TouchableOpacity
               style={[styles.confirmLocBtn, { backgroundColor: palette.success, opacity: confirmingLocation ? 0.6 : 1 }]}
               onPress={confirmLocation}
@@ -354,7 +450,7 @@ export function CheckoutModal({
                   <Text style={[styles.locConfirmedGps, { color: palette.textSecondary }]}>GPS not captured (address only)</Text>
                 )}
               </View>
-              <TouchableOpacity onPress={() => { setLocationConfirmed(false); setConfirmedLatitude(null); setConfirmedLongitude(null); }}>
+              <TouchableOpacity onPress={() => { setLocationConfirmed(false); setConfirmedLatitude(null); setConfirmedLongitude(null); setLocationMode('manual'); }}>
                 <Text style={{ color: palette.warning, fontSize: 12, fontWeight: '600' }}>Change</Text>
               </TouchableOpacity>
             </View>
@@ -593,4 +689,5 @@ const styles = StyleSheet.create({
   locConfirmedTitle: { fontSize: 13, fontWeight: '700' },
   locConfirmedAddr: { fontSize: 12, marginTop: 2 },
   locConfirmedGps: { fontSize: 10, marginTop: 2 },
+  locModeBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 9, borderRadius: 10, borderWidth: 1.5 },
 });
