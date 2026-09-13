@@ -19,8 +19,9 @@ import {
   type OperatingHours,
   type DaySchedule,
 } from '@/lib/shop-types';
-import { Store, LogOut, MapPin, Navigation, Globe, Clock, CreditCard, DollarSign, BadgeCheck, TriangleAlert as AlertTriangle, X, Check, MessageCircle, Plus, Trash2, Ban, Search, Smartphone } from 'lucide-react-native';
+import { Store, LogOut, MapPin, Navigation, Globe, Clock, CreditCard, DollarSign, BadgeCheck, TriangleAlert as AlertTriangle, X, Check, MessageCircle, Plus, Trash2, Ban, Search, Smartphone, Tag, ChevronDown } from 'lucide-react-native';
 import * as Location from 'expo-location';
+import { SHOP_CATEGORIES } from '@/components/marketplace/types';
 
 const PAYMENT_OPTIONS: { key: string; label: string }[] = [
   { key: 'pay_on_delivery', label: 'Pay on Delivery' },
@@ -75,6 +76,11 @@ export function ProfileTab({
   const [whatsappInput, setWhatsappInput] = useState(shop.whatsapp_number || '');
   const [savingWhatsapp, setSavingWhatsapp] = useState(false);
   const [msg, setMsg] = useState('');
+
+  // Category
+  const [category, setCategory] = useState(shop.category || '');
+  const [showCategoryPicker, setShowCategoryPicker] = useState(false);
+  const [savingCategory, setSavingCategory] = useState(false);
 
   // Service locations
   const [serviceLocations, setServiceLocations] = useState<{ id: string; location_name: string; location_type: string }[]>([]);
@@ -475,6 +481,52 @@ export function ProfileTab({
             <Text style={styles.value}>{shop.description}</Text>
           </View>
         ) : null}
+        <View style={[styles.row, { flexDirection: 'column', alignItems: 'flex-start', gap: 6 }]}>
+          <Text style={styles.label}>Category</Text>
+          <TouchableOpacity
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 4 }}
+            onPress={() => setShowCategoryPicker(!showCategoryPicker)}
+          >
+            <Tag size={14} color={A.cyan} />
+            <Text style={[styles.value, { color: category ? A.text : A.textMuted }]}>{category || 'Select a category'}</Text>
+            <ChevronDown size={14} color={A.textSub} />
+          </TouchableOpacity>
+          {showCategoryPicker && (
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
+              {SHOP_CATEGORIES.map(cat => (
+                <TouchableOpacity
+                  key={cat}
+                  style={{
+                    paddingVertical: 4,
+                    paddingHorizontal: 10,
+                    borderRadius: 6,
+                    backgroundColor: category === cat ? A.cyan : A.inputBg,
+                    borderWidth: 1,
+                    borderColor: category === cat ? A.cyan : A.border,
+                  }}
+                  onPress={() => { setCategory(cat); setShowCategoryPicker(false); }}
+                >
+                  <Text style={{ fontSize: 11, fontWeight: '600', color: category === cat ? '#000' : A.text }}>{cat}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+          <TouchableOpacity
+            style={[styles.saveBtn, { backgroundColor: A.cyan, marginTop: 8, paddingVertical: 8, paddingHorizontal: 16, borderRadius: 6, alignSelf: 'flex-start' }]}
+            onPress={async () => {
+              setSavingCategory(true);
+              setMsg('');
+              const { error } = await supabase.from('shops').update({ category: category || null }).eq('id', shop.id);
+              setSavingCategory(false);
+              if (error) { setMsg(error.message); return; }
+              onShopUpdated({ ...shop, category: category || null });
+              setMsg('Category saved');
+            }}
+            disabled={savingCategory || category === (shop.category || '')}
+          >
+            {savingCategory ? <ActivityIndicator size="small" color="#000" /> : <Text style={[styles.saveBtnText, { color: '#000' }]}>Save Category</Text>}
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Business Location */}

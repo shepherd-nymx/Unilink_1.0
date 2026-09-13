@@ -16,9 +16,9 @@ import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { loadUserData } from '@/lib/storage-service';
 import { A } from '@/lib/admin-theme';
-import { ArrowLeft, Store, Search, ShoppingCart, Plus, Minus, X, Package, CreditCard, CircleCheck as CheckCircle, CircleAlert as AlertCircle, Info, ChevronLeft, ChevronRight, MapPin, Lock, Award } from 'lucide-react-native';
+import { ArrowLeft, Store, Search, ShoppingCart, Plus, Minus, X, Package, CreditCard, CircleCheck as CheckCircle, CircleAlert as AlertCircle, Info, ChevronLeft, ChevronRight, MapPin, Lock, Award, Tag } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
-import { Shop, Product, CartItem, CartByShop, ThemePalette, computeShopOpen, DeliveryFeeTier, computeTierDeliveryFee } from '@/components/marketplace/types';
+import { Shop, Product, CartItem, CartByShop, ThemePalette, computeShopOpen, DeliveryFeeTier, computeTierDeliveryFee, SHOP_CATEGORIES } from '@/components/marketplace/types';
 import { ShopCard } from '@/components/marketplace/ShopCard';
 import { ProductCard } from '@/components/marketplace/ProductCard';
 import { ShopProfileModal } from '@/components/marketplace/ShopProfileModal';
@@ -49,6 +49,7 @@ export default function Marketplace() {
   const [selectedShopId, setSelectedShopId] = useState<string | null>(null);
   const [areas, setAreas] = useState<string[]>([]);
   const [selectedArea, setSelectedArea] = useState<string | null>(null);
+  const [selectedShopCategory, setSelectedShopCategory] = useState<string | null>(null);
   const [customerUniversityId, setCustomerUniversityId] = useState<string | null>(null);
   const [customerUniversityName, setCustomerUniversityName] = useState<string | null>(null);
   const [shopServiceLocations, setShopServiceLocations] = useState<ServiceLocationMap>({});
@@ -162,7 +163,7 @@ export default function Marketplace() {
 
       const { data: shopData, error: shopErr } = await supabase
         .from('shops')
-        .select('id, name, logo_url, description, address, hours, slug, latitude, longitude, is_available, operating_hours, accepted_payment_methods, location_verified, completed_orders_count, location, ecocash_fee, delivery_fee, whatsapp_number, average_rating, total_ratings, premium_badge, ecocash_name, ecocash_number, contact_phone')
+        .select('id, name, logo_url, description, address, hours, slug, latitude, longitude, is_available, operating_hours, accepted_payment_methods, location_verified, completed_orders_count, location, ecocash_fee, delivery_fee, whatsapp_number, average_rating, total_ratings, premium_badge, ecocash_name, ecocash_number, contact_phone, category')
         .eq('status', 'active')
         .order('name');
       if (shopErr) throw shopErr;
@@ -561,6 +562,29 @@ export default function Marketplace() {
               </View>
             ) : null}
 
+            {/* Category filter chips */}
+            <View style={{ marginBottom: 16 }}>
+              <Text style={[styles.sectionTitle, { color: palette.textSecondary, marginBottom: 8 }]}>FILTER BY CATEGORY</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingRight: 16 }}>
+                <TouchableOpacity
+                  style={[styles.areaChip, { backgroundColor: !selectedShopCategory ? palette.primary : palette.inputBg, borderColor: !selectedShopCategory ? palette.primary : palette.inputBorder }]}
+                  onPress={() => setSelectedShopCategory(null)}
+                >
+                  <Store size={12} color={!selectedShopCategory ? '#fff' : palette.textSecondary} />
+                  <Text style={{ color: !selectedShopCategory ? '#fff' : palette.textSecondary, fontSize: 12, fontWeight: '600' }}>All Categories</Text>
+                </TouchableOpacity>
+                {SHOP_CATEGORIES.map(cat => (
+                  <TouchableOpacity
+                    key={cat}
+                    style={[styles.areaChip, { backgroundColor: selectedShopCategory === cat ? palette.primary : palette.inputBg, borderColor: selectedShopCategory === cat ? palette.primary : palette.inputBorder }]}
+                    onPress={() => setSelectedShopCategory(selectedShopCategory === cat ? null : cat)}
+                  >
+                    <Text style={{ color: selectedShopCategory === cat ? '#fff' : palette.textSecondary, fontSize: 12, fontWeight: '600' }}>{cat}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+
             {/* Area filter chips */}
             {areas.length > 0 && (
               <View style={{ marginBottom: 16 }}>
@@ -597,6 +621,7 @@ export default function Marketplace() {
               <View style={styles.shopList}>
                 {shops
                   .filter(shop => !searchQuery.trim() || shop.name.toLowerCase().includes(searchQuery.toLowerCase()))
+                  .filter(shop => !selectedShopCategory || shop.category === selectedShopCategory)
                   .filter(shop => !selectedArea || shop.location === selectedArea)
                   .filter(shop => shopServesCustomer(shop.id))
                   .map(shop => {
@@ -621,6 +646,12 @@ export default function Marketplace() {
                             <Text style={[styles.shopSelectDesc, { color: palette.textSecondary }]} numberOfLines={2}>{shop.description}</Text>
                           ) : null}
                           <View style={styles.shopSelectMeta}>
+                            {shop.category ? (
+                              <View style={[styles.shopSelectBadge, { backgroundColor: `${palette.accent}18` }]}>
+                                <Tag size={9} color={palette.accent} />
+                                <Text style={[styles.shopSelectBadgeText, { color: palette.accent }]}>{shop.category}</Text>
+                              </View>
+                            ) : null}
                             {shop.location ? (
                               <View style={[styles.shopSelectBadge, { backgroundColor: `${palette.primary}15` }]}>
                                 <MapPin size={9} color={palette.primary} />

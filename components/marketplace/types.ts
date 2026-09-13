@@ -23,7 +23,21 @@ export type Shop = {
   ecocash_name?: string | null;
   ecocash_number?: string | null;
   contact_phone?: string | null;
+  category?: string | null;
 };
+
+export const SHOP_CATEGORIES = [
+  'Grocery',
+  'Pharmacy',
+  'Food & Restaurant',
+  'Stationery',
+  'Electronics',
+  'Fashion & Clothing',
+  'Health & Beauty',
+  'Hardware',
+  'Books',
+  'General',
+] as const;
 
 export type DeliveryFeeTier = {
   id: string;

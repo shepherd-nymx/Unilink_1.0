@@ -28,11 +28,13 @@ import {
   CircleCheck as CheckCircle2,
   ChevronDown,
   Check,
+  Tag,
 } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
 import { TermsAndConditions } from '@/components/TermsAndConditions';
+import { SHOP_CATEGORIES } from '@/components/marketplace/types';
 
 export default function ShopRegister() {
   const router = useRouter();
@@ -49,6 +51,8 @@ export default function ShopRegister() {
   const [address, setAddress] = useState('');
   const [hours, setHours] = useState('');
   const [area, setArea] = useState('');
+  const [category, setCategory] = useState('');
+  const [showCategoryPicker, setShowCategoryPicker] = useState(false);
   const [latitude, setLatitude] = useState('');
   const [longitude, setLongitude] = useState('');
   const [locating, setLocating] = useState(false);
@@ -166,8 +170,8 @@ export default function ShopRegister() {
 
   const handleRegister = async () => {
     setError('');
-    if (!shopName || !email.trim() || !password || !contactPhone || !address || !area) {
-      setError('Please fill in all required fields including area');
+    if (!shopName || !email.trim() || !password || !contactPhone || !address || !area || !category) {
+      setError('Please fill in all required fields including area and category');
       return;
     }
     const emailTrim = email.trim().toLowerCase();
@@ -226,6 +230,7 @@ export default function ShopRegister() {
           description: description || null,
           address,
           location: area,
+          category,
           latitude: latitude.trim() ? parseFloat(latitude) : null,
           longitude: longitude.trim() ? parseFloat(longitude) : null,
           contact_phone: contactPhone,
@@ -397,6 +402,43 @@ export default function ShopRegister() {
                   onBlur={() => setFocused(null)}
                 />
               </View>
+            </View>
+
+            {/* Category picker */}
+            <View style={styles.inputGroup}>
+              <Text style={[styles.label, { color: textSecondary }]}>
+                SHOP CATEGORY <Text style={{ color: errorColor }}>*</Text>
+              </Text>
+              <TouchableOpacity
+                style={[styles.inputWrapper, { backgroundColor: inputBg, borderColor: focused === 'category' ? primary : inputBorder }]}
+                onPress={() => { setShowCategoryPicker(!showCategoryPicker); setFocused('category'); }}
+              >
+                <View style={styles.inputIcon}><Tag size={16} color={focused === 'category' ? primary : placeholderColor} /></View>
+                <Text
+                  style={[styles.input, { color: category ? textPrimary : placeholderColor, flex: 1 }]}
+                  onPress={() => { setShowCategoryPicker(!showCategoryPicker); setFocused('category'); }}
+                >
+                  {category || 'Select your shop category'}
+                </Text>
+                <ChevronDown size={16} color={placeholderColor} style={{ marginRight: 4 }} />
+              </TouchableOpacity>
+
+              {showCategoryPicker && (
+                <View style={[styles.areaPickerBox, { backgroundColor: inputBg, borderColor: inputBorder }]}>
+                  <ScrollView style={{ maxHeight: 200 }} nestedScrollEnabled>
+                    {SHOP_CATEGORIES.map(cat => (
+                      <TouchableOpacity
+                        key={cat}
+                        style={[styles.areaPickerItem, { borderBottomColor: inputBorder }]}
+                        onPress={() => { setCategory(cat); setShowCategoryPicker(false); setFocused(null); }}
+                      >
+                        <Text style={{ color: textPrimary, fontSize: 14, flex: 1 }}>{cat}</Text>
+                        {category === cat && <Check size={16} color={primary} />}
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+              )}
             </View>
 
             {/* Area picker */}

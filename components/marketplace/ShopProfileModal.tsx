@@ -1,5 +1,5 @@
 import { Modal, View, Text, ScrollView, TouchableOpacity, Platform, StyleSheet } from 'react-native';
-import { X, MapPin, Store, CreditCard, Plus, Minus, BadgeCheck, Clock, PackageCheck, CircleAlert as AlertCircle, Star } from 'lucide-react-native';
+import { X, MapPin, Store, CreditCard, Plus, Minus, BadgeCheck, Clock, PackageCheck, CircleAlert as AlertCircle, Star, Tag } from 'lucide-react-native';
 import { Linking } from 'react-native';
 import { Shop, Product, ThemePalette, computeShopOpen, formatOperatingHours, formatPaymentMethod, getAcceptedMethods } from './types';
 
@@ -54,6 +54,12 @@ export function ShopProfileModal({ shop, visible, onClose, products, cartQty, on
                 <View style={[styles.verifiedPill, { backgroundColor: `${palette.primary}18` }]}>
                   <BadgeCheck size={13} color={palette.primary} />
                   <Text style={[styles.statusText, { color: palette.primary }]}>Verified Shop</Text>
+                </View>
+              ) : null}
+              {shop.category ? (
+                <View style={[styles.verifiedPill, { backgroundColor: `${palette.accent}18` }]}>
+                  <Tag size={13} color={palette.accent} />
+                  <Text style={[styles.statusText, { color: palette.accent }]}>{shop.category}</Text>
                 </View>
               ) : null}
             </View>
