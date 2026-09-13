@@ -133,6 +133,7 @@ export default function CustomerDashboard() {
   const [showOpenRequestWaiting, setShowOpenRequestWaiting] = useState(false);
   const [openRequestDeliveryId, setOpenRequestDeliveryId] = useState<string | null>(null);
   const [showTutorial, setShowTutorial] = useState(false);
+  const [fetchedName, setFetchedName] = useState<string | null>(null);
   const [showScrollHint, setShowScrollHint] = useState(false);
   const scrollHintAnim = useRef(new Animated.Value(0)).current;
   const scrollHintTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -236,11 +237,13 @@ export default function CustomerDashboard() {
     try {
       const { data, error: dbError } = await supabase
         .from('customers')
-        .select('latitude, longitude')
+        .select('latitude, longitude, full_name')
         .eq('id', customerId!)
         .single();
 
       if (dbError) throw dbError;
+
+      if (data?.full_name) setFetchedName(data.full_name);
 
       if (data?.latitude && data?.longitude) {
         setCustomerCoords({
@@ -812,21 +815,27 @@ export default function CustomerDashboard() {
       flexDirection: 'column',
       justifyContent: 'flex-start',
       paddingHorizontal: 20,
-      paddingTop: 56,
-      paddingBottom: 18,
+      paddingTop: 48,
+      paddingBottom: 12,
       backgroundColor: '#070f1c',
       borderBottomWidth: 1,
       borderBottomColor: 'rgba(0,229,255,0.18)',
-      gap: 10,
+      gap: 6,
       shadowColor: '#00e5ff',
       shadowOffset: { width: 0, height: 2 },
       shadowOpacity: 0.08,
       shadowRadius: 12,
       elevation: 4,
     },
-    headerLogoRow: {
+    headerTopRow: {
       flexDirection: 'row',
+      justifyContent: 'space-between',
       alignItems: 'center',
+    },
+    headerActions: {
+      flexDirection: 'row',
+      gap: 8,
+      flexShrink: 0,
     },
     logoImageWrap: {
       flexDirection: 'row',
@@ -900,20 +909,20 @@ export default function CustomerDashboard() {
       borderColor: '#94a3b8',
     },
     logoWordmark: {
-      fontSize: 18,
+      fontSize: 16,
       fontWeight: '900',
       color: '#00e5ff',
-      letterSpacing: 3,
+      letterSpacing: 2.5,
       textShadowColor: 'rgba(0,229,255,0.5)',
       textShadowOffset: { width: 0, height: 0 },
-      textShadowRadius: 12,
+      textShadowRadius: 10,
     },
     headerRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
     },
-    headerContent: { flex: 1, minWidth: 0 },
+    headerContent: { flex: 1, minWidth: 0, marginTop: 2 },
     deliveryFab: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -980,37 +989,37 @@ export default function CustomerDashboard() {
       borderWidth: 1.5,
       borderColor: CARD,
     },
-    headerTitle: { fontSize: 24, fontWeight: '900', color: '#d0eaff', letterSpacing: 0.3 },
-    headerSubtitle: { fontSize: 12, color: '#00e5ff', marginTop: 4, fontWeight: '600', letterSpacing: 0.5, textTransform: 'uppercase' as any },
+    headerTitle: { fontSize: 20, fontWeight: '900', color: '#d0eaff', letterSpacing: 0.3, marginTop: 2 },
+    headerSubtitle: { fontSize: 11, color: '#00e5ff', marginTop: 2, fontWeight: '600', letterSpacing: 0.5, textTransform: 'uppercase' as any },
     welcomeBadge: {
-      flexDirection: 'row', alignItems: 'center', gap: 6,
-      alignSelf: 'flex-start', marginBottom: 2,
-      paddingHorizontal: 10, paddingVertical: 4,
-      borderRadius: 12,
-      backgroundColor: 'rgba(0,229,255,0.1)',
+      flexDirection: 'row', alignItems: 'center', gap: 5,
+      alignSelf: 'flex-start',
+      paddingHorizontal: 8, paddingVertical: 2,
+      borderRadius: 10,
+      backgroundColor: 'rgba(0,229,255,0.08)',
       borderWidth: 1,
-      borderColor: 'rgba(0,229,255,0.25)',
+      borderColor: 'rgba(0,229,255,0.2)',
     },
     welcomeBadgeDot: {
-      width: 6, height: 6, borderRadius: 3,
+      width: 5, height: 5, borderRadius: 3,
       backgroundColor: '#00ff88',
     },
     welcomeBadgeText: {
-      fontSize: 9, fontWeight: '800', color: '#00ff88', letterSpacing: 1.2,
+      fontSize: 8, fontWeight: '800', color: '#00ff88', letterSpacing: 1,
     },
     tutorialBtn: {
-      flexDirection: 'row', alignItems: 'center', gap: 6,
-      paddingHorizontal: 14, paddingVertical: 8,
-      borderRadius: 20, borderWidth: 1, flexShrink: 0,
-      borderColor: 'rgba(0,229,255,0.4)',
-      backgroundColor: 'rgba(0,229,255,0.1)',
+      flexDirection: 'row', alignItems: 'center', gap: 5,
+      paddingHorizontal: 12, paddingVertical: 6,
+      borderRadius: 18, borderWidth: 1, flexShrink: 0,
+      borderColor: 'rgba(0,229,255,0.35)',
+      backgroundColor: 'rgba(0,229,255,0.08)',
       shadowColor: '#00e5ff',
       shadowOffset: { width: 0, height: 0 },
-      shadowOpacity: 0.3,
-      shadowRadius: 8,
-      elevation: 3,
+      shadowOpacity: 0.2,
+      shadowRadius: 6,
+      elevation: 2,
     },
-    tutorialBtnText: { fontSize: 11, fontWeight: '700', color: '#00e5ff', letterSpacing: 0.5 },
+    tutorialBtnText: { fontSize: 10, fontWeight: '700', color: '#00e5ff', letterSpacing: 0.4 },
     content: { flex: 1 },
     searchContainer: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 8 },
     searchInputWrapper: {
@@ -1452,26 +1461,26 @@ export default function CustomerDashboard() {
         onDismiss={clearInAppMessage}
       />
       <View style={styles.header}>
-        <View style={styles.headerRow}>
-          <View style={styles.headerLogoRow}>
-            <Text style={[styles.logoWordmark, { color: '#00e5ff' }]}>UNILINK</Text>
+        <View style={styles.headerTopRow}>
+          <Text style={[styles.logoWordmark, { color: '#00e5ff' }]}>UNILINK</Text>
+          <View style={styles.headerActions}>
+            <TouchableOpacity
+              onPress={() => setShowTutorial(true)}
+              style={styles.tutorialBtn}
+              activeOpacity={0.75}
+            >
+              <HelpCircle size={13} color="#00e5ff" />
+              <Text style={styles.tutorialBtnText}>How it works</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => router.push('/customer/marketplace')}
+              style={[styles.tutorialBtn, { backgroundColor: '#00e5ff', borderColor: '#00e5ff' }]}
+              activeOpacity={0.75}
+            >
+              <ShoppingBag size={13} color="#050D1A" />
+              <Text style={[styles.tutorialBtnText, { color: '#050D1A' }]}>Shop Groceries</Text>
+            </TouchableOpacity>
           </View>
-          <TouchableOpacity
-            onPress={() => setShowTutorial(true)}
-            style={styles.tutorialBtn}
-            activeOpacity={0.75}
-          >
-            <HelpCircle size={14} color="#00e5ff" />
-            <Text style={styles.tutorialBtnText}>How it works</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => router.push('/customer/marketplace')}
-            style={[styles.tutorialBtn, { backgroundColor: '#00e5ff', borderColor: '#00e5ff' }]}
-            activeOpacity={0.75}
-          >
-            <ShoppingBag size={14} color="#050D1A" />
-            <Text style={[styles.tutorialBtnText, { color: '#050D1A' }]}>Shop Groceries</Text>
-          </TouchableOpacity>
         </View>
         <View style={styles.headerContent}>
           <View style={styles.welcomeBadge}>
@@ -1479,7 +1488,7 @@ export default function CustomerDashboard() {
             <Text style={styles.welcomeBadgeText}>ACTIVE</Text>
           </View>
           <Text style={styles.headerTitle} numberOfLines={1} ellipsizeMode="tail">
-            Welcome, {customerName}
+            Hi, {customerName || fetchedName || 'there'}
           </Text>
           <Text style={styles.headerSubtitle} numberOfLines={1} ellipsizeMode="tail">
             Select your groceries
