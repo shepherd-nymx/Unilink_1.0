@@ -85,6 +85,43 @@ type Driver = {
   availability_days?: string[];
 };
 
+function FlashingDot({ count, color = '#ef4444' }: { count: number; color?: string }) {
+  const opacity = useRef(new Animated.Value(1)).current;
+  const scale = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    if (count === 0) return;
+    const loop = Animated.loop(
+      Animated.parallel([
+        Animated.sequence([
+          Animated.timing(opacity, { toValue: 0.3, duration: 500, useNativeDriver: true }),
+          Animated.timing(opacity, { toValue: 1, duration: 500, useNativeDriver: true }),
+        ]),
+        Animated.sequence([
+          Animated.spring(scale, { toValue: 1.3, useNativeDriver: true }),
+          Animated.spring(scale, { toValue: 1, useNativeDriver: true }),
+        ]),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [count]);
+
+  if (count === 0) return null;
+
+  return (
+    <Animated.View style={{
+      position: 'absolute', top: 2, right: 2,
+      minWidth: 16, height: 16, borderRadius: 8, paddingHorizontal: 3,
+      justifyContent: 'center', alignItems: 'center',
+      borderWidth: 1.5, borderColor: '#070f1c',
+      opacity, transform: [{ scale }], backgroundColor: color,
+    }}>
+      <Text style={{ fontSize: 8, fontWeight: '800', color: '#fff' }}>{count > 9 ? '9+' : count}</Text>
+    </Animated.View>
+  );
+}
+
 export default function CustomerDashboard() {
   const router = useRouter();
   const params = useLocalSearchParams();
@@ -98,7 +135,7 @@ export default function CustomerDashboard() {
   const customerName = params.customerName as string;
   const { colors, isDark } = useTheme();
   const { isChecking, isAccepted } = useTermsGuard('customer');
-  const { unreadMessageCount, inAppMessage, clearInAppMessage, requestNotificationPermission } = useNotifications();
+  const { unreadMessageCount, shopOrderUpdatesCount, inAppMessage, clearInAppMessage, requestNotificationPermission } = useNotifications();
   const [groceryItems, setGroceryItems] = useState<GroceryItem[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
@@ -2049,14 +2086,14 @@ export default function CustomerDashboard() {
           <View style={[
             styles.bottomNavIconWrap,
             {
-              backgroundColor: notificationDot
-                ? (notificationDot === 'yellow' ? 'rgba(245,158,11,0.1)' : 'rgba(16,185,129,0.1)')
+              backgroundColor: notificationDot || shopOrderUpdatesCount > 0
+                ? (notificationDot === 'yellow' || shopOrderUpdatesCount > 0 ? 'rgba(245,158,11,0.1)' : 'rgba(16,185,129,0.1)')
                 : isDark ? 'rgba(56,189,248,0.1)' : 'rgba(26,115,232,0.08)'
             }
           ]}>
             <History
               size={24}
-              color={notificationDot ? (notificationDot === 'yellow' ? WARN : SUCCESS) : P}
+              color={notificationDot || shopOrderUpdatesCount > 0 ? (notificationDot === 'yellow' ? WARN : SUCCESS) : P}
               strokeWidth={2}
             />
             {notificationDot && (
@@ -2068,10 +2105,11 @@ export default function CustomerDashboard() {
                 }
               ]} />
             )}
+            <FlashingDot count={shopOrderUpdatesCount} color="#f59e0b" />
           </View>
           <Text style={[
             styles.bottomNavLabel,
-            { color: notificationDot ? (notificationDot === 'yellow' ? WARN : SUCCESS) : P }
+            { color: notificationDot || shopOrderUpdatesCount > 0 ? (notificationDot === 'yellow' || shopOrderUpdatesCount > 0 ? WARN : SUCCESS) : P }
           ]}>Orders</Text>
         </TouchableOpacity>
 

@@ -16,7 +16,7 @@ import {
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import * as ImagePicker from 'expo-image-picker';
-import { ArrowLeft, Camera, User, School, Save, CircleCheck as CheckCircle, Zap, Clock, Bike, Car, MapPin, Navigation2, MessageCircle, LogOut } from 'lucide-react-native';
+import { ArrowLeft, Camera, User, School, Save, CircleCheck as CheckCircle, Zap, Clock, Bike, Car, MapPin, Navigation2, MessageCircle, LogOut, Mail } from 'lucide-react-native';
 import SwitchLocationModal from '@/components/SwitchLocationModal';
 import { useTheme } from '@/contexts/ThemeContext';
 import { clearUserData } from '@/lib/storage-service';
@@ -108,6 +108,7 @@ export default function DriverSettings() {
   const [deliveryTypes, setDeliveryTypes] = useState<string[]>(['walking']);
   const [paymentMethods, setPaymentMethods] = useState<string[]>(['pay_on_delivery']);
   const [whatsappNumber, setWhatsappNumber] = useState('');
+  const [notificationEmail, setNotificationEmail] = useState('');
   const [profilePictureUrl, setProfilePictureUrl] = useState('');
   const [uploadingImage, setUploadingImage] = useState(false);
   const [availabilityStartTime, setAvailabilityStartTime] = useState('');
@@ -214,6 +215,7 @@ export default function DriverSettings() {
       setDeliveryTypes(data.delivery_type || ['walking']);
       setPaymentMethods(data.payment_methods || ['pay_on_delivery']);
       setWhatsappNumber(data.whatsapp_number || '');
+      setNotificationEmail(data.notification_email || data.email || '');
       setProfilePictureUrl(data.profile_picture_url || '');
       setUniversityName((data.universities as any)?.name || '');
       setDefaultUniversityId(data.university_id || null);
@@ -240,6 +242,7 @@ export default function DriverSettings() {
         fee_up_to_400: parseFloat(feeUpTo400), fee_up_to_500: parseFloat(feeUpTo500),
         is_available: isAvailable, delivery_type: deliveryTypes, payment_methods: paymentMethods,
         whatsapp_number: whatsappNumber.trim() || null,
+        notification_email: notificationEmail.trim() || null,
         profile_picture_url: profilePictureUrl.trim() || null,
         availability_start_time: availabilityStartTime.trim() || null,
         availability_end_time: availabilityEndTime.trim() || null,
@@ -438,6 +441,24 @@ export default function DriverSettings() {
               placeholder="e.g. +263771234567"
               placeholderTextColor={TEXT3}
               keyboardType="phone-pad"
+              autoCorrect={false}
+            />
+          </View>
+        </View>
+
+        <View style={ss.section}>
+          <Text style={ss.sectionTitle}>Notification Email</Text>
+          <Text style={ss.sectionDesc}>Receive email alerts when a shop order is assigned to you</Text>
+          <View style={ss.inputWrap}>
+            <Mail size={14} color={TEXT2} />
+            <TextInput
+              style={ss.inputInline}
+              value={notificationEmail}
+              onChangeText={setNotificationEmail}
+              placeholder="e.g. yourname@gmail.com"
+              placeholderTextColor={TEXT3}
+              keyboardType="email-address"
+              autoCapitalize="none"
               autoCorrect={false}
             />
           </View>

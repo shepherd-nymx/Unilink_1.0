@@ -35,12 +35,16 @@ interface NotificationContextType {
   unreadMessageCount: number;
   pendingDeliveriesCount: number;
   pendingRequestsCount: number;
+  shopOrderUpdatesCount: number;
+  activeShopDeliveriesCount: number;
   hasNotificationPermission: boolean;
   inAppMessage: InAppMessage | null;
   clearInAppMessage: () => void;
   refreshUnreadCount: () => Promise<void>;
   refreshPendingDeliveries: () => Promise<void>;
   refreshPendingRequests: () => Promise<void>;
+  refreshShopOrderUpdates: () => Promise<void>;
+  refreshActiveShopDeliveries: () => Promise<void>;
   requestNotificationPermission: () => Promise<void>;
 }
 
@@ -50,6 +54,8 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   const [unreadMessageCount, setUnreadMessageCount] = useState(0);
   const [pendingDeliveriesCount, setPendingDeliveriesCount] = useState(0);
   const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
+  const [shopOrderUpdatesCount, setShopOrderUpdatesCount] = useState(0);
+  const [activeShopDeliveriesCount, setActiveShopDeliveriesCount] = useState(0);
   const [hasNotificationPermission, setHasNotificationPermission] = useState(false);
   const [inAppMessage, setInAppMessage] = useState<InAppMessage | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
@@ -131,6 +137,34 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     }
   }, [userId, userType]);
 
+  const refreshShopOrderUpdates = useCallback(async () => {
+    if (!userId || userType !== 'customer') return;
+    try {
+      const { data, error } = await supabase
+        .from('shop_orders')
+        .select('id')
+        .eq('customer_id', userId)
+        .not('status', 'in', '("delivered","cancelled")');
+      if (!error) setShopOrderUpdatesCount(data?.length ?? 0);
+    } catch {
+      // ignore
+    }
+  }, [userId, userType]);
+
+  const refreshActiveShopDeliveries = useCallback(async () => {
+    if (!userId || userType !== 'driver') return;
+    try {
+      const { data, error } = await supabase
+        .from('shop_orders')
+        .select('id')
+        .eq('messenger_id', userId)
+        .not('status', 'in', '("delivered","cancelled")');
+      if (!error) setActiveShopDeliveriesCount(data?.length ?? 0);
+    } catch {
+      // ignore
+    }
+  }, [userId, userType]);
+
   useEffect(() => {
     syncUserFromStorage();
   }, [syncUserFromStorage]);
@@ -196,6 +230,8 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       setUnreadMessageCount(0);
       setPendingDeliveriesCount(0);
       setPendingRequestsCount(0);
+      setShopOrderUpdatesCount(0);
+      setActiveShopDeliveriesCount(0);
       return;
     }
 
@@ -285,6 +321,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       refreshUnreadCount();
       refreshPendingDeliveries();
       refreshPendingRequests();
+      refreshActiveShopDeliveries();
 
       const driverDeliverySub = supabase
         .channel(`driver-delivery-${userId}`)
@@ -366,6 +403,15 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         .subscribe();
       subscriptionsRef.current.push(driverConversationSub);
 
+      const driverShopOrderSub = supabase
+        .channel(`driver-shop-orders-${userId}`)
+        .on('postgres_changes',
+          { event: '*', schema: 'public', table: 'shop_orders', filter: `messenger_id=eq.${userId}` },
+          () => { refreshActiveShopDeliveries(); }
+        )
+        .subscribe();
+      subscriptionsRef.current.push(driverShopOrderSub);
+
       const driverMessageSub = supabase
         .channel(`driver-messages-${userId}`)
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages' }, async (payload) => {
@@ -437,6 +483,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     // ─── CUSTOMER SUBSCRIPTIONS ─────────────────────────────────────────────
     if (userType === 'customer') {
       refreshUnreadCount();
+      refreshShopOrderUpdates();
 
       const customerShopOrderSub = supabase
         .channel(`customer-shop-order-${userId}`)
@@ -501,6 +548,14 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         )
         .subscribe();
       subscriptionsRef.current.push(customerShopOrderSub);
+
+      const customerShopOrderInsertSub = supabase
+        .channel(`customer-shop-order-insert-${userId}`)
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'shop_orders', filter: `customer_id=eq.${userId}` },
+          () => { refreshShopOrderUpdates(); }
+        )
+        .subscribe();
+      subscriptionsRef.current.push(customerShopOrderInsertSub);
 
       const customerConversationSub = supabase
         .channel(`customer-conversation-${userId}`)
@@ -590,7 +645,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       subscriptionsRef.current.forEach((sub) => sub.unsubscribe());
       subscriptionsRef.current = [];
     };
-  }, [userId, userType, hasNotificationPermission, refreshUnreadCount, refreshPendingDeliveries, refreshPendingRequests]);
+  }, [userId, userType, hasNotificationPermission, refreshUnreadCount, refreshPendingDeliveries, refreshPendingRequests, refreshShopOrderUpdates, refreshActiveShopDeliveries]);
 
   useEffect(() => {
     if (Platform.OS === 'web') return;
@@ -634,12 +689,16 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     unreadMessageCount,
     pendingDeliveriesCount,
     pendingRequestsCount,
+    shopOrderUpdatesCount,
+    activeShopDeliveriesCount,
     hasNotificationPermission,
     inAppMessage,
     clearInAppMessage,
     refreshUnreadCount,
     refreshPendingDeliveries,
     refreshPendingRequests,
+    refreshShopOrderUpdates,
+    refreshActiveShopDeliveries,
     requestNotificationPermission,
   };
 

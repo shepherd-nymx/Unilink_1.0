@@ -250,14 +250,14 @@ export default function ShopDashboard() {
     router.replace('/');
   };
 
-  const sendEmail = async (type: string, to: string, data: Record<string, any>, orderId?: string) => {
+  const sendEmail = async (type: string, to: string, data: Record<string, any>, orderId?: string, userType: string = 'shop') => {
     try {
       const { SUPABASE_URL } = { SUPABASE_URL: process.env.EXPO_PUBLIC_SUPABASE_URL };
       const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
       await fetch(`${SUPABASE_URL}/functions/v1/resend-email`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${supabaseAnonKey}` },
-        body: JSON.stringify({ type, to, data, orderId, userType: 'shop' }),
+        body: JSON.stringify({ type, to, data, orderId, userType }),
       });
     } catch {}
   };
@@ -353,6 +353,25 @@ export default function ShopDashboard() {
           });
         } catch {}
       }
+      // Send email notification to the driver about the shop order assignment
+      try {
+        const { data: driverData } = await supabase
+          .from('drivers')
+          .select('notification_email, email, full_name')
+          .eq('id', driverId)
+          .maybeSingle();
+        const driverEmail = driverData?.notification_email || driverData?.email;
+        if (driverEmail && driverEmail.includes('@')) {
+          sendEmail('shop_messenger_assigned', driverEmail, {
+            orderNumber: selectedOrder.id.slice(0, 8),
+            orderId: selectedOrder.id,
+            messengerName: driverData?.full_name || 'Driver',
+            shopName: shop.name,
+            pickup: shop.address || shop.name,
+            delivery: selectedOrder.delivery_location || 'See app',
+          }, selectedOrder.id, 'driver');
+        }
+      } catch {}
       setAssigningDriver(false);
       setSelectedOrder(null);
       setShowOrderModal(false);

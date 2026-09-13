@@ -207,6 +207,7 @@ export default function DriverDashboard() {
     unreadMessageCount,
     pendingDeliveriesCount,
     pendingRequestsCount,
+    activeShopDeliveriesCount,
     hasNotificationPermission,
     inAppMessage,
     clearInAppMessage,
@@ -1015,8 +1016,11 @@ export default function DriverDashboard() {
         </TouchableOpacity>
         <TouchableOpacity style={s.navItem}
           onPress={() => router.push({ pathname: '/driver/customers', params: { driverId, driverName } })}>
-          <Users size={24} color={TEXT2} />
-          <Text style={s.navItemLabel}>Customers</Text>
+          <View style={s.navIconWrap}>
+            <Users size={24} color={activeShopDeliveriesCount > 0 ? CYAN : TEXT2} />
+            <FlashingDot count={activeShopDeliveriesCount} />
+          </View>
+          <Text style={[s.navItemLabel, activeShopDeliveriesCount > 0 && { color: CYAN }]}>Customers</Text>
         </TouchableOpacity>
         <TouchableOpacity style={s.navItem}
           onPress={() => router.push('/driver/shop-deliveries' as any)}>
