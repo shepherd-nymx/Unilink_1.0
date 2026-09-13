@@ -65,11 +65,15 @@ export default function AdminDashboard() {
         supabase.from('shops').select('*', { count: 'exact', head: true })
           .or('location_verified.is.null,location_verified.eq.false'),
         supabase.from('drivers').select('*', { count: 'exact', head: true }).eq('subscription_status', 'expired'),
-        supabase.from('shops').select('commission_deadline').eq('status', 'active'),
+        supabase.from('shops').select('commission_deadline, commission_paid').eq('status', 'active'),
       ]);
 
       const now = new Date().toISOString();
-      const overdueCount = (commissionRes.data || []).filter((s: any) => s.commission_deadline && new Date(s.commission_deadline).toISOString() < now).length;
+      const overdueCount = (commissionRes.data || []).filter((s: any) =>
+        s.commission_deadline &&
+        new Date(s.commission_deadline).toISOString() < now &&
+        Number(s.commission_paid) === 0
+      ).length;
 
       setStats({
         customers: customersRes.count ?? 0, activeShops: activeShopsRes.count ?? 0,

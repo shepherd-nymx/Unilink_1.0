@@ -7,7 +7,7 @@ import {
   type ShopOrder,
   type ShopProduct,
 } from '@/lib/shop-types';
-import { TrendingUp, TrendingDown, ShoppingBag, Users, Package, Truck, Lightbulb, TriangleAlert as AlertTriangle, DollarSign, Calendar } from 'lucide-react-native';
+import { TrendingUp, TrendingDown, ShoppingBag, Users, Package, Truck, Lightbulb, TriangleAlert as AlertTriangle, DollarSign, Calendar, Smartphone, CircleCheck as CheckCircle } from 'lucide-react-native';
 
 function startOfDay(d: Date): Date {
   const x = new Date(d);
@@ -62,7 +62,7 @@ function RevenueBar({
   );
 }
 
-export function AnalyticsTab({ orders, products, commissionRate, commissionDeadline }: { orders: ShopOrder[]; products: ShopProduct[]; commissionRate?: number; commissionDeadline?: string | null }) {
+export function AnalyticsTab({ orders, products, commissionRate, commissionDeadline, commissionPaid, ecocashNumber, ecocashName }: { orders: ShopOrder[]; products: ShopProduct[]; commissionRate?: number; commissionDeadline?: string | null; commissionPaid?: number; ecocashNumber?: string | null; ecocashName?: string | null }) {
   const analytics = useMemo(() => {
     const now = new Date();
     const todayStart = startOfDay(now);
@@ -312,7 +312,7 @@ export function AnalyticsTab({ orders, products, commissionRate, commissionDeadl
             <View style={[styles.revCard, { flex: 1 }]}>
               <View style={styles.revTop}>
                 <TrendingUp size={14} color={A.cyan} />
-                <Text style={styles.revLabel}>Confirmed Revenue</Text>
+                <Text style={styles.revLabel}>Revenue</Text>
               </View>
               <Text style={styles.revValue}>{fmtMoney(a.confirmedRevenue)}</Text>
             </View>
@@ -326,9 +326,25 @@ export function AnalyticsTab({ orders, products, commissionRate, commissionDeadl
             <View style={[styles.revCard, { flex: 1, borderColor: A.amber, backgroundColor: A.amberDim }]}>
               <View style={styles.revTop}>
                 <DollarSign size={14} color={A.amber} />
-                <Text style={styles.revLabel}>Amount Owed</Text>
+                <Text style={styles.revLabel}>Owed</Text>
               </View>
               <Text style={[styles.revValue, { color: A.amber }]}>{fmtMoney(a.confirmedRevenue * (commissionRate / 100))}</Text>
+            </View>
+          </View>
+          <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
+            <View style={[styles.revCard, { flex: 1, borderColor: `${A.green}40` }]}>
+              <View style={styles.revTop}>
+                <CheckCircle size={14} color={A.green} />
+                <Text style={styles.revLabel}>Paid</Text>
+              </View>
+              <Text style={[styles.revValue, { color: A.green }]}>{fmtMoney(commissionPaid || 0)}</Text>
+            </View>
+            <View style={[styles.revCard, { flex: 1, borderColor: A.red, backgroundColor: A.redDim }]}>
+              <View style={styles.revTop}>
+                <DollarSign size={14} color={A.red} />
+                <Text style={styles.revLabel}>Balance</Text>
+              </View>
+              <Text style={[styles.revValue, { color: A.red }]}>{fmtMoney(Math.max(a.confirmedRevenue * (commissionRate / 100) - (commissionPaid || 0), 0))}</Text>
             </View>
           </View>
           {commissionDeadline && (
@@ -342,6 +358,27 @@ export function AnalyticsTab({ orders, products, commissionRate, commissionDeadl
           <Text style={{ fontSize: 11, color: A.textSub, marginTop: 8, lineHeight: 16 }}>
             {commissionRate.toFixed(0)}% of revenue from confirmed orders is owed to UniLink Delivery as platform commission.
           </Text>
+          {ecocashNumber && (
+            <View style={{ marginTop: 12, backgroundColor: A.surface, borderRadius: 10, borderWidth: 1, borderColor: `${A.green}40`, padding: 14, gap: 8 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Smartphone size={16} color={A.green} />
+                <Text style={{ fontSize: 13, fontWeight: '700', color: A.green }}>Send Payment via Ecocash</Text>
+              </View>
+              <View>
+                <Text style={{ fontSize: 10, fontWeight: '600', color: A.textSub }}>ECOCASH NUMBER</Text>
+                <Text style={{ fontSize: 15, fontWeight: '700', color: A.text }}>{ecocashNumber}</Text>
+              </View>
+              {ecocashName && (
+                <View>
+                  <Text style={{ fontSize: 10, fontWeight: '600', color: A.textSub }}>ACCOUNT NAME</Text>
+                  <Text style={{ fontSize: 15, fontWeight: '700', color: A.text }}>{ecocashName}</Text>
+                </View>
+              )}
+              <Text style={{ fontSize: 11, color: A.textSub, marginTop: 4 }}>
+                Use this Ecocash number to send your commission payment to UniLink Delivery.
+              </Text>
+            </View>
+          )}
         </View>
       )}
 

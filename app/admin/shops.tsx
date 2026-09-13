@@ -15,7 +15,7 @@ import {
 import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { A } from '@/lib/admin-theme';
-import { ArrowLeft, Store, CircleCheck as CheckCircle, Circle as XCircle, DollarSign, Clock, Ban, Eye, X, CircleAlert as AlertCircle, ShoppingBag, Settings, MapPin, Calendar } from 'lucide-react-native';
+import { ArrowLeft, Store, CircleCheck as CheckCircle, Circle as XCircle, DollarSign, Clock, Ban, Eye, X, CircleAlert as AlertCircle, ShoppingBag, Settings, MapPin, Calendar, Smartphone } from 'lucide-react-native';
 import { SkeletonList } from '@/components/Skeleton';
 import { ConnectionBadge } from '@/components/ConnectionBadge';
 
@@ -84,10 +84,17 @@ export default function AdminShops() {
   const [commissionRate, setCommissionRate] = useState('5');
   const [savingCommission, setSavingCommission] = useState(false);
   const [commissionSaved, setCommissionSaved] = useState(false);
-  const [commissionData, setCommissionData] = useState<{ shopId: string; shopName: string; confirmedRevenue: number; commissionOwed: number; deadline: string | null }[]>([]);
+  const [commissionData, setCommissionData] = useState<{ shopId: string; shopName: string; confirmedRevenue: number; commissionOwed: number; commissionPaid: number; deadline: string | null }[]>([]);
   const [deadlineShop, setDeadlineShop] = useState<string | null>(null);
   const [deadlineDate, setDeadlineDate] = useState('');
   const [savingDeadline, setSavingDeadline] = useState(false);
+  const [paymentShop, setPaymentShop] = useState<string | null>(null);
+  const [paymentAmount, setPaymentAmount] = useState('');
+  const [savingPayment, setSavingPayment] = useState(false);
+  const [ecocashNumber, setEcocashNumber] = useState('');
+  const [ecocashName, setEcocashName] = useState('');
+  const [savingEcocash, setSavingEcocash] = useState(false);
+  const [ecocashSaved, setEcocashSaved] = useState(false);
   const [error, setError] = useState('');
   const [connState, setConnState] = useState<'connecting' | 'connected' | 'disconnected' | 'error'>('connecting');
 
@@ -129,11 +136,13 @@ export default function AdminShops() {
 
       const { data: settings } = await supabase
         .from('shop_settings')
-        .select('registration_fee, commission_rate')
+        .select('registration_fee, commission_rate, payment_ecocash_number, payment_ecocash_name')
         .maybeSingle();
       if (settings) {
         setRegistrationFee(Number(settings.registration_fee).toFixed(2));
         if (settings.commission_rate != null) setCommissionRate(String(settings.commission_rate));
+        if (settings.payment_ecocash_number) setEcocashNumber(settings.payment_ecocash_number);
+        if (settings.payment_ecocash_name) setEcocashName(settings.payment_ecocash_name);
       }
     } catch (err: any) {
       setError(err.message);
@@ -159,6 +168,7 @@ export default function AdminShops() {
       shopName: s.name,
       confirmedRevenue: revenueByShop[s.id] || 0,
       commissionOwed: (revenueByShop[s.id] || 0) * (rate / 100),
+      commissionPaid: Number((s as any).commission_paid) || 0,
       deadline: (s as any).commission_deadline || null,
     }));
     setCommissionData(rows.sort((a, b) => b.commissionOwed - a.commissionOwed));
@@ -198,6 +208,42 @@ export default function AdminShops() {
     setDeadlineShop(null);
     setDeadlineDate('');
     loadData();
+  };
+
+  const recordPayment = async (shopId: string) => {
+    const amount = parseFloat(paymentAmount);
+    if (!amount || amount <= 0) return;
+    setSavingPayment(true);
+    const shop = shops.find(s => s.id === shopId);
+    const currentPaid = Number((shop as any)?.commission_paid) || 0;
+    const { error: err } = await supabase
+      .from('shops')
+      .update({ commission_paid: currentPaid + amount })
+      .eq('id', shopId);
+    if (err) { setError(err.message); setSavingPayment(false); return; }
+    setSavingPayment(false);
+    setPaymentShop(null);
+    setPaymentAmount('');
+    loadData();
+  };
+
+  const saveEcocash = async () => {
+    setSavingEcocash(true);
+    const { data: settings } = await supabase
+      .from('shop_settings')
+      .select('id')
+      .maybeSingle();
+    if (settings) {
+      await supabase.from('shop_settings')
+        .update({ payment_ecocash_number: ecocashNumber.trim() || null, payment_ecocash_name: ecocashName.trim() || null })
+        .eq('id', settings.id);
+    } else {
+      await supabase.from('shop_settings')
+        .insert({ payment_ecocash_number: ecocashNumber.trim() || null, payment_ecocash_name: ecocashName.trim() || null });
+    }
+    setSavingEcocash(false);
+    setEcocashSaved(true);
+    setTimeout(() => setEcocashSaved(false), 2000);
   };
 
   const onRefresh = async () => {
@@ -501,6 +547,40 @@ export default function AdminShops() {
                 </TouchableOpacity>
               </View>
 
+              <View style={[styles.settingsCard, { borderColor: `${A.green}40` }]}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                  <Smartphone size={18} color={A.green} />
+                  <Text style={styles.settingsTitle}>Ecocash Payment Details</Text>
+                </View>
+                <Text style={styles.settingsDesc}>Shops will see this as where to send commission payments.</Text>
+                <Text style={[styles.modalLabel, { marginTop: 8 }]}>ECOCASH NUMBER</Text>
+                <TextInput
+                  style={[styles.rejectInput, { minHeight: 44, marginBottom: 10 }]}
+                  value={ecocashNumber}
+                  onChangeText={setEcocashNumber}
+                  placeholder="e.g. 0772 123 456"
+                  placeholderTextColor={A.textMuted}
+                  keyboardType="phone-pad"
+                />
+                <Text style={styles.modalLabel}>ACCOUNT NAME</Text>
+                <TextInput
+                  style={[styles.rejectInput, { minHeight: 44, marginBottom: 12 }]}
+                  value={ecocashName}
+                  onChangeText={setEcocashName}
+                  placeholder="e.g. UniLink Delivery"
+                  placeholderTextColor={A.textMuted}
+                />
+                <TouchableOpacity
+                  style={[styles.saveFeeBtn, { opacity: savingEcocash ? 0.6 : 1 }]}
+                  onPress={saveEcocash}
+                  disabled={savingEcocash}
+                >
+                  {savingEcocash ? <ActivityIndicator size="small" color="#000" /> : (
+                    <Text style={styles.saveFeeBtnText}>{ecocashSaved ? 'Saved!' : 'Save Details'}</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+
               <Text style={{ fontSize: 11, fontWeight: '700', color: A.textSub, letterSpacing: 1.5, textTransform: 'uppercase' as any }}>
                 Shop Commission Breakdown
               </Text>
@@ -516,12 +596,14 @@ export default function AdminShops() {
                   const isOverdue = dl && dl < now;
                   const isDueSoon = dl && dl >= now && dl.getTime() - now.getTime() < 3 * 86400000;
                   const dlColor = isOverdue ? A.red : isDueSoon ? A.amber : A.green;
+                  const balance = row.commissionOwed - row.commissionPaid;
+                  const fullyPaid = balance <= 0 && row.commissionOwed > 0;
                   return (
-                    <View key={row.shopId} style={[styles.shopCard, { borderColor: isOverdue ? A.red : A.border }]}>
+                    <View key={row.shopId} style={[styles.shopCard, { borderColor: fullyPaid ? A.green : isOverdue ? A.red : A.border }]}>
                       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                         <View style={{ flex: 1 }}>
                           <Text style={styles.shopName}>{row.shopName}</Text>
-                          <View style={{ flexDirection: 'row', gap: 12, marginTop: 6 }}>
+                          <View style={{ flexDirection: 'row', gap: 12, marginTop: 6, flexWrap: 'wrap' as any }}>
                             <View>
                               <Text style={{ fontSize: 10, color: A.textSub, fontWeight: '600' }}>REVENUE</Text>
                               <Text style={{ fontSize: 14, fontWeight: '700', color: A.text }}>${row.confirmedRevenue.toFixed(2)}</Text>
@@ -529,6 +611,14 @@ export default function AdminShops() {
                             <View>
                               <Text style={{ fontSize: 10, color: A.textSub, fontWeight: '600' }}>OWED ({(parseFloat(commissionRate) || 5).toFixed(0)}%)</Text>
                               <Text style={{ fontSize: 14, fontWeight: '800', color: A.amber }}>${row.commissionOwed.toFixed(2)}</Text>
+                            </View>
+                            <View>
+                              <Text style={{ fontSize: 10, color: A.textSub, fontWeight: '600' }}>PAID</Text>
+                              <Text style={{ fontSize: 14, fontWeight: '700', color: A.green }}>${row.commissionPaid.toFixed(2)}</Text>
+                            </View>
+                            <View>
+                              <Text style={{ fontSize: 10, color: A.textSub, fontWeight: '600' }}>BALANCE</Text>
+                              <Text style={{ fontSize: 14, fontWeight: '800', color: fullyPaid ? A.green : A.red }}>${balance.toFixed(2)}</Text>
                             </View>
                           </View>
                         </View>
@@ -550,42 +640,93 @@ export default function AdminShops() {
                           </View>
                         )}
                       </View>
-                      {deadlineShop === row.shopId ? (
+                      {fullyPaid && (
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8 }}>
+                          <CheckCircle size={13} color={A.green} />
+                          <Text style={{ fontSize: 11, color: A.green, fontWeight: '600' }}>Commission fully paid</Text>
+                        </View>
+                      )}
+                      {paymentShop === row.shopId ? (
                         <View style={{ marginTop: 10, gap: 8 }}>
-                          <TextInput
-                            style={styles.rejectInput}
-                            value={deadlineDate}
-                            onChangeText={setDeadlineDate}
-                            placeholder="YYYY-MM-DD"
-                            placeholderTextColor={A.textMuted}
-                            keyboardType="numeric"
-                          />
+                          <Text style={{ fontSize: 11, color: A.textSub }}>Enter amount paid by this shop:</Text>
+                          <View style={styles.feeInputRow}>
+                            <DollarSign size={18} color={A.green} />
+                            <TextInput
+                              style={styles.feeInput}
+                              value={paymentAmount}
+                              onChangeText={setPaymentAmount}
+                              placeholder="0.00"
+                              placeholderTextColor={A.textMuted}
+                              keyboardType="decimal-pad"
+                            />
+                          </View>
                           <View style={{ flexDirection: 'row', gap: 8 }}>
                             <TouchableOpacity
                               style={[styles.actionBtn, { flex: 1, justifyContent: 'center', backgroundColor: A.card, borderColor: A.border }]}
-                              onPress={() => { setDeadlineShop(null); setDeadlineDate(''); }}
+                              onPress={() => { setPaymentShop(null); setPaymentAmount(''); }}
                             >
                               <Text style={{ color: A.textSub, fontSize: 12 }}>Cancel</Text>
                             </TouchableOpacity>
                             <TouchableOpacity
                               style={[styles.actionBtn, { flex: 1, justifyContent: 'center', backgroundColor: A.greenDim, borderColor: A.green }]}
-                              onPress={() => saveDeadline(row.shopId)}
-                              disabled={savingDeadline || !deadlineDate.trim()}
+                              onPress={() => recordPayment(row.shopId)}
+                              disabled={savingPayment || !paymentAmount.trim()}
                             >
-                              {savingDeadline ? <ActivityIndicator size="small" color={A.green} /> : (
-                                <Text style={{ color: A.green, fontSize: 12, fontWeight: '600' }}>Set Deadline</Text>
+                              {savingPayment ? <ActivityIndicator size="small" color={A.green} /> : (
+                                <Text style={{ color: A.green, fontSize: 12, fontWeight: '600' }}>Record Payment</Text>
                               )}
                             </TouchableOpacity>
                           </View>
                         </View>
                       ) : (
-                        <TouchableOpacity
-                          style={[styles.actionBtn, { marginTop: 10, backgroundColor: A.cyanDim, borderColor: A.cyan }]}
-                          onPress={() => { setDeadlineShop(row.shopId); setDeadlineDate(''); }}
-                        >
-                          <Calendar size={12} color={A.cyan} />
-                          <Text style={[styles.actionBtnText, { color: A.cyan }]}>{row.deadline ? 'Change Deadline' : 'Set Deadline'}</Text>
-                        </TouchableOpacity>
+                        <View style={{ flexDirection: 'row', gap: 8, marginTop: 10 }}>
+                          {!fullyPaid && (
+                            <TouchableOpacity
+                              style={[styles.actionBtn, { backgroundColor: A.greenDim, borderColor: A.green }]}
+                              onPress={() => { setPaymentShop(row.shopId); setPaymentAmount(''); }}
+                            >
+                              <DollarSign size={12} color={A.green} />
+                              <Text style={[styles.actionBtnText, { color: A.green }]}>Record Payment</Text>
+                            </TouchableOpacity>
+                          )}
+                          {deadlineShop === row.shopId ? (
+                            <View style={{ flex: 1, gap: 8 }}>
+                              <TextInput
+                                style={styles.rejectInput}
+                                value={deadlineDate}
+                                onChangeText={setDeadlineDate}
+                                placeholder="YYYY-MM-DD"
+                                placeholderTextColor={A.textMuted}
+                                keyboardType="numeric"
+                              />
+                              <View style={{ flexDirection: 'row', gap: 8 }}>
+                                <TouchableOpacity
+                                  style={[styles.actionBtn, { flex: 1, justifyContent: 'center', backgroundColor: A.card, borderColor: A.border }]}
+                                  onPress={() => { setDeadlineShop(null); setDeadlineDate(''); }}
+                                >
+                                  <Text style={{ color: A.textSub, fontSize: 12 }}>Cancel</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                  style={[styles.actionBtn, { flex: 1, justifyContent: 'center', backgroundColor: A.cyanDim, borderColor: A.cyan }]}
+                                  onPress={() => saveDeadline(row.shopId)}
+                                  disabled={savingDeadline || !deadlineDate.trim()}
+                                >
+                                  {savingDeadline ? <ActivityIndicator size="small" color={A.cyan} /> : (
+                                    <Text style={{ color: A.cyan, fontSize: 12, fontWeight: '600' }}>Set</Text>
+                                  )}
+                                </TouchableOpacity>
+                              </View>
+                            </View>
+                          ) : (
+                            <TouchableOpacity
+                              style={[styles.actionBtn, { backgroundColor: A.cyanDim, borderColor: A.cyan }]}
+                              onPress={() => { setDeadlineShop(row.shopId); setDeadlineDate(''); }}
+                            >
+                              <Calendar size={12} color={A.cyan} />
+                              <Text style={[styles.actionBtnText, { color: A.cyan }]}>{row.deadline ? 'Change Deadline' : 'Set Deadline'}</Text>
+                            </TouchableOpacity>
+                          )}
+                        </View>
                       )}
                     </View>
                   );

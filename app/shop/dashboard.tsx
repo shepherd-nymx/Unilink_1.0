@@ -67,6 +67,9 @@ export default function ShopDashboard() {
   const [products, setProducts] = useState<ShopProduct[]>([]);
   const [registrationFee, setRegistrationFee] = useState(10);
   const [commissionRate, setCommissionRate] = useState<number | undefined>(undefined);
+  const [ecocashNumber, setEcocashNumber] = useState<string | null>(null);
+  const [ecocashName, setEcocashName] = useState<string | null>(null);
+  const [commissionPaid, setCommissionPaid] = useState(0);
   const [activeTab, setActiveTab] = useState<TabKey>('orders');
   const [refreshing, setRefreshing] = useState(false);
   const [paynowLoading, setPaynowLoading] = useState(false);
@@ -157,6 +160,7 @@ export default function ShopDashboard() {
       return;
     }
     setShop(data as ShopData);
+    setCommissionPaid(Number((data as any).commission_paid) || 0);
     await Promise.all([loadOrders(shopId), loadProducts(shopId)]);
   };
 
@@ -189,11 +193,13 @@ export default function ShopDashboard() {
   const loadSettings = async () => {
     const { data } = await supabase
       .from('shop_settings')
-      .select('registration_fee, commission_rate')
+      .select('registration_fee, commission_rate, payment_ecocash_number, payment_ecocash_name')
       .maybeSingle();
     if (data) {
       setRegistrationFee(Number(data.registration_fee));
       if (data.commission_rate != null) setCommissionRate(Number(data.commission_rate));
+      setEcocashNumber(data.payment_ecocash_number || null);
+      setEcocashName(data.payment_ecocash_name || null);
     }
   };
 
@@ -761,7 +767,7 @@ export default function ShopDashboard() {
 
           {activeTab === 'history' && <HistoryTab orders={orders} />}
 
-          {activeTab === 'analytics' && <AnalyticsTab orders={orders} products={products} commissionRate={commissionRate} commissionDeadline={shop?.commission_deadline} />}
+          {activeTab === 'analytics' && <AnalyticsTab orders={orders} products={products} commissionRate={commissionRate} commissionDeadline={shop?.commission_deadline} commissionPaid={commissionPaid} ecocashNumber={ecocashNumber} ecocashName={ecocashName} />}
 
           {activeTab === 'messages' && (
             <TouchableOpacity style={styles.chatLinkCard} onPress={() => router.push('/shop/chat')} activeOpacity={0.8}>
