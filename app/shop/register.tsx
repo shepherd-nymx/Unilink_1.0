@@ -21,6 +21,7 @@ import {
   Mail,
   Phone,
   MapPin,
+  Navigation,
   CreditCard,
   FileText,
   Clock,
@@ -30,6 +31,7 @@ import {
 } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import * as ImagePicker from 'expo-image-picker';
+import * as Location from 'expo-location';
 
 export default function ShopRegister() {
   const router = useRouter();
@@ -48,6 +50,7 @@ export default function ShopRegister() {
   const [area, setArea] = useState('');
   const [latitude, setLatitude] = useState('');
   const [longitude, setLongitude] = useState('');
+  const [locating, setLocating] = useState(false);
   const [areas, setAreas] = useState<{ id: string; name: string; city: string | null }[]>([]);
   const [showAreaPicker, setShowAreaPicker] = useState(false);
   const [logoUri, setLogoUri] = useState<string | null>(null);
@@ -89,6 +92,26 @@ export default function ShopRegister() {
   const primaryLight = '#3385ff';
   const errorColor = '#ef4444';
   const successColor = '#10b981';
+
+  const useGps = async () => {
+    setLocating(true);
+    setError('');
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        setError('Location permission denied. Enter coordinates manually.');
+        setLocating(false);
+        return;
+      }
+      const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      setLatitude(pos.coords.latitude.toFixed(6));
+      setLongitude(pos.coords.longitude.toFixed(6));
+    } catch (e: any) {
+      setError(e.message || 'Could not detect location. Enter coordinates manually.');
+    } finally {
+      setLocating(false);
+    }
+  };
 
   const pickLogo = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -375,7 +398,29 @@ export default function ShopRegister() {
               <Text style={{ fontSize: 11, color: placeholderColor, marginBottom: 6 }}>
                 Enter your shop's latitude and longitude so messengers can navigate to you
               </Text>
-              <View style={{ flexDirection: 'row', gap: 10 }}>
+              <TouchableOpacity
+                style={[styles.gpsDetectBtn, { backgroundColor: isDark ? 'rgba(0,102,255,0.1)' : '#eff6ff', borderColor: `${primary}40` }]}
+                onPress={useGps}
+                disabled={locating}
+              >
+                {locating ? (
+                  <ActivityIndicator size="small" color={primary} />
+                ) : (
+                  <Navigation size={16} color={primary} />
+                )}
+                <Text style={{ color: primary, fontSize: 13, fontWeight: '700' }}>
+                  {locating ? 'Detecting location...' : 'Use My Current Location'}
+                </Text>
+              </TouchableOpacity>
+              {(latitude && longitude) ? (
+                <View style={[styles.gpsDetectedBox, { backgroundColor: isDark ? 'rgba(16,185,129,0.1)' : '#ecfdf5', borderColor: `${successColor}40` }]}>
+                  <MapPin size={12} color={successColor} />
+                  <Text style={{ color: successColor, fontSize: 11, fontWeight: '600' }}>
+                    Location detected: {latitude}, {longitude}
+                  </Text>
+                </View>
+              ) : null}
+              <View style={{ flexDirection: 'row', gap: 10, marginTop: 8 }}>
                 <View style={{ flex: 1 }}>
                   <View style={[styles.inputWrapper, { backgroundColor: inputBg, borderColor: focused === 'lat' ? primary : inputBorder }]}>
                     <View style={styles.inputIcon}><MapPin size={16} color={focused === 'lat' ? primary : placeholderColor} /></View>
@@ -590,6 +635,14 @@ const styles = StyleSheet.create({
   areaPickerItem: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
     paddingHorizontal: 14, paddingVertical: 12, borderBottomWidth: 0.5,
+  },
+  gpsDetectBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    borderRadius: 12, borderWidth: 1.5, paddingVertical: 14,
+  },
+  gpsDetectedBox: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    borderRadius: 10, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 8, marginTop: 8,
   },
   submitBtn: { borderRadius: 12, paddingVertical: 16, alignItems: 'center', justifyContent: 'center' },
   submitBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
