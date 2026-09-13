@@ -159,8 +159,21 @@ export default function ShopDashboard() {
       router.replace('/shop/login');
       return;
     }
-    setShop(data as ShopData);
-    setCommissionPaid(Number((data as any).commission_paid) || 0);
+
+    // Check merchant terms acceptance
+    const { data: currentPolicy } = await supabase
+      .from('merchant_policies')
+      .select('version')
+      .eq('is_active', true)
+      .maybeSingle();
+    const shopData = data as any;
+    if (!shopData.terms_accepted || (currentPolicy && shopData.terms_version !== currentPolicy.version)) {
+      router.replace({ pathname: '/shop/terms', params: { shopId } });
+      return;
+    }
+
+    setShop(shopData as ShopData);
+    setCommissionPaid(Number(shopData.commission_paid) || 0);
     await Promise.all([loadOrders(shopId), loadProducts(shopId)]);
   };
 
