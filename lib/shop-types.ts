@@ -76,6 +76,8 @@ export type ShopData = {
   accepted_payment_methods?: string[];
   location_verified?: boolean;
   completed_orders_count?: number;
+  average_rating?: number | null;
+  total_ratings?: number | null;
   ecocash_fee?: number;
   delivery_fee?: number;
   whatsapp_number?: string | null;

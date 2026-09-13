@@ -1,5 +1,5 @@
 import { TouchableOpacity, View, Text, Platform, StyleSheet, Linking } from 'react-native';
-import { Store, BadgeCheck, PackageCheck, MapPin } from 'lucide-react-native';
+import { Store, BadgeCheck, PackageCheck, MapPin, Star } from 'lucide-react-native';
 import { Shop, ThemePalette, computeShopOpen } from './types';
 
 type Props = {
@@ -53,6 +53,15 @@ export function ShopCard({ shop, palette, onPress }: Props) {
         <View style={styles.ordersRow}>
           <PackageCheck size={11} color={palette.textSecondary} />
           <Text style={[styles.ordersText, { color: palette.textSecondary }]}>{orders} orders</Text>
+        </View>
+      ) : null}
+
+      {shop.average_rating != null && Number(shop.average_rating) > 0 ? (
+        <View style={styles.ordersRow}>
+          <Star size={11} color="#FFD700" fill="#FFD700" />
+          <Text style={[styles.ordersText, { color: palette.textSecondary }]}>
+            {Number(shop.average_rating).toFixed(1)} ({shop.total_ratings || 0})
+          </Text>
         </View>
       ) : null}
 

@@ -51,6 +51,7 @@ import {
   ShieldCheck,
   MessageSquare,
   ChevronRight,
+  Star,
 } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 
@@ -531,10 +532,6 @@ export default function ShopDashboard() {
             <ShieldCheck size={16} color={A.cyan} />
             <Text style={[styles.logoutText, { color: A.cyan }]}>Policy</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
-            <LogOut size={16} color={A.red} />
-            <Text style={styles.logoutText}>Logout</Text>
-          </TouchableOpacity>
         </View>
       </View>
 
@@ -602,6 +599,13 @@ export default function ShopDashboard() {
               <Text style={styles.statValue}>{products.length}</Text>
               <Text style={styles.statLabel}>Products</Text>
             </View>
+            {shop.average_rating != null && Number(shop.average_rating) > 0 ? (
+              <View style={styles.statCard}>
+                <Star size={18} color="#FFD700" fill="#FFD700" />
+                <Text style={styles.statValue}>{Number(shop.average_rating).toFixed(1)}</Text>
+                <Text style={styles.statLabel}>Rating</Text>
+              </View>
+            ) : null}
           </View>
         )}
 

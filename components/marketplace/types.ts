@@ -13,6 +13,8 @@ export type Shop = {
   accepted_payment_methods: string[] | null;
   location_verified: boolean | null;
   completed_orders_count: number | null;
+  average_rating?: number | null;
+  total_ratings?: number | null;
   location: string | null;
   ecocash_fee: number;
   delivery_fee: number;

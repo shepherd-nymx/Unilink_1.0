@@ -8,12 +8,14 @@ import {
   Animated,
   RefreshControl,
   ActivityIndicator,
+  Modal,
+  TextInput,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { loadUserData } from '@/lib/storage-service';
 import { A } from '@/lib/admin-theme';
-import { ArrowLeft, ShoppingBag, Store, Truck, Package, CircleCheck as CheckCircle, Clock, Circle as XCircle, MapPin, Phone, Download, MessageSquare } from 'lucide-react-native';
+import { ArrowLeft, ShoppingBag, Store, Truck, Package, CircleCheck as CheckCircle, Clock, Circle as XCircle, MapPin, Phone, Download, MessageSquare, Star, X } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 
 type ShopOrder = {
@@ -30,6 +32,7 @@ type ShopOrder = {
   customer_phone: string | null;
   created_at: string;
   shops: { name: string; address: string | null } | null;
+  has_rated?: boolean;
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -78,6 +81,11 @@ export default function ShopOrders() {
   const [orders, setOrders] = useState<ShopOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [rateModalOrder, setRateModalOrder] = useState<ShopOrder | null>(null);
+  const [rateStars, setRateStars] = useState(0);
+  const [rateText, setRateText] = useState('');
+  const [submittingRate, setSubmittingRate] = useState(false);
+  const [rateError, setRateError] = useState('');
 
   useEffect(() => {
     const stored = loadUserData();
@@ -112,7 +120,19 @@ export default function ShopOrders() {
         .eq('customer_id', customerId)
         .order('created_at', { ascending: false });
       if (error) throw error;
-      setOrders(data || []);
+      const orderIds = (data || []).map((o: any) => o.id);
+      let ratedMap: Record<string, boolean> = {};
+      if (orderIds.length > 0) {
+        const { data: ratings } = await supabase
+          .from('shop_ratings')
+          .select('shop_order_id')
+          .in('shop_order_id', orderIds);
+        ratedMap = (ratings || []).reduce((acc: Record<string, boolean>, r: any) => {
+          acc[r.shop_order_id] = true;
+          return acc;
+        }, {});
+      }
+      setOrders((data || []).map((o: any) => ({ ...o, has_rated: !!ratedMap[o.id] })));
     } catch (err) {
       console.error('Failed to load orders:', err);
     } finally {
@@ -124,6 +144,39 @@ export default function ShopOrders() {
   const onRefresh = () => {
     setRefreshing(true);
     loadOrders();
+  };
+
+  const openRateModal = (order: ShopOrder) => {
+    setRateModalOrder(order);
+    setRateStars(0);
+    setRateText('');
+    setRateError('');
+  };
+
+  const submitRating = async () => {
+    if (!rateModalOrder || !customerId) return;
+    if (rateStars < 1) {
+      setRateError('Please select a star rating');
+      return;
+    }
+    setSubmittingRate(true);
+    setRateError('');
+    try {
+      const { error: insertErr } = await supabase.from('shop_ratings').insert({
+        shop_id: rateModalOrder.shop_id,
+        customer_id: customerId,
+        shop_order_id: rateModalOrder.id,
+        rating: rateStars,
+        review_text: rateText.trim() || null,
+      });
+      if (insertErr) throw insertErr;
+      setRateModalOrder(null);
+      loadOrders();
+    } catch (err: any) {
+      setRateError(err.message || 'Failed to submit rating');
+    } finally {
+      setSubmittingRate(false);
+    }
   };
 
   const bg = isDark ? '#050b16' : '#f0f4f8';
@@ -283,12 +336,79 @@ export default function ShopOrders() {
                       </TouchableOpacity>
                     </View>
                   </View>
+
+                  {isDelivered && (
+                    <TouchableOpacity
+                      style={[styles.rateBtn, { backgroundColor: order.has_rated ? `${A.green}15` : '#FFD700', borderColor: order.has_rated ? A.green : 'transparent' }]}
+                      onPress={() => !order.has_rated && openRateModal(order)}
+                      disabled={order.has_rated}
+                      activeOpacity={0.8}
+                    >
+                      <Star size={14} color={order.has_rated ? A.green : '#000'} fill={order.has_rated ? A.green : '#000'} />
+                      <Text style={[styles.rateBtnText, { color: order.has_rated ? A.green : '#000' }]}>
+                        {order.has_rated ? 'Rated' : 'Rate Shop'}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
                 </View>
               );
             })
           )}
         </ScrollView>
       </Animated.View>
+
+      <Modal visible={!!rateModalOrder} animationType="slide" transparent onRequestClose={() => setRateModalOrder(null)}>
+        <View style={styles.rateOverlay}>
+          <View style={[styles.rateContent, { backgroundColor: cardBg }]}>
+            <View style={styles.rateHeader}>
+              <Text style={[styles.rateTitle, { color: textPrimary }]}>Rate {rateModalOrder?.shops?.name || 'Shop'}</Text>
+              <TouchableOpacity onPress={() => setRateModalOrder(null)}>
+                <X size={22} color={textSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={[styles.rateLabel, { color: textSecondary }]}>How was your experience?</Text>
+            <View style={styles.starRow}>
+              {[1, 2, 3, 4, 5].map(n => (
+                <TouchableOpacity key={n} onPress={() => setRateStars(n)} activeOpacity={0.7}>
+                  <Star
+                    size={36}
+                    color={n <= rateStars ? '#FFD700' : (isDark ? '#1a2d4a' : '#e2e8f0')}
+                    fill={n <= rateStars ? '#FFD700' : 'transparent'}
+                  />
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <Text style={[styles.rateLabel, { color: textSecondary, marginTop: 16 }]}>Review (optional)</Text>
+            <TextInput
+              style={[styles.rateInput, { backgroundColor: isDark ? '#0d1828' : '#f8fafc', borderColor: cardBorder, color: textPrimary }]}
+              value={rateText}
+              onChangeText={setRateText}
+              placeholder="Share your experience..."
+              placeholderTextColor={textSecondary}
+              multiline
+            />
+
+            {rateError ? (
+              <Text style={styles.rateError}>{rateError}</Text>
+            ) : null}
+
+            <TouchableOpacity
+              style={[styles.rateSubmit, { backgroundColor: '#FFD700', opacity: submittingRate ? 0.6 : 1 }]}
+              onPress={submitRating}
+              disabled={submittingRate || rateStars < 1}
+              activeOpacity={0.8}
+            >
+              {submittingRate ? (
+                <ActivityIndicator size="small" color="#000" />
+              ) : (
+                <Text style={styles.rateSubmitText}>Submit Rating</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -332,4 +452,16 @@ const styles = StyleSheet.create({
   ticketBtnText: { fontSize: 12, fontWeight: '700' },
   chatBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, borderWidth: 1 },
   chatBtnText: { fontSize: 12, fontWeight: '700' },
+  rateBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10, borderRadius: 10, borderWidth: 1.5, marginTop: 10 },
+  rateBtnText: { fontSize: 13, fontWeight: '800' },
+  rateOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
+  rateContent: { borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, maxHeight: '80%' },
+  rateHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
+  rateTitle: { fontSize: 18, fontWeight: '700', flex: 1 },
+  rateLabel: { fontSize: 12, fontWeight: '600', marginBottom: 8 },
+  starRow: { flexDirection: 'row', gap: 12, justifyContent: 'center', paddingVertical: 12 },
+  rateInput: { borderRadius: 10, borderWidth: 1, paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, minHeight: 80, marginTop: 4, textAlignVertical: 'top' },
+  rateError: { color: A.red, fontSize: 12, marginTop: 8 },
+  rateSubmit: { borderRadius: 14, paddingVertical: 16, alignItems: 'center', justifyContent: 'center', marginTop: 16 },
+  rateSubmitText: { color: '#000', fontSize: 16, fontWeight: '800' },
 });

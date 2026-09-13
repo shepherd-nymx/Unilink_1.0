@@ -12,9 +12,9 @@ import {
 import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { A } from '@/lib/admin-theme';
-import { ArrowLeft, Star, Trash2, Search, X, TriangleAlert as AlertTriangle } from 'lucide-react-native';
+import { ArrowLeft, Star, Trash2, Search, X, TriangleAlert as AlertTriangle, Car, Store } from 'lucide-react-native';
 
-type Review = {
+type DriverReview = {
   id: string;
   rating: number;
   review_text: string | null;
@@ -24,6 +24,23 @@ type Review = {
   drivers: { full_name: string } | null;
   customers: { full_name: string } | null;
 };
+
+type ShopReview = {
+  id: string;
+  rating: number;
+  review_text: string | null;
+  created_at: string;
+  shop_id: string;
+  customer_id: string;
+  shops: { name: string } | null;
+  customers: { full_name: string } | null;
+};
+
+type Review = DriverReview | ShopReview;
+
+function isShopReview(r: Review): r is ShopReview {
+  return 'shop_id' in r;
+}
 
 function StarRow({ rating, size = 13 }: { rating: number; size?: number }) {
   return (
@@ -42,7 +59,9 @@ function StarRow({ rating, size = 13 }: { rating: number; size?: number }) {
 
 export default function AdminReviews() {
   const router = useRouter();
-  const [reviews, setReviews] = useState<Review[]>([]);
+  const [tab, setTab] = useState<'driver' | 'shop'>('driver');
+  const [driverReviews, setDriverReviews] = useState<DriverReview[]>([]);
+  const [shopReviews, setShopReviews] = useState<ShopReview[]>([]);
   const [filtered, setFiltered] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -52,44 +71,69 @@ export default function AdminReviews() {
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    loadReviews();
+    loadDriverReviews();
     Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }).start();
   }, []);
 
   useEffect(() => {
+    if (tab === 'shop' && shopReviews.length === 0 && !loading) {
+      loadShopReviews();
+    }
+  }, [tab]);
+
+  const activeReviews: Review[] = tab === 'driver' ? driverReviews : shopReviews;
+
+  useEffect(() => {
     const q = search.toLowerCase();
     if (!q) {
-      setFiltered(reviews);
+      setFiltered(activeReviews);
       return;
     }
-    setFiltered(reviews.filter(r =>
-      r.drivers?.full_name?.toLowerCase().includes(q) ||
-      r.customers?.full_name?.toLowerCase().includes(q) ||
-      r.review_text?.toLowerCase().includes(q)
-    ));
-  }, [search, reviews]);
+    setFiltered(activeReviews.filter(r => {
+      if (isShopReview(r)) {
+        return r.shops?.name?.toLowerCase().includes(q) ||
+          r.customers?.full_name?.toLowerCase().includes(q) ||
+          r.review_text?.toLowerCase().includes(q);
+      }
+      return r.drivers?.full_name?.toLowerCase().includes(q) ||
+        r.customers?.full_name?.toLowerCase().includes(q) ||
+        r.review_text?.toLowerCase().includes(q);
+    }));
+  }, [search, activeReviews]);
 
-  const loadReviews = async () => {
+  const loadDriverReviews = async () => {
     try {
       const { data, error } = await supabase
         .from('driver_ratings')
         .select(`
-          id,
-          rating,
-          review_text,
-          created_at,
-          driver_id,
-          customer_id,
+          id, rating, review_text, created_at, driver_id, customer_id,
           drivers:driver_id (full_name),
           customers:customer_id (full_name)
         `)
         .order('created_at', { ascending: false });
       if (error) throw error;
-      setReviews(data as any || []);
+      setDriverReviews(data as any || []);
     } catch (err) {
-      console.error('Error loading reviews:', err);
+      console.error('Error loading driver reviews:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadShopReviews = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('shop_ratings')
+        .select(`
+          id, rating, review_text, created_at, shop_id, customer_id,
+          shops:shop_id (name),
+          customers:customer_id (full_name)
+        `)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      setShopReviews(data as any || []);
+    } catch (err) {
+      console.error('Error loading shop reviews:', err);
     }
   };
 
@@ -97,12 +141,17 @@ export default function AdminReviews() {
     if (!deleteTarget) return;
     setDeleting(true);
     try {
+      const tableName = isShopReview(deleteTarget) ? 'shop_ratings' : 'driver_ratings';
       const { error } = await supabase
-        .from('driver_ratings')
+        .from(tableName)
         .delete()
         .eq('id', deleteTarget.id);
       if (error) throw error;
-      setReviews(prev => prev.filter(r => r.id !== deleteTarget.id));
+      if (isShopReview(deleteTarget)) {
+        setShopReviews(prev => prev.filter(r => r.id !== deleteTarget.id));
+      } else {
+        setDriverReviews(prev => prev.filter(r => r.id !== deleteTarget.id));
+      }
       setDeleteTarget(null);
     } catch (err) {
       console.error('Error deleting review:', err);
@@ -151,7 +200,39 @@ export default function AdminReviews() {
         </View>
       </View>
 
-      <View style={{ paddingHorizontal: 16, paddingTop: 14, paddingBottom: 4 }}>
+      {/* Tab toggle */}
+      <View style={{ flexDirection: 'row', paddingHorizontal: 16, paddingTop: 14, gap: 8 }}>
+        <TouchableOpacity
+          style={{
+            flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+            paddingVertical: 10, borderRadius: 10,
+            backgroundColor: tab === 'driver' ? A.cyanDim : A.card,
+            borderWidth: 1, borderColor: tab === 'driver' ? A.cyan + '55' : A.border,
+          }}
+          onPress={() => setTab('driver')}
+        >
+          <Car size={14} color={tab === 'driver' ? A.cyan : A.textSub} />
+          <Text style={{ fontSize: 13, fontWeight: '700', color: tab === 'driver' ? A.cyan : A.textSub }}>
+            Driver Reviews
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={{
+            flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+            paddingVertical: 10, borderRadius: 10,
+            backgroundColor: tab === 'shop' ? A.cyanDim : A.card,
+            borderWidth: 1, borderColor: tab === 'shop' ? A.cyan + '55' : A.border,
+          }}
+          onPress={() => setTab('shop')}
+        >
+          <Store size={14} color={tab === 'shop' ? A.cyan : A.textSub} />
+          <Text style={{ fontSize: 13, fontWeight: '700', color: tab === 'shop' ? A.cyan : A.textSub }}>
+            Shop Reviews
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 4 }}>
         <View style={{
           flexDirection: 'row', alignItems: 'center', gap: 10,
           backgroundColor: A.card, borderRadius: 12, borderWidth: 1, borderColor: A.border,
@@ -160,7 +241,7 @@ export default function AdminReviews() {
           <Search size={15} color={A.textSub} />
           <TextInput
             style={{ flex: 1, fontSize: 14, color: A.text }}
-            placeholder="Search by driver, customer, or review..."
+            placeholder={tab === 'driver' ? 'Search by driver, customer, or review...' : 'Search by shop, customer, or review...'}
             placeholderTextColor={A.textMuted}
             value={search}
             onChangeText={setSearch}
@@ -199,87 +280,94 @@ export default function AdminReviews() {
             contentContainerStyle={{ padding: 16, paddingTop: 12, gap: 10 }}
             showsVerticalScrollIndicator={false}
           >
-            {filtered.map(review => (
-              <View
-                key={review.id}
-                style={{
-                  backgroundColor: A.card,
-                  borderRadius: 14,
-                  borderWidth: 1,
-                  borderColor: A.border,
-                  padding: 14,
-                  gap: 10,
-                }}
-              >
-                <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10 }}>
-                  <View style={{ flex: 1, gap: 4 }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                      <View style={{
-                        paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6,
-                        backgroundColor: A.cyanDim, borderWidth: 1, borderColor: A.cyan + '33',
-                      }}>
-                        <Text style={{ fontSize: 11, fontWeight: '700', color: A.cyan }}>DRIVER</Text>
+            {filtered.map(review => {
+              const isShop = isShopReview(review);
+              const entityName = isShop ? (review as ShopReview).shops?.name : (review as DriverReview).drivers?.full_name;
+              return (
+                <View
+                  key={review.id}
+                  style={{
+                    backgroundColor: A.card,
+                    borderRadius: 14,
+                    borderWidth: 1,
+                    borderColor: A.border,
+                    padding: 14,
+                    gap: 10,
+                  }}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10 }}>
+                    <View style={{ flex: 1, gap: 4 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                        <View style={{
+                          paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6,
+                          backgroundColor: isShop ? A.amberDim : A.cyanDim,
+                          borderWidth: 1, borderColor: isShop ? A.amber + '33' : A.cyan + '33',
+                        }}>
+                          <Text style={{ fontSize: 11, fontWeight: '700', color: isShop ? A.amber : A.cyan }}>
+                            {isShop ? 'SHOP' : 'DRIVER'}
+                          </Text>
+                        </View>
+                        <Text style={{ fontSize: 14, fontWeight: '700', color: A.text }}>
+                          {entityName ?? 'Unknown'}
+                        </Text>
                       </View>
-                      <Text style={{ fontSize: 14, fontWeight: '700', color: A.text }}>
-                        {review.drivers?.full_name ?? 'Unknown'}
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                        <View style={{
+                          paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6,
+                          backgroundColor: A.greenDim, borderWidth: 1, borderColor: A.green + '33',
+                        }}>
+                          <Text style={{ fontSize: 11, fontWeight: '700', color: A.green }}>CUSTOMER</Text>
+                        </View>
+                        <Text style={{ fontSize: 13, color: A.textSub }}>
+                          {review.customers?.full_name ?? 'Unknown'}
+                        </Text>
+                      </View>
+                    </View>
+                    <TouchableOpacity
+                      onPress={() => setDeleteTarget(review)}
+                      style={{
+                        width: 36, height: 36, borderRadius: 8,
+                        backgroundColor: A.redDim, borderWidth: 1, borderColor: A.red + '44',
+                        justifyContent: 'center', alignItems: 'center',
+                      }}
+                      activeOpacity={0.8}
+                    >
+                      <Trash2 size={15} color={A.red} />
+                    </TouchableOpacity>
+                  </View>
+
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                    <StarRow rating={review.rating} />
+                    <View style={{
+                      paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6,
+                      backgroundColor: ratingColor(review.rating) + '22',
+                      borderWidth: 1, borderColor: ratingColor(review.rating) + '44',
+                    }}>
+                      <Text style={{ fontSize: 12, fontWeight: '800', color: ratingColor(review.rating) }}>
+                        {review.rating}/5
                       </Text>
                     </View>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                      <View style={{
-                        paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6,
-                        backgroundColor: A.greenDim, borderWidth: 1, borderColor: A.green + '33',
-                      }}>
-                        <Text style={{ fontSize: 11, fontWeight: '700', color: A.green }}>CUSTOMER</Text>
-                      </View>
-                      <Text style={{ fontSize: 13, color: A.textSub }}>
-                        {review.customers?.full_name ?? 'Unknown'}
+                    <Text style={{ fontSize: 11, color: A.textMuted, marginLeft: 'auto' as any }}>
+                      {formatDate(review.created_at)}
+                    </Text>
+                  </View>
+
+                  {review.review_text ? (
+                    <View style={{
+                      backgroundColor: A.surface, borderRadius: 8,
+                      borderWidth: 1, borderColor: A.border,
+                      padding: 10,
+                    }}>
+                      <Text style={{ fontSize: 13, color: A.textSub, lineHeight: 20 }}>
+                        "{review.review_text}"
                       </Text>
                     </View>
-                  </View>
-                  <TouchableOpacity
-                    onPress={() => setDeleteTarget(review)}
-                    style={{
-                      width: 36, height: 36, borderRadius: 8,
-                      backgroundColor: A.redDim, borderWidth: 1, borderColor: A.red + '44',
-                      justifyContent: 'center', alignItems: 'center',
-                    }}
-                    activeOpacity={0.8}
-                  >
-                    <Trash2 size={15} color={A.red} />
-                  </TouchableOpacity>
+                  ) : (
+                    <Text style={{ fontSize: 12, color: A.textMuted, fontStyle: 'italic' }}>No written review</Text>
+                  )}
                 </View>
-
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                  <StarRow rating={review.rating} />
-                  <View style={{
-                    paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6,
-                    backgroundColor: ratingColor(review.rating) + '22',
-                    borderWidth: 1, borderColor: ratingColor(review.rating) + '44',
-                  }}>
-                    <Text style={{ fontSize: 12, fontWeight: '800', color: ratingColor(review.rating) }}>
-                      {review.rating}/5
-                    </Text>
-                  </View>
-                  <Text style={{ fontSize: 11, color: A.textMuted, marginLeft: 'auto' as any }}>
-                    {formatDate(review.created_at)}
-                  </Text>
-                </View>
-
-                {review.review_text ? (
-                  <View style={{
-                    backgroundColor: A.surface, borderRadius: 8,
-                    borderWidth: 1, borderColor: A.border,
-                    padding: 10,
-                  }}>
-                    <Text style={{ fontSize: 13, color: A.textSub, lineHeight: 20 }}>
-                      "{review.review_text}"
-                    </Text>
-                  </View>
-                ) : (
-                  <Text style={{ fontSize: 12, color: A.textMuted, fontStyle: 'italic' }}>No written review</Text>
-                )}
-              </View>
-            ))}
+              );
+            })}
           </ScrollView>
         </Animated.View>
       )}
@@ -307,8 +395,10 @@ export default function AdminReviews() {
               <Text style={{ fontSize: 13, color: A.textSub, textAlign: 'center', lineHeight: 20 }}>
                 This will permanently remove the review from{' '}
                 <Text style={{ color: A.text, fontWeight: '700' }}>{deleteTarget?.customers?.full_name}</Text>
-                {' '}for driver{' '}
-                <Text style={{ color: A.text, fontWeight: '700' }}>{deleteTarget?.drivers?.full_name}</Text>.
+                {deleteTarget && isShopReview(deleteTarget) ? ' for shop ' : ' for driver '}
+                <Text style={{ color: A.text, fontWeight: '700' }}>
+                  {deleteTarget && isShopReview(deleteTarget) ? (deleteTarget as ShopReview).shops?.name : (deleteTarget as DriverReview)?.drivers?.full_name}
+                </Text>.
               </Text>
             </View>
 
