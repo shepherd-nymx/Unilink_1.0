@@ -18,7 +18,7 @@ import { loadUserData } from '@/lib/storage-service';
 import { A } from '@/lib/admin-theme';
 import { ArrowLeft, Store, Search, ShoppingCart, Plus, Minus, X, Package, CreditCard, CircleCheck as CheckCircle, CircleAlert as AlertCircle, Info, ChevronLeft, ChevronRight, MapPin, Lock } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
-import { Shop, Product, CartItem, CartByShop, Driver, ThemePalette, computeShopOpen } from '@/components/marketplace/types';
+import { Shop, Product, CartItem, CartByShop, ThemePalette, computeShopOpen } from '@/components/marketplace/types';
 import { ShopCard } from '@/components/marketplace/ShopCard';
 import { ProductCard } from '@/components/marketplace/ProductCard';
 import { ShopProfileModal } from '@/components/marketplace/ShopProfileModal';
@@ -51,10 +51,6 @@ export default function Marketplace() {
   const [showCheckout, setShowCheckout] = useState(false);
   const [placingOrder, setPlacingOrder] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState(false);
-  const [availableDrivers, setAvailableDrivers] = useState<Driver[]>([]);
-  const [selectedDriver, setSelectedDriver] = useState<Driver | null>(null);
-  const [showDriverPicker, setShowDriverPicker] = useState(false);
-  const [loadingDrivers, setLoadingDrivers] = useState(false);
 
   const palette: ThemePalette = {
     bg: isDark ? '#050b16' : '#f0f4f8',
@@ -94,23 +90,9 @@ export default function Marketplace() {
     }
   }, [selectedShopId, products]);
 
-  const loadAvailableDrivers = async () => {
-    setLoadingDrivers(true);
-    try {
-      const { data, error: drvErr } = await supabase.rpc('get_eligible_drivers', { p_university_id: null });
-      if (drvErr) throw drvErr;
-      setAvailableDrivers((data || []) as Driver[]);
-    } catch {
-      setAvailableDrivers([]);
-    } finally {
-      setLoadingDrivers(false);
-    }
-  };
-
   const sendWhatsAppNotification = async (
     orderId: string,
     orderNumber: string,
-    driver: Driver,
     shopCart: CartByShop,
     customerData: any,
     deliveryLocation: string,
@@ -126,9 +108,6 @@ export default function Marketplace() {
         body: JSON.stringify({
           orderId,
           orderNumber,
-          driverId: driver.id,
-          driverPhone: driver.phone_number,
-          driverWhatsApp: driver.whatsapp_number,
           shopName: shopCart.shopName,
           shopAddress: 'See order details in app',
           customerName: customerData?.full_name || 'Customer',
@@ -347,12 +326,6 @@ export default function Marketplace() {
           .maybeSingle();
 
         if (orderErr) throw orderErr;
-
-        if (selectedDriver) {
-          sendWhatsAppNotification(
-            order.id, order.id.slice(0, 8), selectedDriver,
-            shopCart, customer, deliveryLocation, paymentMethod, deliveryFee
-          );        }
 
         const { data: shopInfo } = await supabase
           .from('shops')
@@ -803,13 +776,6 @@ export default function Marketplace() {
           onClose={() => setShowCheckout(false)}
           onPlaceOrder={placeOrders}
           customerId={customerId}
-          selectedDriver={selectedDriver}
-          availableDrivers={availableDrivers}
-          loadingDrivers={loadingDrivers}
-          onOpenDriverPicker={() => { loadAvailableDrivers(); setShowDriverPicker(true); }}
-          onSelectDriver={(d: Driver) => { setSelectedDriver(d); setShowDriverPicker(false); }}
-          showDriverPicker={showDriverPicker}
-          onCloseDriverPicker={() => setShowDriverPicker(false)}
         />
       </Modal>
     </View>
