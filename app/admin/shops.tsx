@@ -15,7 +15,7 @@ import {
 import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { A } from '@/lib/admin-theme';
-import { ArrowLeft, Store, CircleCheck as CheckCircle, Circle as XCircle, DollarSign, Clock, Ban, Eye, X, CircleAlert as AlertCircle, ShoppingBag, Settings, MapPin } from 'lucide-react-native';
+import { ArrowLeft, Store, CircleCheck as CheckCircle, Circle as XCircle, DollarSign, Clock, Ban, Eye, X, CircleAlert as AlertCircle, ShoppingBag, Settings, MapPin, Calendar } from 'lucide-react-native';
 import { SkeletonList } from '@/components/Skeleton';
 import { ConnectionBadge } from '@/components/ConnectionBadge';
 
@@ -72,7 +72,7 @@ export default function AdminShops() {
   const [orders, setOrders] = useState<ShopOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [activeTab, setActiveTab] = useState<'shops' | 'orders' | 'settings'>('shops');
+  const [activeTab, setActiveTab] = useState<'shops' | 'orders' | 'settings' | 'commission'>('shops');
   const [selectedShop, setSelectedShop] = useState<Shop | null>(null);
   const [showShopModal, setShowShopModal] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
@@ -81,6 +81,13 @@ export default function AdminShops() {
   const [registrationFee, setRegistrationFee] = useState('10.00');
   const [savingFee, setSavingFee] = useState(false);
   const [feeSaved, setFeeSaved] = useState(false);
+  const [commissionRate, setCommissionRate] = useState('5');
+  const [savingCommission, setSavingCommission] = useState(false);
+  const [commissionSaved, setCommissionSaved] = useState(false);
+  const [commissionData, setCommissionData] = useState<{ shopId: string; shopName: string; confirmedRevenue: number; commissionOwed: number; deadline: string | null }[]>([]);
+  const [deadlineShop, setDeadlineShop] = useState<string | null>(null);
+  const [deadlineDate, setDeadlineDate] = useState('');
+  const [savingDeadline, setSavingDeadline] = useState(false);
   const [error, setError] = useState('');
   const [connState, setConnState] = useState<'connecting' | 'connected' | 'disconnected' | 'error'>('connecting');
 
@@ -122,14 +129,75 @@ export default function AdminShops() {
 
       const { data: settings } = await supabase
         .from('shop_settings')
-        .select('registration_fee')
+        .select('registration_fee, commission_rate')
         .maybeSingle();
-      if (settings) setRegistrationFee(Number(settings.registration_fee).toFixed(2));
+      if (settings) {
+        setRegistrationFee(Number(settings.registration_fee).toFixed(2));
+        if (settings.commission_rate != null) setCommissionRate(String(settings.commission_rate));
+      }
     } catch (err: any) {
       setError(err.message);
     } finally {
       setLoading(false);
     }
+  };
+
+  const loadCommissionData = async (activeShops: Shop[], rate: number) => {
+    if (activeShops.length === 0) { setCommissionData([]); return; }
+    const shopIds = activeShops.map(s => s.id);
+    const { data: orderData } = await supabase
+      .from('shop_orders')
+      .select('shop_id, total_amount, status')
+      .in('shop_id', shopIds)
+      .in('status', ['confirmed', 'picked_up', 'out_for_delivery', 'delivered']);
+    const revenueByShop: Record<string, number> = {};
+    (orderData || []).forEach((o: any) => {
+      revenueByShop[o.shop_id] = (revenueByShop[o.shop_id] || 0) + Number(o.total_amount);
+    });
+    const rows = activeShops.map(s => ({
+      shopId: s.id,
+      shopName: s.name,
+      confirmedRevenue: revenueByShop[s.id] || 0,
+      commissionOwed: (revenueByShop[s.id] || 0) * (rate / 100),
+      deadline: (s as any).commission_deadline || null,
+    }));
+    setCommissionData(rows.sort((a, b) => b.commissionOwed - a.commissionOwed));
+  };
+
+  useEffect(() => {
+    if (activeTab === 'commission' && shops.length > 0) {
+      loadCommissionData(shops.filter(s => s.status === 'active'), parseFloat(commissionRate) || 5);
+    }
+  }, [activeTab, shops]);
+
+  const saveCommissionRate = async () => {
+    setSavingCommission(true);
+    const rate = parseFloat(commissionRate) || 5;
+    const { data: settings } = await supabase
+      .from('shop_settings')
+      .select('id')
+      .maybeSingle();
+    if (settings) {
+      await supabase.from('shop_settings').update({ commission_rate: rate }).eq('id', settings.id);
+    } else {
+      await supabase.from('shop_settings').insert({ commission_rate: rate });
+    }
+    setSavingCommission(false);
+    setCommissionSaved(true);
+    setTimeout(() => setCommissionSaved(false), 2000);
+    loadCommissionData(shops.filter(s => s.status === 'active'), rate);
+  };
+
+  const saveDeadline = async (shopId: string) => {
+    if (!deadlineDate.trim()) return;
+    setSavingDeadline(true);
+    const dateObj = new Date(deadlineDate);
+    if (isNaN(dateObj.getTime())) { setSavingDeadline(false); return; }
+    await supabase.from('shops').update({ commission_deadline: dateObj.toISOString() }).eq('id', shopId);
+    setSavingDeadline(false);
+    setDeadlineShop(null);
+    setDeadlineDate('');
+    loadData();
   };
 
   const onRefresh = async () => {
@@ -246,6 +314,7 @@ export default function AdminShops() {
           {([
             { key: 'shops', label: 'Shops', icon: Store },
             { key: 'orders', label: 'Orders', icon: ShoppingBag },
+            { key: 'commission', label: 'Commission', icon: DollarSign },
             { key: 'settings', label: 'Settings', icon: Settings },
           ] as const).map(tab => {
             const Icon = tab.icon;
@@ -401,6 +470,126 @@ export default function AdminShops() {
                     </View>
                   </View>
                 ))
+              )}
+            </View>
+          )}
+
+          {activeTab === 'commission' && (
+            <View style={{ gap: 14 }}>
+              <View style={[styles.settingsCard, { borderColor: `${A.amber}40` }]}>
+                <Text style={styles.settingsTitle}>Platform Commission Rate</Text>
+                <Text style={styles.settingsDesc}>Percentage of each shop's confirmed-order revenue owed to UniLink Delivery.</Text>
+                <View style={styles.feeInputRow}>
+                  <DollarSign size={20} color={A.amber} />
+                  <TextInput
+                    style={styles.feeInput}
+                    value={commissionRate}
+                    onChangeText={setCommissionRate}
+                    keyboardType="decimal-pad"
+                    placeholderTextColor={A.textMuted}
+                  />
+                  <Text style={{ fontSize: 16, fontWeight: '700', color: A.textSub }}>%</Text>
+                </View>
+                <TouchableOpacity
+                  style={[styles.saveFeeBtn, { opacity: savingCommission ? 0.6 : 1 }]}
+                  onPress={saveCommissionRate}
+                  disabled={savingCommission}
+                >
+                  {savingCommission ? <ActivityIndicator size="small" color="#000" /> : (
+                    <Text style={styles.saveFeeBtnText}>{commissionSaved ? 'Saved!' : 'Save Rate'}</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+
+              <Text style={{ fontSize: 11, fontWeight: '700', color: A.textSub, letterSpacing: 1.5, textTransform: 'uppercase' as any }}>
+                Shop Commission Breakdown
+              </Text>
+              {commissionData.length === 0 ? (
+                <View style={styles.emptyState}>
+                  <DollarSign size={40} color={A.textMuted} />
+                  <Text style={styles.emptyText}>No active shops with revenue yet</Text>
+                </View>
+              ) : (
+                commissionData.map(row => {
+                  const now = new Date();
+                  const dl = row.deadline ? new Date(row.deadline) : null;
+                  const isOverdue = dl && dl < now;
+                  const isDueSoon = dl && dl >= now && dl.getTime() - now.getTime() < 3 * 86400000;
+                  const dlColor = isOverdue ? A.red : isDueSoon ? A.amber : A.green;
+                  return (
+                    <View key={row.shopId} style={[styles.shopCard, { borderColor: isOverdue ? A.red : A.border }]}>
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.shopName}>{row.shopName}</Text>
+                          <View style={{ flexDirection: 'row', gap: 12, marginTop: 6 }}>
+                            <View>
+                              <Text style={{ fontSize: 10, color: A.textSub, fontWeight: '600' }}>REVENUE</Text>
+                              <Text style={{ fontSize: 14, fontWeight: '700', color: A.text }}>${row.confirmedRevenue.toFixed(2)}</Text>
+                            </View>
+                            <View>
+                              <Text style={{ fontSize: 10, color: A.textSub, fontWeight: '600' }}>OWED ({(parseFloat(commissionRate) || 5).toFixed(0)}%)</Text>
+                              <Text style={{ fontSize: 14, fontWeight: '800', color: A.amber }}>${row.commissionOwed.toFixed(2)}</Text>
+                            </View>
+                          </View>
+                        </View>
+                        {dl ? (
+                          <View style={{ alignItems: 'flex-end' }}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                              <Calendar size={11} color={dlColor} />
+                              <Text style={{ fontSize: 10, color: dlColor, fontWeight: '700' }}>
+                                {isOverdue ? 'OVERDUE' : 'DUE'}
+                              </Text>
+                            </View>
+                            <Text style={{ fontSize: 11, color: A.textSub, marginTop: 2 }}>
+                              {dl.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                            </Text>
+                          </View>
+                        ) : (
+                          <View style={{ alignItems: 'flex-end' }}>
+                            <Text style={{ fontSize: 10, color: A.textMuted }}>No deadline</Text>
+                          </View>
+                        )}
+                      </View>
+                      {deadlineShop === row.shopId ? (
+                        <View style={{ marginTop: 10, gap: 8 }}>
+                          <TextInput
+                            style={styles.rejectInput}
+                            value={deadlineDate}
+                            onChangeText={setDeadlineDate}
+                            placeholder="YYYY-MM-DD"
+                            placeholderTextColor={A.textMuted}
+                            keyboardType="numeric"
+                          />
+                          <View style={{ flexDirection: 'row', gap: 8 }}>
+                            <TouchableOpacity
+                              style={[styles.actionBtn, { flex: 1, justifyContent: 'center', backgroundColor: A.card, borderColor: A.border }]}
+                              onPress={() => { setDeadlineShop(null); setDeadlineDate(''); }}
+                            >
+                              <Text style={{ color: A.textSub, fontSize: 12 }}>Cancel</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                              style={[styles.actionBtn, { flex: 1, justifyContent: 'center', backgroundColor: A.greenDim, borderColor: A.green }]}
+                              onPress={() => saveDeadline(row.shopId)}
+                              disabled={savingDeadline || !deadlineDate.trim()}
+                            >
+                              {savingDeadline ? <ActivityIndicator size="small" color={A.green} /> : (
+                                <Text style={{ color: A.green, fontSize: 12, fontWeight: '600' }}>Set Deadline</Text>
+                              )}
+                            </TouchableOpacity>
+                          </View>
+                        </View>
+                      ) : (
+                        <TouchableOpacity
+                          style={[styles.actionBtn, { marginTop: 10, backgroundColor: A.cyanDim, borderColor: A.cyan }]}
+                          onPress={() => { setDeadlineShop(row.shopId); setDeadlineDate(''); }}
+                        >
+                          <Calendar size={12} color={A.cyan} />
+                          <Text style={[styles.actionBtnText, { color: A.cyan }]}>{row.deadline ? 'Change Deadline' : 'Set Deadline'}</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  );
+                })
               )}
             </View>
           )}

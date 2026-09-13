@@ -7,7 +7,7 @@ import {
   type ShopOrder,
   type ShopProduct,
 } from '@/lib/shop-types';
-import { TrendingUp, TrendingDown, ShoppingBag, Users, Package, Truck, Lightbulb, TriangleAlert as AlertTriangle } from 'lucide-react-native';
+import { TrendingUp, TrendingDown, ShoppingBag, Users, Package, Truck, Lightbulb, TriangleAlert as AlertTriangle, DollarSign, Calendar } from 'lucide-react-native';
 
 function startOfDay(d: Date): Date {
   const x = new Date(d);
@@ -62,7 +62,7 @@ function RevenueBar({
   );
 }
 
-export function AnalyticsTab({ orders, products }: { orders: ShopOrder[]; products: ShopProduct[] }) {
+export function AnalyticsTab({ orders, products, commissionRate, commissionDeadline }: { orders: ShopOrder[]; products: ShopProduct[]; commissionRate?: number; commissionDeadline?: string | null }) {
   const analytics = useMemo(() => {
     const now = new Date();
     const todayStart = startOfDay(now);
@@ -164,6 +164,7 @@ export function AnalyticsTab({ orders, products }: { orders: ShopOrder[]; produc
       payEntries,
       topPayment,
       totalOrdersForPay: totalOrders,
+      confirmedRevenue: sumIn(orders.filter((o) => ['confirmed', 'picked_up', 'out_for_delivery', 'delivered'].includes(o.status))),
     };
   }, [orders, products]);
 
@@ -299,6 +300,50 @@ export function AnalyticsTab({ orders, products }: { orders: ShopOrder[]; produc
           </View>
         )}
       </View>
+
+      {/* Commission owed */}
+      {commissionRate != null && commissionRate > 0 && (
+        <View style={[styles.chartCard, { borderColor: `${A.amber}40` }]}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+            <DollarSign size={18} color={A.amber} />
+            <Text style={styles.sectionTitle}>UniLink Delivery Commission</Text>
+          </View>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <View style={[styles.revCard, { flex: 1 }]}>
+              <View style={styles.revTop}>
+                <TrendingUp size={14} color={A.cyan} />
+                <Text style={styles.revLabel}>Confirmed Revenue</Text>
+              </View>
+              <Text style={styles.revValue}>{fmtMoney(a.confirmedRevenue)}</Text>
+            </View>
+            <View style={[styles.revCard, { flex: 1, borderColor: `${A.amber}40` }]}>
+              <View style={styles.revTop}>
+                <DollarSign size={14} color={A.amber} />
+                <Text style={styles.revLabel}>Rate</Text>
+              </View>
+              <Text style={styles.revValue}>{commissionRate.toFixed(0)}%</Text>
+            </View>
+            <View style={[styles.revCard, { flex: 1, borderColor: A.amber, backgroundColor: A.amberDim }]}>
+              <View style={styles.revTop}>
+                <DollarSign size={14} color={A.amber} />
+                <Text style={styles.revLabel}>Amount Owed</Text>
+              </View>
+              <Text style={[styles.revValue, { color: A.amber }]}>{fmtMoney(a.confirmedRevenue * (commissionRate / 100))}</Text>
+            </View>
+          </View>
+          {commissionDeadline && (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 12 }}>
+              <Calendar size={13} color={A.amber} />
+              <Text style={{ fontSize: 12, color: A.amber, fontWeight: '600' }}>
+                Payment due by {new Date(commissionDeadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+              </Text>
+            </View>
+          )}
+          <Text style={{ fontSize: 11, color: A.textSub, marginTop: 8, lineHeight: 16 }}>
+            {commissionRate.toFixed(0)}% of revenue from confirmed orders is owed to UniLink Delivery as platform commission.
+          </Text>
+        </View>
+      )}
 
       {/* Payment distribution */}
       <View style={styles.chartCard}>

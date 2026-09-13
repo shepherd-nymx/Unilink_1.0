@@ -66,6 +66,7 @@ export default function ShopDashboard() {
   const [orders, setOrders] = useState<ShopOrder[]>([]);
   const [products, setProducts] = useState<ShopProduct[]>([]);
   const [registrationFee, setRegistrationFee] = useState(10);
+  const [commissionRate, setCommissionRate] = useState<number | undefined>(undefined);
   const [activeTab, setActiveTab] = useState<TabKey>('orders');
   const [refreshing, setRefreshing] = useState(false);
   const [paynowLoading, setPaynowLoading] = useState(false);
@@ -188,9 +189,12 @@ export default function ShopDashboard() {
   const loadSettings = async () => {
     const { data } = await supabase
       .from('shop_settings')
-      .select('registration_fee')
+      .select('registration_fee, commission_rate')
       .maybeSingle();
-    if (data) setRegistrationFee(Number(data.registration_fee));
+    if (data) {
+      setRegistrationFee(Number(data.registration_fee));
+      if (data.commission_rate != null) setCommissionRate(Number(data.commission_rate));
+    }
   };
 
   const onRefresh = async () => {
@@ -757,7 +761,7 @@ export default function ShopDashboard() {
 
           {activeTab === 'history' && <HistoryTab orders={orders} />}
 
-          {activeTab === 'analytics' && <AnalyticsTab orders={orders} products={products} />}
+          {activeTab === 'analytics' && <AnalyticsTab orders={orders} products={products} commissionRate={commissionRate} commissionDeadline={shop?.commission_deadline} />}
 
           {activeTab === 'messages' && (
             <TouchableOpacity style={styles.chatLinkCard} onPress={() => router.push('/shop/chat')} activeOpacity={0.8}>

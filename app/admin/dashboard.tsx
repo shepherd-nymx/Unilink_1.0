@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import {
   LogOut, Users, Truck, Package, UserCog, ShoppingBag, School, ChevronRight, Star,
   Mail, Store, ScrollText, Shield, CircleAlert as AlertCircle, CircleCheck as CheckCircle,
+  DollarSign,
 } from 'lucide-react-native';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { clearUserData } from '@/lib/storage-service';
@@ -15,6 +16,7 @@ type AlertItem = { message: string; route: string; color: string; dimColor: stri
 type Stats = {
   customers: number | null; activeShops: number | null; activeDrivers: number | null;
   eligibleDrivers: number | null; ordersToday: number | null; expiredSubs: number | null;
+  totalCommissionOwed: number | null; overdueShops: number | null;
 };
 
 export default function AdminDashboard() {
@@ -25,6 +27,7 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState<Stats>({
     customers: null, activeShops: null, activeDrivers: null,
     eligibleDrivers: null, ordersToday: null, expiredSubs: null,
+    totalCommissionOwed: null, overdueShops: null,
   });
   const [statsLoading, setStatsLoading] = useState(true);
   const [incompleteShops, setIncompleteShops] = useState<number | null>(null);
@@ -49,6 +52,7 @@ export default function AdminDashboard() {
       const [
         customersRes, activeShopsRes, activeDriversRes, eligibleDriversRes,
         ordersTodayRes, expiredSubsRes, incompleteShopsRes, expiredDriversRes,
+        commissionRes,
       ] = await Promise.all([
         supabase.from('customers').select('*', { count: 'exact', head: true }),
         supabase.from('shops').select('*', { count: 'exact', head: true }).eq('status', 'active'),
@@ -61,12 +65,17 @@ export default function AdminDashboard() {
         supabase.from('shops').select('*', { count: 'exact', head: true })
           .or('location_verified.is.null,location_verified.eq.false'),
         supabase.from('drivers').select('*', { count: 'exact', head: true }).eq('subscription_status', 'expired'),
+        supabase.from('shops').select('commission_deadline').eq('status', 'active'),
       ]);
+
+      const now = new Date().toISOString();
+      const overdueCount = (commissionRes.data || []).filter((s: any) => s.commission_deadline && new Date(s.commission_deadline).toISOString() < now).length;
 
       setStats({
         customers: customersRes.count ?? 0, activeShops: activeShopsRes.count ?? 0,
         activeDrivers: activeDriversRes.count ?? 0, eligibleDrivers: eligibleDriversRes.count ?? 0,
         ordersToday: ordersTodayRes.count ?? 0, expiredSubs: expiredSubsRes.count ?? 0,
+        totalCommissionOwed: null, overdueShops: overdueCount,
       });
       setIncompleteShops(incompleteShopsRes.count ?? 0);
       setExpiredDrivers(expiredDriversRes.count ?? 0);
@@ -82,10 +91,16 @@ export default function AdminDashboard() {
     { label: 'Active Drivers', value: stats.activeDrivers, icon: Truck, color: A.blue, dimColor: A.blueDim },
     { label: 'Eligible Drivers', value: stats.eligibleDrivers, icon: UserCog, color: A.amber, dimColor: A.amberDim },
     { label: 'Orders Today', value: stats.ordersToday, icon: Package, color: A.orange, dimColor: A.orangeDim },
-    { label: 'Expired Subscriptions', value: stats.expiredSubs, icon: AlertCircle, color: A.red, dimColor: A.redDim },
+    { label: 'Commission Overdue', value: stats.overdueShops, icon: DollarSign, color: A.red, dimColor: A.redDim },
   ];
 
   const alerts: AlertItem[] = [];
+  if (stats.overdueShops !== null && stats.overdueShops > 0) {
+    alerts.push({
+      message: `${stats.overdueShops} shop${stats.overdueShops > 1 ? 's' : ''} with overdue commission payments`,
+      route: '/admin/shops', color: A.amber, dimColor: A.amberDim,
+    });
+  }
   if (incompleteShops !== null && incompleteShops > 0) {
     alerts.push({
       message: `${incompleteShops} shop${incompleteShops > 1 ? 's' : ''} with incomplete profiles (location not verified)`,
