@@ -36,7 +36,7 @@ const BROADCAST_BORDER = '#3a2800';
 
 type Message = {
   id: string;
-  sender_type: 'driver' | 'customer';
+  sender_type: 'driver' | 'customer' | 'shop';
   sender_id: string;
   message: string;
   is_broadcast: boolean;
@@ -46,14 +46,22 @@ type Message = {
 
 type ChatInterfaceProps = {
   conversationId: string | null;
-  driverId: string;
+  driverId?: string;
   customerId: string;
-  currentUserType: 'driver' | 'customer';
+  shopId?: string;
+  orderId?: string;
+  currentUserType: 'driver' | 'customer' | 'shop';
   currentUserId: string;
   customerName?: string;
   customerPhone?: string;
   driverName?: string;
   driverPhone?: string;
+  shopName?: string;
+  shopPhone?: string;
+  otherPartyName?: string;
+  otherPartyPhone?: string;
+  otherPartyAvatar?: string;
+  otherPartyLabel?: string;
   onClose?: () => void;
   deliveryId?: string;
   driverProfilePicture?: string;
@@ -182,12 +190,20 @@ export default function ChatInterface({
   conversationId: initialConversationId,
   driverId,
   customerId,
+  shopId,
+  orderId,
   currentUserType,
   currentUserId,
   customerName,
   customerPhone,
   driverName,
   driverPhone,
+  shopName,
+  shopPhone,
+  otherPartyName,
+  otherPartyPhone,
+  otherPartyAvatar,
+  otherPartyLabel,
   onClose,
   deliveryId,
   driverProfilePicture,
@@ -216,7 +232,7 @@ export default function ChatInterface({
 
   useEffect(() => {
     if (!initialConversationId) initializeConversation();
-  }, [driverId, customerId]);
+  }, [driverId, customerId, shopId, orderId]);
 
   useEffect(() => {
     if (conversationId) {
@@ -228,13 +244,29 @@ export default function ChatInterface({
   }, [conversationId]);
 
   const initializeConversation = async () => {
-    if (!driverId || driverId === 'undefined' || !customerId || customerId === 'undefined') return;
+    if (!customerId || customerId === 'undefined') return;
     try {
-      const { data, error } = await supabase.rpc('get_or_create_conversation', {
-        p_driver_id: driverId,
-        p_customer_id: customerId,
-        p_delivery_id: deliveryId || null,
-      });
+      let rpcName: string;
+      let rpcParams: Record<string, any>;
+
+      if (shopId && currentUserType !== 'shop') {
+        // Customer ↔ shop conversation
+        rpcName = 'get_or_create_shop_conversation';
+        rpcParams = { p_customer_id: customerId, p_shop_id: shopId, p_order_id: orderId || null };
+      } else if (driverId && (driverId !== 'undefined')) {
+        // Customer ↔ driver conversation (with optional order anchoring)
+        if (orderId) {
+          rpcName = 'get_or_create_driver_order_conversation';
+          rpcParams = { p_customer_id: customerId, p_driver_id: driverId, p_order_id: orderId };
+        } else {
+          rpcName = 'get_or_create_conversation';
+          rpcParams = { p_driver_id: driverId, p_customer_id: customerId, p_delivery_id: deliveryId || null };
+        }
+      } else {
+        return;
+      }
+
+      const { data, error } = await supabase.rpc(rpcName, rpcParams);
       if (error) throw error;
       setConversationId(data);
     } catch (err) {
@@ -313,7 +345,29 @@ export default function ChatInterface({
     }
   };
 
-  const getDisplayName = () => currentUserType === 'driver' ? (customerName || 'Customer') : (driverName || 'Driver');
+  const getDisplayName = () => {
+    if (otherPartyName) return otherPartyName;
+    if (currentUserType === 'driver') return customerName || 'Customer';
+    if (currentUserType === 'shop') return customerName || 'Customer';
+    return driverName || shopName || 'Driver';
+  };
+
+  const getDisplayPhone = () => {
+    if (otherPartyPhone) return otherPartyPhone;
+    if (currentUserType === 'driver') return customerPhone;
+    if (currentUserType === 'shop') return customerPhone;
+    return driverPhone || shopPhone;
+  };
+
+  const getDisplayLabel = () => {
+    if (otherPartyLabel) return otherPartyLabel;
+    if (currentUserType === 'driver') return 'Customer';
+    if (currentUserType === 'shop') return 'Customer';
+    return 'Your Driver';
+  };
+
+  const displayPhone = getDisplayPhone();
+  const displayLabel = getDisplayLabel();
 
   const inputBorderColor = inputBorderAnim.interpolate({
     inputRange: [0, 1],
@@ -333,9 +387,9 @@ export default function ChatInterface({
         <View style={s.headerGlowLine} />
         <View style={s.headerLeft}>
           <View style={{ position: 'relative' }}>
-            {currentUserType === 'customer' && driverProfilePicture ? (
+            {currentUserType === 'customer' && (driverProfilePicture || otherPartyAvatar) ? (
               <View style={s.avatarRing}>
-                <Image source={{ uri: driverProfilePicture }} style={s.avatarImage} resizeMode="cover" />
+                <Image source={{ uri: driverProfilePicture || otherPartyAvatar }} style={s.avatarImage} resizeMode="cover" />
               </View>
             ) : (
               <View style={s.avatarPlaceholder}>
@@ -346,38 +400,24 @@ export default function ChatInterface({
           </View>
           <View style={s.headerTextBlock}>
             <Text style={s.headerName}>{getDisplayName()}</Text>
-            {currentUserType === 'driver' && customerPhone ? (
+            {displayPhone ? (
               <View style={s.headerSubRow}>
                 <Phone size={10} color={GREEN} />
-                <Text style={s.headerPhone}>{customerPhone}</Text>
-              </View>
-            ) : currentUserType === 'customer' && driverPhone ? (
-              <View style={s.headerSubRow}>
-                <Phone size={10} color={GREEN} />
-                <Text style={s.headerPhone}>{driverPhone}</Text>
+                <Text style={s.headerPhone}>{displayPhone}</Text>
               </View>
             ) : (
               <View style={s.headerSubRow}>
                 <View style={s.statusPulse} />
-                <Text style={s.headerStatus}>{currentUserType === 'driver' ? 'Customer' : 'Your Driver'}</Text>
+                <Text style={s.headerStatus}>{displayLabel}</Text>
               </View>
             )}
           </View>
         </View>
         <View style={s.headerActions}>
-          {currentUserType === 'driver' && customerPhone && (
+          {displayPhone && (
             <TouchableOpacity
               style={s.callBtn}
-              onPress={() => Linking.openURL(`tel:${customerPhone}`)}
-              activeOpacity={0.8}
-            >
-              <Phone size={17} color={GREEN} />
-            </TouchableOpacity>
-          )}
-          {currentUserType === 'customer' && driverPhone && (
-            <TouchableOpacity
-              style={s.callBtn}
-              onPress={() => Linking.openURL(`tel:${driverPhone}`)}
+              onPress={() => Linking.openURL(`tel:${displayPhone}`)}
               activeOpacity={0.8}
             >
               <Phone size={17} color={GREEN} />

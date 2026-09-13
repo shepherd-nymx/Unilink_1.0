@@ -49,10 +49,12 @@ import {
   Bell,
   Ban,
   ShieldCheck,
+  MessageSquare,
+  ChevronRight,
 } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 
-type TabKey = 'orders' | 'products' | 'history' | 'analytics' | 'profile';
+type TabKey = 'orders' | 'products' | 'history' | 'analytics' | 'messages' | 'profile';
 
 export default function ShopDashboard() {
   const router = useRouter();
@@ -159,7 +161,7 @@ export default function ShopDashboard() {
   const loadOrders = async (shopId: string) => {
     const { data, error: err } = await supabase
       .from('shop_orders')
-      .select('*')
+      .select('*, customer_id')
       .eq('shop_id', shopId)
       .order('created_at', { ascending: false });
     if (err) {
@@ -506,6 +508,7 @@ export default function ShopDashboard() {
     { key: 'products', label: 'Products', icon: Package },
     { key: 'history', label: 'History', icon: Clock },
     { key: 'analytics', label: 'Analytics', icon: TrendingUp },
+    { key: 'messages', label: 'Messages', icon: MessageSquare },
     { key: 'profile', label: 'Profile', icon: Store },
   ];
 
@@ -750,6 +753,19 @@ export default function ShopDashboard() {
 
           {activeTab === 'analytics' && <AnalyticsTab orders={orders} products={products} />}
 
+          {activeTab === 'messages' && (
+            <TouchableOpacity style={styles.chatLinkCard} onPress={() => router.push('/shop/chat')} activeOpacity={0.8}>
+              <View style={styles.chatLinkIcon}>
+                <MessageSquare size={22} color={A.cyan} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.chatLinkTitle}>Customer Messages</Text>
+                <Text style={styles.chatLinkSub}>Chat with customers about their orders</Text>
+              </View>
+              <ChevronRight size={18} color={A.textSub} />
+            </TouchableOpacity>
+          )}
+
           {activeTab === 'profile' && (
             <ProfileTab shop={shop} onLogout={handleLogout} onShopUpdated={(s) => setShop(s)} />
           )}
@@ -765,6 +781,11 @@ export default function ShopDashboard() {
         onClose={() => { setShowOrderModal(false); setSelectedOrder(null); }}
         onUpdateStatus={updateOrderStatus}
         onAssignDriver={assignMessenger}
+        onChat={(o) => {
+          setShowOrderModal(false);
+          setSelectedOrder(null);
+          router.push({ pathname: '/shop/chat', params: { customerId: o.customer_id!, orderId: o.id } });
+        }}
       />
 
       {/* Product Modal */}
@@ -1030,4 +1051,14 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center', marginTop: 8,
   },
   saveBtnText: { color: '#000', fontSize: 15, fontWeight: '700' },
+  chatLinkCard: {
+    flexDirection: 'row', alignItems: 'center', gap: 14, padding: 18,
+    backgroundColor: A.card, borderRadius: 14, borderWidth: 1, borderColor: A.border,
+  },
+  chatLinkIcon: {
+    width: 48, height: 48, borderRadius: 14, backgroundColor: A.cyanDim,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  chatLinkTitle: { fontSize: 15, fontWeight: '700', color: A.text },
+  chatLinkSub: { fontSize: 12, color: A.textSub, marginTop: 3 },
 });

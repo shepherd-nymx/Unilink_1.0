@@ -13,12 +13,13 @@ import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { loadUserData } from '@/lib/storage-service';
 import { A } from '@/lib/admin-theme';
-import { ArrowLeft, ShoppingBag, Store, Truck, Package, CircleCheck as CheckCircle, Clock, Circle as XCircle, MapPin, Phone, Download } from 'lucide-react-native';
+import { ArrowLeft, ShoppingBag, Store, Truck, Package, CircleCheck as CheckCircle, Clock, Circle as XCircle, MapPin, Phone, Download, MessageSquare } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 
 type ShopOrder = {
   id: string;
   shop_id: string;
+  messenger_id: string | null;
   products: any[];
   total_amount: number;
   delivery_fee: number;
@@ -263,14 +264,24 @@ export default function ShopOrders() {
                         {new Date(order.created_at).toLocaleDateString()}
                       </Text>
                     </View>
-                    <TouchableOpacity
-                      style={[styles.ticketBtn, { backgroundColor: `${primary}12`, borderColor: `${primary}30` }]}
-                      onPress={() => router.push({ pathname: '/customer/marketplace/ticket', params: { orderId: order.id } })}
-                      activeOpacity={0.8}
-                    >
-                      <Download size={14} color={primary} />
-                      <Text style={[styles.ticketBtnText, { color: primary }]}>Ticket</Text>
-                    </TouchableOpacity>
+                    <View style={{ flexDirection: 'row', gap: 8 }}>
+                      <TouchableOpacity
+                        style={[styles.chatBtn, { backgroundColor: `${primary}12`, borderColor: `${primary}30` }]}
+                        onPress={() => router.push({ pathname: '/customer/marketplace/chat', params: { orderId: order.id } })}
+                        activeOpacity={0.8}
+                      >
+                        <MessageSquare size={14} color={primary} />
+                        <Text style={[styles.chatBtnText, { color: primary }]}>Chat</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.ticketBtn, { backgroundColor: `${primary}12`, borderColor: `${primary}30` }]}
+                        onPress={() => router.push({ pathname: '/customer/marketplace/ticket', params: { orderId: order.id } })}
+                        activeOpacity={0.8}
+                      >
+                        <Download size={14} color={primary} />
+                        <Text style={[styles.ticketBtnText, { color: primary }]}>Ticket</Text>
+                      </TouchableOpacity>
+                    </View>
                   </View>
                 </View>
               );
@@ -317,6 +328,8 @@ const styles = StyleSheet.create({
   },
   orderTotal: { fontSize: 17, fontWeight: '800' },
   orderDate: { fontSize: 11 },
-  ticketBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10, borderWidth: 1 },
+  ticketBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, borderWidth: 1 },
   ticketBtnText: { fontSize: 12, fontWeight: '700' },
+  chatBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, borderWidth: 1 },
+  chatBtnText: { fontSize: 12, fontWeight: '700' },
 });

@@ -8,6 +8,7 @@ export type ShopStatus =
 
 export type ShopOrder = {
   id: string;
+  customer_id?: string;
   customer_name: string | null;
   customer_phone: string | null;
   customer_email: string | null;

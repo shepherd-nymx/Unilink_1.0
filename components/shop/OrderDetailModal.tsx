@@ -18,6 +18,7 @@ import {
   CircleAlert as AlertCircle,
   Star,
   Bike,
+  MessageSquare,
 } from 'lucide-react-native';
 
 const VEHICLE_BADGES: Record<string, { label: string; color: string }> = {
@@ -36,6 +37,7 @@ export function OrderDetailModal({
   onClose,
   onUpdateStatus,
   onAssignDriver,
+  onChat,
 }: {
   visible: boolean;
   order: ShopOrder | null;
@@ -45,6 +47,7 @@ export function OrderDetailModal({
   onClose: () => void;
   onUpdateStatus: (order: ShopOrder, status: string) => void;
   onAssignDriver: (driverId: string) => void;
+  onChat?: (order: ShopOrder) => void;
 }) {
   if (!order) return null;
 
@@ -99,6 +102,17 @@ export function OrderDetailModal({
             <Text style={styles.modalSectionLabel}>Payment Method</Text>
             <Text style={styles.modalText}>{order.payment_method}</Text>
           </ScrollView>
+
+          {onChat && order.customer_id && (
+            <TouchableOpacity
+              style={[styles.actionBtn, { backgroundColor: A.blue, marginBottom: 10 }]}
+              onPress={() => onChat(order)}
+              activeOpacity={0.8}
+            >
+              <MessageSquare size={16} color="#fff" />
+              <Text style={styles.actionBtnText}>Chat with Customer</Text>
+            </TouchableOpacity>
+          )}
 
           <View style={styles.modalActions}>
             {order.status === 'pending' && (
