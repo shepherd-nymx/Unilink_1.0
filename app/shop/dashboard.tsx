@@ -52,6 +52,7 @@ import {
   MessageSquare,
   ChevronRight,
   Star,
+  RefreshCw,
 } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 
@@ -106,12 +107,21 @@ export default function ShopDashboard() {
       .on(
         'postgres_changes' as any,
         { event: '*', table: 'shop_orders', filter: `shop_id=eq.${shop.id}` } as any,
-        () => loadOrders(shop.id),
+        () => {
+          loadOrders(shop.id);
+          // Reload again after a short delay to catch laggy DB replication
+          setTimeout(() => loadOrders(shop.id), 500);
+          setTimeout(() => loadOrders(shop.id), 1200);
+        },
       )
       .on(
         'postgres_changes' as any,
         { event: '*', table: 'shop_products', filter: `shop_id=eq.${shop.id}` } as any,
-        () => loadProducts(shop.id),
+        () => {
+          loadProducts(shop.id);
+          setTimeout(() => loadProducts(shop.id), 500);
+          setTimeout(() => loadProducts(shop.id), 1200);
+        },
       )
       .subscribe();
     return () => {
@@ -220,6 +230,18 @@ export default function ShopDashboard() {
     if (!shop) return;
     setRefreshing(true);
     await Promise.all([loadOrders(shop.id), loadProducts(shop.id), loadShop(shop.id)]);
+    // Double-tap: reload again after a short delay to catch any laggy DB writes
+    await new Promise((r) => setTimeout(r, 400));
+    await Promise.all([loadOrders(shop.id), loadProducts(shop.id)]);
+    setRefreshing(false);
+  };
+
+  const quickRefresh = async () => {
+    if (!shop) return;
+    setRefreshing(true);
+    await Promise.all([loadOrders(shop.id), loadProducts(shop.id), loadShop(shop.id)]);
+    await new Promise((r) => setTimeout(r, 300));
+    await Promise.all([loadOrders(shop.id), loadProducts(shop.id)]);
     setRefreshing(false);
   };
 
@@ -551,6 +573,10 @@ export default function ShopDashboard() {
           </View>
         </View>
         <View style={{ flexDirection: 'row', gap: 8 }}>
+          <TouchableOpacity style={[styles.logoutBtn, { backgroundColor: A.cyanDim, borderColor: A.cyan }]} onPress={quickRefresh} disabled={refreshing}>
+            {refreshing ? <ActivityIndicator size={14} color={A.cyan} /> : <RefreshCw size={16} color={A.cyan} />}
+            <Text style={[styles.logoutText, { color: A.cyan }]}>Refresh</Text>
+          </TouchableOpacity>
           <TouchableOpacity style={styles.logoutBtn} onPress={() => router.push('/shop/merchant-policy')}>
             <ShieldCheck size={16} color={A.cyan} />
             <Text style={[styles.logoutText, { color: A.cyan }]}>Policy</Text>
