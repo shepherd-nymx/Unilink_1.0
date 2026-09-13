@@ -50,7 +50,7 @@ export default function AdminLogin() {
     setLoading(true); setError('');
     try {
       const { data, error: dbError } = await supabase
-        .from('admins').select('*').eq('username', username).eq('password_hash', password).maybeSingle();
+        .rpc('verify_admin_login', { p_username: username, p_password: password }).maybeSingle() as { data: { id: string; username: string } | null; error: any };
       if (dbError) throw dbError;
       if (!data) { setError('Invalid username or password'); setLoading(false); return; }
       saveUserData({ id: data.id, type: 'admin' });
