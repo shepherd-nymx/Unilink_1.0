@@ -20,6 +20,9 @@ export type Shop = {
   delivery_fee: number;
   whatsapp_number?: string | null;
   premium_badge?: string | null;
+  ecocash_name?: string | null;
+  ecocash_number?: string | null;
+  contact_phone?: string | null;
 };
 
 export type DeliveryFeeTier = {

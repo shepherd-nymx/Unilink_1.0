@@ -154,7 +154,7 @@ export default function Marketplace() {
 
       const { data: shopData, error: shopErr } = await supabase
         .from('shops')
-        .select('id, name, logo_url, description, address, hours, slug, latitude, longitude, is_available, operating_hours, accepted_payment_methods, location_verified, completed_orders_count, location, ecocash_fee, delivery_fee, whatsapp_number, average_rating, total_ratings, premium_badge')
+        .select('id, name, logo_url, description, address, hours, slug, latitude, longitude, is_available, operating_hours, accepted_payment_methods, location_verified, completed_orders_count, location, ecocash_fee, delivery_fee, whatsapp_number, average_rating, total_ratings, premium_badge, ecocash_name, ecocash_number, contact_phone')
         .eq('status', 'active')
         .order('name');
       if (shopErr) throw shopErr;
@@ -319,7 +319,8 @@ export default function Marketplace() {
     lng: number | null,
     paymentMethod: string,
     deliveryFee: number,
-    ecocashFeeAmount: number
+    ecocashFeeAmount: number,
+    ecocashPop: string | null
   ) => {
     if (!customerId) {
       setError('Please login to place an order');
@@ -387,6 +388,7 @@ export default function Marketplace() {
             total_amount: orderTotal,
             delivery_fee: shopDeliveryFee,
             ecocash_fee_amount: ecocashFeeAmount,
+            ecocash_pop: paymentMethod === 'ecocash' ? ecocashPop : null,
             delivery_location: deliveryLocation,
             delivery_latitude: lat,
             delivery_longitude: lng,

@@ -15,7 +15,7 @@ import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { loadUserData } from '@/lib/storage-service';
 import { A } from '@/lib/admin-theme';
-import { ArrowLeft, ShoppingBag, Store, Truck, Package, CircleCheck as CheckCircle, Clock, Circle as XCircle, MapPin, Phone, Download, MessageSquare, Star, X } from 'lucide-react-native';
+import { ArrowLeft, ShoppingBag, Store, Truck, Package, CircleCheck as CheckCircle, Clock, Circle as XCircle, MapPin, Phone, Download, MessageSquare, Star, X, Smartphone, Send } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 
 type ShopOrder = {
@@ -25,13 +25,15 @@ type ShopOrder = {
   products: any[];
   total_amount: number;
   delivery_fee: number;
+  ecocash_fee_amount: number;
+  ecocash_pop: string | null;
   delivery_location: string | null;
   payment_method: string;
   status: string;
   customer_name: string | null;
   customer_phone: string | null;
   created_at: string;
-  shops: { name: string; address: string | null } | null;
+  shops: { name: string; address: string | null; ecocash_number: string | null; ecocash_name: string | null; contact_phone: string | null } | null;
   has_rated?: boolean;
 };
 
@@ -86,6 +88,9 @@ export default function ShopOrders() {
   const [rateText, setRateText] = useState('');
   const [submittingRate, setSubmittingRate] = useState(false);
   const [rateError, setRateError] = useState('');
+  const [popEditing, setPopEditing] = useState<string | null>(null);
+  const [popText, setPopText] = useState('');
+  const [popSaving, setPopSaving] = useState(false);
 
   useEffect(() => {
     const stored = loadUserData();
@@ -116,7 +121,7 @@ export default function ShopOrders() {
     try {
       const { data, error } = await supabase
         .from('shop_orders')
-        .select('*, shops!shop_orders_shop_id_fkey(name, address)')
+        .select('*, shops!shop_orders_shop_id_fkey(name, address, ecocash_number, ecocash_name, contact_phone)')
         .eq('customer_id', customerId)
         .order('created_at', { ascending: false });
       if (error) throw error;
@@ -143,6 +148,20 @@ export default function ShopOrders() {
 
   const onRefresh = () => {
     setRefreshing(true);
+    loadOrders();
+  };
+
+  const submitPop = async (orderId: string) => {
+    if (!popText.trim()) return;
+    setPopSaving(true);
+    const { error: popErr } = await supabase
+      .from('shop_orders')
+      .update({ ecocash_pop: popText.trim() })
+      .eq('id', orderId);
+    setPopSaving(false);
+    if (popErr) return;
+    setPopEditing(null);
+    setPopText('');
     loadOrders();
   };
 
@@ -285,6 +304,73 @@ export default function ShopOrders() {
                       <Text style={[styles.deliveryText, { color: textSecondary }]} numberOfLines={2}>
                         {order.delivery_location}
                       </Text>
+                    </View>
+                  )}
+
+                  {/* EcoCash payment details + POP */}
+                  {order.payment_method === 'ecocash' && order.shops && (
+                    <View style={[styles.ecocashSection, { backgroundColor: isDark ? 'rgba(255,170,0,0.08)' : '#fffbeb', borderColor: isDark ? 'rgba(255,170,0,0.2)' : '#fef3c7' }]}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                        <Smartphone size={13} color={A.amber} />
+                        <Text style={{ fontSize: 12, fontWeight: '700', color: A.amber }}>EcoCash Payment</Text>
+                      </View>
+                      <Text style={{ fontSize: 13, color: textPrimary, fontWeight: '600' }}>
+                        Send to: {order.shops.ecocash_name || order.shops.contact_phone || 'Not set'}
+                      </Text>
+                      <Text style={{ fontSize: 13, color: textPrimary, fontWeight: '600', marginTop: 2 }}>
+                        Number: {order.shops.ecocash_number || order.shops.contact_phone || 'Not set'}
+                      </Text>
+
+                      {order.ecocash_pop ? (
+                        <View style={{ marginTop: 8, gap: 4 }}>
+                          <Text style={{ fontSize: 11, fontWeight: '600', color: A.green }}>Proof of Payment Submitted:</Text>
+                          <Text style={{ fontSize: 12, color: textPrimary, backgroundColor: isDark ? 'rgba(0,255,136,0.08)' : '#f0fdf4', padding: 8, borderRadius: 6, borderWidth: 1, borderColor: isDark ? 'rgba(0,255,136,0.2)' : '#dcfce7' }}>
+                            {order.ecocash_pop}
+                          </Text>
+                          {order.status !== 'cancelled' && (
+                            <TouchableOpacity
+                              onPress={() => { setPopEditing(order.id); setPopText(order.ecocash_pop || ''); }}
+                              style={{ alignSelf: 'flex-start', marginTop: 4 }}
+                            >
+                              <Text style={{ fontSize: 11, fontWeight: '600', color: primary }}>Update POP</Text>
+                            </TouchableOpacity>
+                          )}
+                        </View>
+                      ) : popEditing === order.id ? (
+                        <View style={{ marginTop: 8, gap: 6 }}>
+                          <TextInput
+                            style={[styles.popInput, { backgroundColor: isDark ? '#0d1828' : '#f8fafc', borderColor: cardBorder, color: textPrimary }]}
+                            value={popText}
+                            onChangeText={setPopText}
+                            placeholder="Enter transaction reference / proof of payment"
+                            placeholderTextColor={textSecondary}
+                            multiline
+                          />
+                          <View style={{ flexDirection: 'row', gap: 8 }}>
+                            <TouchableOpacity
+                              style={[styles.popSubmitBtn, { backgroundColor: A.green, opacity: popSaving ? 0.6 : 1 }]}
+                              onPress={() => submitPop(order.id)}
+                              disabled={popSaving || !popText.trim()}
+                            >
+                              {popSaving ? <ActivityIndicator size="small" color="#fff" /> : <Text style={{ color: '#fff', fontSize: 12, fontWeight: '700' }}>Submit POP</Text>}
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                              style={[styles.popCancelBtn, { borderColor: cardBorder }]}
+                              onPress={() => { setPopEditing(null); setPopText(''); }}
+                            >
+                              <Text style={{ color: textSecondary, fontSize: 12, fontWeight: '600' }}>Cancel</Text>
+                            </TouchableOpacity>
+                          </View>
+                        </View>
+                      ) : order.status !== 'cancelled' ? (
+                        <TouchableOpacity
+                          style={[styles.popBtn, { backgroundColor: A.amber, marginTop: 8 }]}
+                          onPress={() => { setPopEditing(order.id); setPopText(order.ecocash_pop || ''); }}
+                        >
+                          <Send size={12} color="#000" />
+                          <Text style={{ color: '#000', fontSize: 12, fontWeight: '700' }}>Send Proof of Payment</Text>
+                        </TouchableOpacity>
+                      ) : null}
                     </View>
                   )}
 
@@ -464,4 +550,9 @@ const styles = StyleSheet.create({
   rateError: { color: A.red, fontSize: 12, marginTop: 8 },
   rateSubmit: { borderRadius: 14, paddingVertical: 16, alignItems: 'center', justifyContent: 'center', marginTop: 16 },
   rateSubmitText: { color: '#000', fontSize: 16, fontWeight: '800' },
+  ecocashSection: { marginTop: 10, padding: 12, borderRadius: 10, borderWidth: 1 },
+  popInput: { borderRadius: 8, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 10, fontSize: 13, minHeight: 50, textAlignVertical: 'top' },
+  popSubmitBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8 },
+  popCancelBtn: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8, borderWidth: 1 },
+  popBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 8, borderRadius: 8 },
 });

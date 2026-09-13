@@ -19,6 +19,7 @@ import {
   Star,
   Bike,
   MessageSquare,
+  Smartphone,
 } from 'lucide-react-native';
 
 const VEHICLE_BADGES: Record<string, { label: string; color: string }> = {
@@ -101,6 +102,16 @@ export function OrderDetailModal({
 
             <Text style={styles.modalSectionLabel}>Payment Method</Text>
             <Text style={styles.modalText}>{order.payment_method}</Text>
+
+            {order.payment_method === 'ecocash' && order.ecocash_pop ? (
+              <View style={{ marginTop: 10 }}>
+                <Text style={styles.modalSectionLabel}>Proof of Payment (Customer)</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8, backgroundColor: A.greenDim, borderRadius: 8, padding: 10, borderWidth: 1, borderColor: A.green }}>
+                  <Smartphone size={14} color={A.green} />
+                  <Text style={{ fontSize: 13, color: A.text, flex: 1 }}>{order.ecocash_pop}</Text>
+                </View>
+              </View>
+            ) : null}
           </ScrollView>
 
           {onChat && order.customer_id && (

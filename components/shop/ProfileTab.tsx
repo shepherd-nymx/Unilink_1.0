@@ -19,7 +19,7 @@ import {
   type OperatingHours,
   type DaySchedule,
 } from '@/lib/shop-types';
-import { Store, LogOut, MapPin, Navigation, Globe, Clock, CreditCard, DollarSign, BadgeCheck, TriangleAlert as AlertTriangle, X, Check, MessageCircle, Plus, Trash2, Ban, Search } from 'lucide-react-native';
+import { Store, LogOut, MapPin, Navigation, Globe, Clock, CreditCard, DollarSign, BadgeCheck, TriangleAlert as AlertTriangle, X, Check, MessageCircle, Plus, Trash2, Ban, Search, Smartphone } from 'lucide-react-native';
 import * as Location from 'expo-location';
 
 const PAYMENT_OPTIONS: { key: string; label: string }[] = [
@@ -67,6 +67,9 @@ export function ProfileTab({
   const [payMethods, setPayMethods] = useState<string[]>(shop.accepted_payment_methods || ['pay_on_delivery', 'ecocash']);
   const [savingPay, setSavingPay] = useState(false);
   const [ecocashFee, setEcocashFee] = useState(shop.ecocash_fee != null ? String(shop.ecocash_fee) : '0');
+  const [ecocashName, setEcocashName] = useState(shop.ecocash_name || '');
+  const [ecocashNumber, setEcocashNumber] = useState(shop.ecocash_number || '');
+  const [savingEcocash, setSavingEcocash] = useState(false);
   const [deliveryFee, setDeliveryFee] = useState(shop.delivery_fee != null ? String(shop.delivery_fee) : '0');
   const [savingFees, setSavingFees] = useState(false);
   const [whatsappInput, setWhatsappInput] = useState(shop.whatsapp_number || '');
@@ -197,6 +200,22 @@ export function ProfileTab({
     }
     onShopUpdated({ ...shop, ecocash_fee: ecFee, delivery_fee: delFee });
     setMsg('Fees saved');
+  };
+
+  const saveEcocashDetails = async () => {
+    setSavingEcocash(true);
+    setMsg('');
+    const { error } = await supabase
+      .from('shops')
+      .update({
+        ecocash_name: ecocashName.trim() || null,
+        ecocash_number: ecocashNumber.trim() || null,
+      })
+      .eq('id', shop.id);
+    setSavingEcocash(false);
+    if (error) { setMsg(error.message); return; }
+    onShopUpdated({ ...shop, ecocash_name: ecocashName.trim() || null, ecocash_number: ecocashNumber.trim() || null });
+    setMsg('EcoCash details saved');
   };
 
   const saveWhatsapp = async () => {
@@ -590,6 +609,41 @@ export function ProfileTab({
         })}
         <TouchableOpacity style={[styles.saveBtn, { backgroundColor: A.cyan }]} onPress={savePay} disabled={savingPay}>
           {savingPay ? <ActivityIndicator size="small" color="#000" /> : <Text style={[styles.saveBtnText, { color: '#000' }]}>Save Payment Methods</Text>}
+        </TouchableOpacity>
+      </View>
+
+      {/* EcoCash Payment Details */}
+      <View style={styles.card}>
+        <View style={styles.cardHeader}>
+          <Smartphone size={16} color={A.amber} />
+          <Text style={styles.cardTitle}>EcoCash Payment Details</Text>
+        </View>
+        <Text style={styles.whatsappDesc}>
+          Set the name and phone number customers should send EcoCash money to. These are shown at checkout when a customer selects EcoCash as their payment method.
+        </Text>
+        <View style={styles.fieldGroup}>
+          <Text style={styles.label}>Account Holder Name</Text>
+          <TextInput
+            style={styles.feeInput}
+            value={ecocashName}
+            onChangeText={setEcocashName}
+            placeholder="e.g. John Doe"
+            placeholderTextColor={A.textMuted}
+          />
+        </View>
+        <View style={styles.fieldGroup}>
+          <Text style={styles.label}>EcoCash Phone Number</Text>
+          <TextInput
+            style={styles.feeInput}
+            value={ecocashNumber}
+            onChangeText={setEcocashNumber}
+            placeholder="e.g. +263771234567"
+            placeholderTextColor={A.textMuted}
+            keyboardType="phone-pad"
+          />
+        </View>
+        <TouchableOpacity style={[styles.saveBtn, { backgroundColor: A.amber }]} onPress={saveEcocashDetails} disabled={savingEcocash}>
+          {savingEcocash ? <ActivityIndicator size="small" color="#000" /> : <Text style={[styles.saveBtnText, { color: '#000' }]}>Save EcoCash Details</Text>}
         </TouchableOpacity>
       </View>
 

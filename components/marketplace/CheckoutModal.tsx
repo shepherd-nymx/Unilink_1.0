@@ -17,7 +17,7 @@ type Props = {
   placingOrder: boolean;
   error: string;
   onClose: () => void;
-  onPlaceOrder: (deliveryLocation: string, lat: number | null, lng: number | null, paymentMethod: string, deliveryFee: number, ecocashFeeAmount: number) => void;
+  onPlaceOrder: (deliveryLocation: string, lat: number | null, lng: number | null, paymentMethod: string, deliveryFee: number, ecocashFeeAmount: number, ecocashPop: string | null) => void;
   customerId?: string;
   deliveryFeeTiers?: Record<string, DeliveryFeeTier[]>;
 };
@@ -37,6 +37,7 @@ export function CheckoutModal({
   const [whatsappConfirmed, setWhatsappConfirmed] = useState(false);
   const [expandedShopId, setExpandedShopId] = useState<string | null>(null);
   const [showOrderSummary, setShowOrderSummary] = useState(false);
+  const [ecocashPop, setEcocashPop] = useState('');
 
   useEffect(() => {
     if (visible) {
@@ -46,6 +47,7 @@ export function CheckoutModal({
       setConfirmedLongitude(null);
       setShowOrderSummary(false);
       setExpandedShopId(null);
+      setEcocashPop('');
     }
   }, [visible]);
 
@@ -138,7 +140,7 @@ export function CheckoutModal({
     if (!locationConfirmed) return;
     if (anyBlocked) return;
     if (requiresWhatsapp && !whatsappConfirmed) return;
-    onPlaceOrder(deliveryLocation.trim(), confirmedLatitude, confirmedLongitude, paymentMethod, parseFloat(effectiveDeliveryFee) || 0, totalEcocashFee);
+    onPlaceOrder(deliveryLocation.trim(), confirmedLatitude, confirmedLongitude, paymentMethod, parseFloat(effectiveDeliveryFee) || 0, totalEcocashFee, isEcocash ? ecocashPop.trim() || null : null);
   };
 
   const canPlace = !!deliveryLocation.trim() && locationConfirmed && !placingOrder && !anyBlocked && (!requiresWhatsapp || whatsappConfirmed);
@@ -462,10 +464,38 @@ export function CheckoutModal({
           <Text style={{ color: palette.textSecondary, fontSize: 11, marginTop: 8 }}>Note: {cartByShop.length} separate order(s) will be created, one per shop.</Text>
 
           {isEcocash && canPlace ? (
-            <View style={[styles.paynowInfoBox, { backgroundColor: `${palette.warning}15`, borderColor: `${palette.warning}40` }]}>
-              <Text style={[styles.paynowInfoText, { color: palette.warning }]}>
-                An EcoCash surcharge of ${totalEcocashFee.toFixed(2)} has been added to your total by the shop(s). You will complete payment via EcoCash on delivery.
-              </Text>
+            <View style={{ marginTop: 12, gap: 10 }}>
+              {shopsWithEcocash.map(sc => {
+                const shop = shops.find(s => s.id === sc.shopId);
+                if (!shop) return null;
+                return (
+                  <View key={sc.shopId} style={[styles.ecocashInfoBox, { backgroundColor: `${palette.warning}10`, borderColor: `${palette.warning}40` }]}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                      <Phone size={13} color={palette.warning} />
+                      <Text style={{ fontSize: 12, fontWeight: '700', color: palette.warning }}>{shop.name} — EcoCash Details</Text>
+                    </View>
+                    <Text style={{ fontSize: 13, color: palette.textPrimary, fontWeight: '600' }}>
+                      Name: {shop.ecocash_name || shop.contact_phone || 'Not set'}
+                    </Text>
+                    <Text style={{ fontSize: 13, color: palette.textPrimary, fontWeight: '600' }}>
+                      Number: {shop.ecocash_number || shop.contact_phone || 'Not set'}
+                    </Text>
+                  </View>
+                );
+              })}
+              <View style={[styles.paynowInfoBox, { backgroundColor: `${palette.warning}15`, borderColor: `${palette.warning}40` }]}>
+                <Text style={[styles.paynowInfoText, { color: palette.warning }]}>  
+                  Send money via EcoCash to the number(s) above, then enter the transaction reference or proof of payment below.
+                </Text>
+              </View>
+              <TextInput
+                style={[styles.input, { backgroundColor: palette.inputBg, borderColor: palette.inputBorder, color: palette.textPrimary, minHeight: 60 }]}
+                value={ecocashPop}
+                onChangeText={setEcocashPop}
+                placeholder="Enter EcoCash transaction reference / proof of payment"
+                placeholderTextColor={palette.placeholderColor}
+                multiline
+              />
             </View>
           ) : null}
 
@@ -528,6 +558,7 @@ const styles = StyleSheet.create({
   placeOrderBtn: { borderRadius: 14, paddingVertical: 18, alignItems: 'center', justifyContent: 'center', marginTop: 16 },
   placeOrderBtnText: { color: '#fff', fontSize: 16, fontWeight: '800', letterSpacing: 0.3 },
   paynowInfoBox: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, padding: 12, borderRadius: 10, borderWidth: 1, marginTop: 12 },
+  ecocashInfoBox: { padding: 12, borderRadius: 10, borderWidth: 1 },
   paynowInfoText: { fontSize: 11, fontWeight: '600', flex: 1, lineHeight: 16 },
   infoBox: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, padding: 12, borderRadius: 10, borderWidth: 1, marginBottom: 12 },
   infoText: { fontSize: 12, fontWeight: '600', flex: 1, lineHeight: 17 },

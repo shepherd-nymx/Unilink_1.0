@@ -16,6 +16,7 @@ export type ShopOrder = {
   total_amount: number;
   delivery_fee: number;
   ecocash_fee_amount: number;
+  ecocash_pop: string | null;
   delivery_location: string | null;
   payment_method: string;
   status: string;
@@ -81,6 +82,7 @@ export type ShopData = {
   ecocash_fee?: number;
   delivery_fee?: number;
   whatsapp_number?: string | null;
+  ecocash_name?: string | null;
   commission_deadline?: string | null;
 };
 
