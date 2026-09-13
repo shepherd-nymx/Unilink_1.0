@@ -19,7 +19,7 @@ import {
   type OperatingHours,
   type DaySchedule,
 } from '@/lib/shop-types';
-import { Store, LogOut, MapPin, Navigation, Globe, Clock, CreditCard, DollarSign, BadgeCheck, TriangleAlert as AlertTriangle, X, Check } from 'lucide-react-native';
+import { Store, LogOut, MapPin, Navigation, Globe, Clock, CreditCard, DollarSign, BadgeCheck, TriangleAlert as AlertTriangle, X, Check, MessageCircle } from 'lucide-react-native';
 import * as Location from 'expo-location';
 
 const PAYMENT_OPTIONS: { key: string; label: string }[] = [
@@ -69,6 +69,8 @@ export function ProfileTab({
   const [ecocashFee, setEcocashFee] = useState(shop.ecocash_fee != null ? String(shop.ecocash_fee) : '0');
   const [deliveryFee, setDeliveryFee] = useState(shop.delivery_fee != null ? String(shop.delivery_fee) : '0');
   const [savingFees, setSavingFees] = useState(false);
+  const [whatsappInput, setWhatsappInput] = useState(shop.whatsapp_number || '');
+  const [savingWhatsapp, setSavingWhatsapp] = useState(false);
   const [msg, setMsg] = useState('');
 
   const useGps = async () => {
@@ -177,6 +179,23 @@ export function ProfileTab({
     }
     onShopUpdated({ ...shop, ecocash_fee: ecFee, delivery_fee: delFee });
     setMsg('Fees saved');
+  };
+
+  const saveWhatsapp = async () => {
+    setSavingWhatsapp(true);
+    setMsg('');
+    const cleaned = whatsappInput.trim().replace(/[^0-9+]/g, '');
+    const { error } = await supabase
+      .from('shops')
+      .update({ whatsapp_number: cleaned || null })
+      .eq('id', shop.id);
+    setSavingWhatsapp(false);
+    if (error) {
+      setMsg(error.message);
+      return;
+    }
+    onShopUpdated({ ...shop, whatsapp_number: cleaned || null });
+    setMsg('WhatsApp number saved');
   };
 
   const openMaps = () => {
@@ -400,6 +419,32 @@ export function ProfileTab({
         </TouchableOpacity>
       </View>
 
+      {/* WhatsApp Number */}
+      <View style={styles.card}>
+        <View style={styles.cardHeader}>
+          <MessageCircle size={16} color="#25D366" />
+          <Text style={styles.cardTitle}>WhatsApp Order Notifications</Text>
+        </View>
+        <Text style={styles.whatsappDesc}>
+          Add a WhatsApp number to receive order notifications and require customers to confirm their order via WhatsApp before checkout. This builds trust and reduces fake orders.
+        </Text>
+        <View style={styles.fieldGroup}>
+          <Text style={styles.label}>WhatsApp Number</Text>
+          <TextInput
+            style={styles.feeInput}
+            value={whatsappInput}
+            onChangeText={setWhatsappInput}
+            placeholder="e.g. +263771234567"
+            placeholderTextColor={A.textMuted}
+            keyboardType="phone-pad"
+          />
+          <Text style={styles.feeHint}>Include country code. Leave empty to disable WhatsApp order confirmation.</Text>
+        </View>
+        <TouchableOpacity style={[styles.saveBtn, { backgroundColor: '#25D366' }]} onPress={saveWhatsapp} disabled={savingWhatsapp}>
+          {savingWhatsapp ? <ActivityIndicator size="small" color="#fff" /> : <Text style={[styles.saveBtnText, { color: '#fff' }]}>Save WhatsApp Number</Text>}
+        </TouchableOpacity>
+      </View>
+
       <TouchableOpacity style={styles.logoutCard} onPress={onLogout}>
         <LogOut size={18} color={A.red} />
         <Text style={{ color: A.red, fontSize: 15, fontWeight: '600' }}>Logout</Text>
@@ -503,6 +548,7 @@ const styles = StyleSheet.create({
   fieldGroup: { gap: 6, marginBottom: 14 },
   feeInput: { backgroundColor: A.inputBg, borderRadius: 10, borderWidth: 1, borderColor: A.inputBorder, paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, color: A.text, minHeight: 48 },
   feeHint: { fontSize: 11, color: A.textSub, marginTop: 4, lineHeight: 16 },
+  whatsappDesc: { fontSize: 12, color: A.textSub, lineHeight: 17, marginBottom: 14 },
   logoutCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, backgroundColor: A.redDim, borderRadius: 12, paddingVertical: 16, borderWidth: 1, borderColor: A.red },
   msgBar: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 8 },
   modalOverlay: { flex: 1, backgroundColor: A.overlay, justifyContent: 'flex-end' },

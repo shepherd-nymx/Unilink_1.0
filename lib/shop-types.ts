@@ -78,6 +78,7 @@ export type ShopData = {
   completed_orders_count?: number;
   ecocash_fee?: number;
   delivery_fee?: number;
+  whatsapp_number?: string | null;
 };
 
 export const STATUS_FLOW = [
