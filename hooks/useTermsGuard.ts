@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 
-type UserType = 'customer' | 'driver';
+type UserType = 'customer' | 'driver' | 'shop';
 
 export function useTermsGuard(userType: UserType) {
   const router = useRouter();
@@ -16,7 +16,10 @@ export function useTermsGuard(userType: UserType) {
 
   const checkTermsAcceptance = async () => {
     try {
-      const userId = userType === 'customer' ? params.customerId : params.driverId;
+      const userId =
+        userType === 'customer' ? params.customerId
+        : userType === 'driver' ? params.driverId
+        : params.shopId;
 
       if (!userId) {
         router.replace(`/${userType}/login`);
@@ -29,7 +32,10 @@ export function useTermsGuard(userType: UserType) {
         .eq('is_active', true)
         .single();
 
-      const tableName = userType === 'customer' ? 'customers' : 'drivers';
+      const tableName =
+        userType === 'customer' ? 'customers'
+        : userType === 'driver' ? 'drivers'
+        : 'shops';
       const { data: userData } = await supabase
         .from(tableName)
         .select('terms_accepted, terms_version')
@@ -44,6 +50,11 @@ export function useTermsGuard(userType: UserType) {
           router.replace({
             pathname: '/driver/terms',
             params: { driverId: userId as string },
+          });
+        } else if (userType === 'shop') {
+          router.replace({
+            pathname: '/shop/terms',
+            params: { shopId: userId as string },
           });
         } else {
           router.replace({

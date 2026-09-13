@@ -16,9 +16,9 @@ import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { loadUserData } from '@/lib/storage-service';
 import { A } from '@/lib/admin-theme';
-import { ArrowLeft, Store, Search, ShoppingCart, Plus, Minus, X, Package, CreditCard, CircleCheck as CheckCircle, CircleAlert as AlertCircle, Info, ChevronLeft, ChevronRight, MapPin, Lock } from 'lucide-react-native';
+import { ArrowLeft, Store, Search, ShoppingCart, Plus, Minus, X, Package, CreditCard, CircleCheck as CheckCircle, CircleAlert as AlertCircle, Info, ChevronLeft, ChevronRight, MapPin, Lock, Award } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
-import { Shop, Product, CartItem, CartByShop, ThemePalette, computeShopOpen } from '@/components/marketplace/types';
+import { Shop, Product, CartItem, CartByShop, ThemePalette, computeShopOpen, DeliveryFeeTier, computeTierDeliveryFee } from '@/components/marketplace/types';
 import { ShopCard } from '@/components/marketplace/ShopCard';
 import { ProductCard } from '@/components/marketplace/ProductCard';
 import { ShopProfileModal } from '@/components/marketplace/ShopProfileModal';
@@ -51,6 +51,7 @@ export default function Marketplace() {
   const [customerUniversityId, setCustomerUniversityId] = useState<string | null>(null);
   const [customerUniversityName, setCustomerUniversityName] = useState<string | null>(null);
   const [shopServiceLocations, setShopServiceLocations] = useState<ServiceLocationMap>({});
+  const [deliveryFeeTiers, setDeliveryFeeTiers] = useState<Record<string, DeliveryFeeTier[]>>({});
 
   const selectedShopData = selectedShopId ? shops.find(s => s.id === selectedShopId) || null : null;
   const [showCheckout, setShowCheckout] = useState(false);
@@ -153,7 +154,7 @@ export default function Marketplace() {
 
       const { data: shopData, error: shopErr } = await supabase
         .from('shops')
-        .select('id, name, logo_url, description, address, hours, slug, latitude, longitude, is_available, operating_hours, accepted_payment_methods, location_verified, completed_orders_count, location, ecocash_fee, delivery_fee, whatsapp_number, average_rating, total_ratings')
+        .select('id, name, logo_url, description, address, hours, slug, latitude, longitude, is_available, operating_hours, accepted_payment_methods, location_verified, completed_orders_count, location, ecocash_fee, delivery_fee, whatsapp_number, average_rating, total_ratings, premium_badge')
         .eq('status', 'active')
         .order('name');
       if (shopErr) throw shopErr;
@@ -172,6 +173,18 @@ export default function Marketplace() {
           slMap[sl.shop_id].push({ location_name: sl.location_name, location_type: sl.location_type });
         });
         setShopServiceLocations(slMap);
+
+        // Load delivery fee tiers for all shops
+        const { data: tierData } = await supabase
+          .from('shop_delivery_fee_tiers')
+          .select('id, shop_id, min_amount, max_amount, fee, label, sort_order')
+          .in('shop_id', allShops.map(s => s.id));
+        const tierMap: Record<string, DeliveryFeeTier[]> = {};
+        (tierData || []).forEach((t: any) => {
+          if (!tierMap[t.shop_id]) tierMap[t.shop_id] = [];
+          tierMap[t.shop_id].push(t);
+        });
+        setDeliveryFeeTiers(tierMap);
       }
 
       const { data: prodData, error: prodErr } = await supabase
@@ -327,6 +340,17 @@ export default function Marketplace() {
           throw new Error(`${shop.name} is currently unavailable. Please remove its items from your cart.`);
         }
 
+        // Check if customer is blacklisted by this shop
+        const { data: blacklisted } = await supabase
+          .from('shop_customer_blacklist')
+          .select('id, reason')
+          .eq('shop_id', shopCart.shopId)
+          .eq('customer_id', customerId)
+          .maybeSingle();
+        if (blacklisted) {
+          throw new Error(`${shop?.name || 'This shop'} is unable to accept orders from your account at this time. Reason: ${blacklisted.reason || 'No reason provided.'}`);
+        }
+
         const { data: openCheck, error: openErr } = await supabase.rpc('validate_shop_order', {
           p_shop_id: shopCart.shopId,
         });
@@ -351,7 +375,8 @@ export default function Marketplace() {
           price: Number(item.product.price),
           qty: item.quantity,
         }));
-        const orderTotal = shopCart.total + deliveryFee + ecocashFeeAmount;
+        const shopDeliveryFee = computeTierDeliveryFee(shopCart.total, deliveryFeeTiers[shopCart.shopId] || [], Number(shop?.delivery_fee || 0));
+        const orderTotal = shopCart.total + shopDeliveryFee + ecocashFeeAmount;
 
         const { data: order, error: orderErr } = await supabase
           .from('shop_orders')
@@ -360,7 +385,7 @@ export default function Marketplace() {
             shop_id: shopCart.shopId,
             products: orderProducts,
             total_amount: orderTotal,
-            delivery_fee: deliveryFee,
+            delivery_fee: shopDeliveryFee,
             ecocash_fee_amount: ecocashFeeAmount,
             delivery_location: deliveryLocation,
             delivery_latitude: lat,
@@ -395,14 +420,14 @@ export default function Marketplace() {
             orderNumber: order?.id.slice(0, 8),
             items: orderProducts,
             totalAmount: orderTotal,
-            deliveryFee,
+            deliveryFee: shopDeliveryFee,
             address: deliveryLocation,
           }, order?.id);
         }
 
         sendWhatsAppNotification(
           order?.id || '', order?.id?.slice(0, 8) || '', shopCart,
-          customer, deliveryLocation, paymentMethod, deliveryFee
+          customer, deliveryLocation, paymentMethod, shopDeliveryFee
         );
       }
 
@@ -599,6 +624,25 @@ export default function Marketplace() {
                             {!shop.is_available ? (
                               <View style={[styles.shopSelectBadge, { backgroundColor: `${palette.error}22` }]}>
                                 <Text style={[styles.shopSelectBadgeText, { color: palette.error }]}>Unavailable</Text>
+                              </View>
+                            ) : null}
+                            {shop.premium_badge ? (
+                              <View style={[styles.shopSelectBadge, {
+                                backgroundColor: shop.premium_badge === 'platinum' ? 'rgba(229,228,226,0.18)' :
+                                  shop.premium_badge === 'blue' ? 'rgba(59,130,246,0.18)' :
+                                  'rgba(34,197,94,0.18)',
+                                borderColor: shop.premium_badge === 'platinum' ? '#e5e4e2' :
+                                  shop.premium_badge === 'blue' ? '#3b82f6' : '#22c55e',
+                                borderWidth: 1,
+                              }]}>
+                                <Award size={9} color={
+                                  shop.premium_badge === 'platinum' ? '#e5e4e2' :
+                                  shop.premium_badge === 'blue' ? '#3b82f6' : '#22c55e'
+                                } />
+                                <Text style={[styles.shopSelectBadgeText, {
+                                  color: shop.premium_badge === 'platinum' ? '#e5e4e2' :
+                                    shop.premium_badge === 'blue' ? '#3b82f6' : '#22c55e',
+                                }]}>{shop.premium_badge === 'platinum' ? 'Platinum' : shop.premium_badge === 'blue' ? 'Blue' : 'Green'}</Text>
                               </View>
                             ) : null}
                           </View>
@@ -833,6 +877,7 @@ export default function Marketplace() {
           onClose={() => setShowCheckout(false)}
           onPlaceOrder={placeOrders}
           customerId={customerId}
+          deliveryFeeTiers={deliveryFeeTiers}
         />
       </Modal>
     </View>

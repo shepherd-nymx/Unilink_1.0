@@ -15,7 +15,7 @@ interface TermsAndConditionsProps {
   visible: boolean;
   onAccept: () => void;
   onDecline?: () => void;
-  userType: 'customer' | 'driver';
+  userType: 'customer' | 'driver' | 'shop';
   termsContent?: string;
   privacyContent?: string;
   loading?: boolean;
@@ -207,7 +207,7 @@ export function TermsAndConditions({
                       !canAccept && styles.acceptButtonTextDisabled,
                     ]}
                   >
-                    Accept & Continue as {userType === 'customer' ? 'Shopper' : 'Driver'}
+                    Accept & Continue as {userType === 'customer' ? 'Shopper' : userType === 'driver' ? 'Driver' : 'Merchant'}
                   </Text>
                 </TouchableOpacity>
 

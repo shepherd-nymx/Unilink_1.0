@@ -1,5 +1,5 @@
 import { TouchableOpacity, View, Text, Platform, StyleSheet, Linking } from 'react-native';
-import { Store, BadgeCheck, PackageCheck, MapPin, Star } from 'lucide-react-native';
+import { Store, BadgeCheck, PackageCheck, MapPin, Star, Award } from 'lucide-react-native';
 import { Shop, ThemePalette, computeShopOpen } from './types';
 
 type Props = {
@@ -43,6 +43,24 @@ export function ShopCard({ shop, palette, onPress }: Props) {
           <View style={[styles.verifiedBadge, { backgroundColor: `${palette.primary}18` }]}>
             <BadgeCheck size={11} color={palette.primary} />
             <Text style={[styles.badgeText, { color: palette.primary }]}>Verified</Text>
+          </View>
+        ) : null}
+        {shop.premium_badge ? (
+          <View style={[styles.premiumBadge, {
+            backgroundColor: shop.premium_badge === 'platinum' ? 'rgba(229,228,226,0.18)' :
+              shop.premium_badge === 'blue' ? 'rgba(59,130,246,0.18)' :
+              'rgba(34,197,94,0.18)',
+            borderColor: shop.premium_badge === 'platinum' ? '#e5e4e2' :
+              shop.premium_badge === 'blue' ? '#3b82f6' : '#22c55e',
+          }]}>
+            <Award size={11} color={
+              shop.premium_badge === 'platinum' ? '#e5e4e2' :
+              shop.premium_badge === 'blue' ? '#3b82f6' : '#22c55e'
+            } />
+            <Text style={[styles.badgeText, {
+              color: shop.premium_badge === 'platinum' ? '#e5e4e2' :
+                shop.premium_badge === 'blue' ? '#3b82f6' : '#22c55e',
+            }]}>{shop.premium_badge === 'platinum' ? 'Platinum' : shop.premium_badge === 'blue' ? 'Blue' : 'Green'}</Text>
           </View>
         ) : null}
       </View>
@@ -91,6 +109,7 @@ const styles = StyleSheet.create({
   dot: { width: 6, height: 6, borderRadius: 3 },
   badgeText: { fontSize: 9, fontWeight: '700' },
   verifiedBadge: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 6, paddingVertical: 3, borderRadius: 8 },
+  premiumBadge: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 6, paddingVertical: 3, borderRadius: 8, borderWidth: 1 },
   shopName: { fontSize: 13, fontWeight: '600' },
   ordersRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   ordersText: { fontSize: 10 },

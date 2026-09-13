@@ -32,6 +32,7 @@ import {
 import { useTheme } from '@/contexts/ThemeContext';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
+import { TermsAndConditions } from '@/components/TermsAndConditions';
 
 export default function ShopRegister() {
   const router = useRouter();
@@ -58,6 +59,10 @@ export default function ShopRegister() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [focused, setFocused] = useState<string | null>(null);
+  const [showTermsModal, setShowTermsModal] = useState(false);
+  const [termsContent, setTermsContent] = useState('');
+  const [termsVersion, setTermsVersion] = useState('');
+  const [termsLoading, setTermsLoading] = useState(false);
 
   useEffect(() => {
     Animated.parallel([
@@ -130,6 +135,35 @@ export default function ShopRegister() {
     }
   };
 
+  const fetchMerchantTerms = async () => {
+    setTermsLoading(true);
+    try {
+      const { data, error: termsErr } = await supabase
+        .from('merchant_policies')
+        .select('version, content')
+        .eq('is_active', true)
+        .maybeSingle();
+      if (termsErr || !data) throw termsErr || new Error('No active merchant policy found');
+      setTermsVersion(data.version);
+      setTermsContent(data.content || '');
+      setShowTermsModal(true);
+    } catch {
+      setError('Failed to load Merchant Terms & Conditions.');
+    } finally {
+      setTermsLoading(false);
+    }
+  };
+
+  const handleTermsAccept = async () => {
+    setShowTermsModal(false);
+    await handleRegister();
+  };
+
+  const handleTermsDecline = () => {
+    setShowTermsModal(false);
+    setError('You must accept the Merchant Terms & Conditions to register.');
+  };
+
   const handleRegister = async () => {
     setError('');
     if (!shopName || !email.trim() || !password || !contactPhone || !address || !area) {
@@ -148,6 +182,11 @@ export default function ShopRegister() {
     }
     if (password !== confirmPassword) {
       setError('Passwords do not match');
+      return;
+    }
+
+    if (!termsContent) {
+      await fetchMerchantTerms();
       return;
     }
 
@@ -193,12 +232,23 @@ export default function ShopRegister() {
           contact_email: emailTrim,
           hours: hours || null,
           status: 'pending_approval',
+          terms_accepted: true,
+          terms_version: termsVersion,
+          terms_accepted_at: new Date().toISOString(),
         })
         .select()
         .maybeSingle();
 
       if (shopError) throw shopError;
       if (!shop) throw new Error('Failed to create shop record');
+
+      try {
+        await supabase.from('terms_acceptance_log').insert({
+          user_id: authData.user.id,
+          user_type: 'shop',
+          terms_version: termsVersion,
+        });
+      } catch {}
 
       await saveShopSession({
         shopId: shop.id,
@@ -572,14 +622,22 @@ export default function ShopRegister() {
         </View>
 
         <TouchableOpacity
-          style={[styles.submitBtn, { backgroundColor: primary, opacity: loading ? 0.6 : 1 }]}
-          onPress={handleRegister}
-          disabled={loading}
+          style={[styles.submitBtn, { backgroundColor: primary, opacity: loading || termsLoading ? 0.6 : 1 }]}
+          onPress={() => {
+            if (!shopName || !email.trim() || !password || !contactPhone || !address || !area) {
+              setError('Please fill in all required fields including area');
+              return;
+            }
+            if (password.length < 6) { setError('Password must be at least 6 characters'); return; }
+            if (password !== confirmPassword) { setError('Passwords do not match'); return; }
+            if (termsContent) { setShowTermsModal(true); } else { fetchMerchantTerms(); }
+          }}
+          disabled={loading || termsLoading}
         >
-          {loading ? (
+          {loading || termsLoading ? (
             <ActivityIndicator size="small" color="#fff" />
           ) : (
-            <Text style={styles.submitBtnText}>Register Shop</Text>
+            <Text style={styles.submitBtnText}>Review Terms & Register</Text>
           )}
         </TouchableOpacity>
 
@@ -591,6 +649,15 @@ export default function ShopRegister() {
 
         <View style={{ height: 40 }} />
       </Animated.View>
+
+      <TermsAndConditions
+        visible={showTermsModal}
+        onAccept={handleTermsAccept}
+        onDecline={handleTermsDecline}
+        userType="shop"
+        termsContent={termsContent}
+        loading={termsLoading}
+      />
     </ScrollView>
   );
 }

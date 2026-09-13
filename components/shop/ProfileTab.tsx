@@ -19,7 +19,7 @@ import {
   type OperatingHours,
   type DaySchedule,
 } from '@/lib/shop-types';
-import { Store, LogOut, MapPin, Navigation, Globe, Clock, CreditCard, DollarSign, BadgeCheck, TriangleAlert as AlertTriangle, X, Check, MessageCircle, Plus, Trash2 } from 'lucide-react-native';
+import { Store, LogOut, MapPin, Navigation, Globe, Clock, CreditCard, DollarSign, BadgeCheck, TriangleAlert as AlertTriangle, X, Check, MessageCircle, Plus, Trash2, Ban, Search } from 'lucide-react-native';
 import * as Location from 'expo-location';
 
 const PAYMENT_OPTIONS: { key: string; label: string }[] = [
@@ -80,6 +80,16 @@ export function ProfileTab({
   const [customLocationInput, setCustomLocationInput] = useState('');
   const [savingLocations, setSavingLocations] = useState(false);
   const [showLocationPicker, setShowLocationPicker] = useState(false);
+
+  // Customer blacklist
+  const [blacklist, setBlacklist] = useState<{ id: string; customer_id: string; customer_name: string | null; customer_phone: string | null; reason: string | null; created_at: string }[]>([]);
+  const [blacklistSearch, setBlacklistSearch] = useState('');
+  const [blacklistReason, setBlacklistReason] = useState('');
+  const [savingBlacklist, setSavingBlacklist] = useState(false);
+
+  // Delivery fee tiers
+  const [feeTiers, setFeeTiers] = useState<{ id?: string; min_amount: string; max_amount: string; fee: string; label: string }[]>([]);
+  const [savingTiers, setSavingTiers] = useState(false);
 
   const useGps = async () => {
     setLocating(true);
@@ -209,7 +219,137 @@ export function ProfileTab({
   useEffect(() => {
     loadServiceLocations();
     loadAvailableLocations();
+    loadBlacklist();
+    loadFeeTiers();
   }, []);
+
+  const loadBlacklist = async () => {
+    const { data } = await supabase
+      .from('shop_customer_blacklist')
+      .select('id, customer_id, reason, created_at')
+      .eq('shop_id', shop.id)
+      .order('created_at', { ascending: false });
+    if (data) {
+      const enriched = await Promise.all(data.map(async (b: any) => {
+        const { data: cust } = await supabase
+          .from('customers')
+          .select('full_name, phone_number')
+          .eq('id', b.customer_id)
+          .maybeSingle();
+        return { ...b, customer_name: cust?.full_name || null, customer_phone: cust?.phone_number || null };
+      }));
+      setBlacklist(enriched);
+    }
+  };
+
+  const addBlacklist = async () => {
+    const search = blacklistSearch.trim();
+    if (!search) return;
+    setSavingBlacklist(true);
+    setMsg('');
+    try {
+      const { data: customer } = await supabase
+        .from('customers')
+        .select('id, full_name, phone_number')
+        .or(`phone_number.eq.${search},email.eq.${search}`)
+        .maybeSingle();
+      if (!customer) {
+        setMsg('No customer found with that phone or email');
+        setSavingBlacklist(false);
+        return;
+      }
+      const { error } = await supabase
+        .from('shop_customer_blacklist')
+        .insert({ shop_id: shop.id, customer_id: customer.id, reason: blacklistReason.trim() || null });
+      if (error) {
+        if (error.code === '23505') {
+          setMsg('This customer is already blacklisted');
+        } else {
+          setMsg(error.message);
+        }
+        setSavingBlacklist(false);
+        return;
+      }
+      setBlacklist(prev => [{ id: 'temp-' + Date.now(), customer_id: customer.id, customer_name: customer.full_name, customer_phone: customer.phone_number, reason: blacklistReason.trim() || null, created_at: new Date().toISOString() }, ...prev]);
+      setBlacklistSearch('');
+      setBlacklistReason('');
+      setMsg('Customer blacklisted successfully');
+    } catch (e: any) {
+      setMsg(e.message || 'Failed to blacklist customer');
+    } finally {
+      setSavingBlacklist(false);
+    }
+  };
+
+  const removeBlacklist = async (id: string) => {
+    setSavingBlacklist(true);
+    const { error } = await supabase.from('shop_customer_blacklist').delete().eq('id', id);
+    setSavingBlacklist(false);
+    if (error) { setMsg(error.message); return; }
+    setBlacklist(prev => prev.filter(b => b.id !== id));
+    setMsg('Customer removed from blacklist');
+  };
+
+  const loadFeeTiers = async () => {
+    const { data } = await supabase
+      .from('shop_delivery_fee_tiers')
+      .select('id, min_amount, max_amount, fee, label, sort_order')
+      .eq('shop_id', shop.id)
+      .order('min_amount', { ascending: true });
+    if (data) {
+      setFeeTiers(data.map((t: any) => ({
+        id: t.id,
+        min_amount: String(t.min_amount),
+        max_amount: t.max_amount != null ? String(t.max_amount) : '',
+        fee: String(t.fee),
+        label: t.label || '',
+      })));
+    }
+  };
+
+  const addTier = () => {
+    setFeeTiers(prev => [...prev, { min_amount: '0', max_amount: '', fee: '0', label: '' }]);
+  };
+
+  const updateTier = (idx: number, field: 'min_amount' | 'max_amount' | 'fee' | 'label', value: string) => {
+    setFeeTiers(prev => prev.map((t, i) => i === idx ? { ...t, [field]: value } : t));
+  };
+
+  const removeTier = (idx: number) => {
+    setFeeTiers(prev => prev.filter((_, i) => i !== idx));
+  };
+
+  const saveTiers = async () => {
+    setSavingTiers(true);
+    setMsg('');
+    try {
+      await supabase.from('shop_delivery_fee_tiers').delete().eq('shop_id', shop.id);
+      for (let i = 0; i < feeTiers.length; i++) {
+        const t = feeTiers[i];
+        const min = parseFloat(t.min_amount) || 0;
+        const max = t.max_amount.trim() !== '' ? parseFloat(t.max_amount) : null;
+        const fee = parseFloat(t.fee) || 0;
+        if (max !== null && max <= min) {
+          setMsg(`Tier ${i + 1}: max amount must be greater than min amount`);
+          setSavingTiers(false);
+          return;
+        }
+        await supabase.from('shop_delivery_fee_tiers').insert({
+          shop_id: shop.id,
+          min_amount: min,
+          max_amount: max,
+          fee,
+          label: t.label.trim() || null,
+          sort_order: i,
+        });
+      }
+      setMsg('Delivery fee tiers saved');
+    } catch (e: any) {
+      setMsg(e.message || 'Failed to save tiers');
+    } finally {
+      setSavingTiers(false);
+    }
+  };
 
   const loadServiceLocations = async () => {
     const { data } = await supabase
@@ -624,6 +764,144 @@ export function ProfileTab({
         )}
       </View>
 
+      {/* Customer Blacklist */}
+      <View style={styles.card}>
+        <View style={styles.cardHeader}>
+          <Ban size={16} color={A.red} />
+          <Text style={styles.cardTitle}>Customer Blacklist</Text>
+        </View>
+        <Text style={styles.whatsappDesc}>
+          Temporarily ban customers from placing orders at your shop. Search by phone number or email to add a customer to the blacklist.
+        </Text>
+
+        {blacklist.length > 0 ? (
+          <View style={{ gap: 8, marginBottom: 12 }}>
+            {blacklist.map(b => (
+              <View key={b.id} style={[styles.payRow, { borderBottomWidth: 1, borderBottomColor: A.border }]}>
+                <View style={[styles.checkbox, { backgroundColor: A.redDim, borderColor: A.red }]}>
+                  <Ban size={10} color={A.red} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.payLabel, { color: A.text }]}>{b.customer_name || 'Unknown'}</Text>
+                  {b.customer_phone ? <Text style={{ fontSize: 11, color: A.textSub }}>{b.customer_phone}</Text> : null}
+                  {b.reason ? <Text style={{ fontSize: 11, color: A.amber, marginTop: 2 }}>Reason: {b.reason}</Text> : null}
+                </View>
+                <TouchableOpacity onPress={() => removeBlacklist(b.id)} disabled={savingBlacklist}>
+                  <Trash2 size={15} color={A.red} />
+                </TouchableOpacity>
+              </View>
+            ))}
+          </View>
+        ) : (
+          <View style={[styles.warnBox, { borderColor: A.amber, marginBottom: 12 }]}>
+            <AlertTriangle size={14} color={A.amber} />
+            <Text style={[styles.warnText, { color: A.amber }]}>No blacklisted customers. Your shop accepts orders from all customers.</Text>
+          </View>
+        )}
+
+        <View style={styles.fieldGroup}>
+          <Text style={styles.label}>ADD CUSTOMER TO BLACKLIST</Text>
+          <View style={[styles.searchRow, { borderColor: A.inputBorder }]}>
+            <Search size={14} color={A.textSub} />
+            <TextInput
+              style={[styles.feeInput, { flex: 1, minHeight: 44 }]}
+              value={blacklistSearch}
+              onChangeText={setBlacklistSearch}
+              placeholder="Phone or email"
+              placeholderTextColor={A.textMuted}
+              keyboardType="phone-pad"
+            />
+          </View>
+          <TextInput
+            style={styles.feeInput}
+            value={blacklistReason}
+            onChangeText={setBlacklistReason}
+            placeholder="Reason (optional)"
+            placeholderTextColor={A.textMuted}
+          />
+          <TouchableOpacity style={[styles.saveBtn, { backgroundColor: A.red }]} onPress={addBlacklist} disabled={savingBlacklist || !blacklistSearch.trim()}>
+            {savingBlacklist ? <ActivityIndicator size="small" color="#fff" /> : <Text style={[styles.saveBtnText, { color: '#fff' }]}>Blacklist Customer</Text>}
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Delivery Fee Tiers */}
+      <View style={styles.card}>
+        <View style={styles.cardHeader}>
+          <DollarSign size={16} color={A.cyan} />
+          <Text style={styles.cardTitle}>Delivery Fee Tiers (by Order Cost)</Text>
+        </View>
+        <Text style={styles.whatsappDesc}>
+          Set delivery fees based on the total cost of goods in a customer's order. For example, charge $3 for orders under $20 and $1 for orders over $20. Leave empty to use the flat delivery fee above.
+        </Text>
+
+        {feeTiers.length > 0 ? (
+          <View style={{ gap: 8, marginBottom: 12 }}>
+            {feeTiers.map((tier, idx) => (
+              <View key={idx} style={[styles.tierRow, { borderColor: A.inputBorder }]}>
+                <View style={styles.tierInputs}>
+                  <View style={styles.tierField}>
+                    <Text style={styles.tierLabel}>Min ($)</Text>
+                    <TextInput
+                      style={[styles.tierInput, { borderColor: A.inputBorder, color: A.text }]}
+                      value={tier.min_amount}
+                      onChangeText={v => updateTier(idx, 'min_amount', v)}
+                      placeholder="0"
+                      placeholderTextColor={A.textMuted}
+                      keyboardType="decimal-pad"
+                    />
+                  </View>
+                  <View style={styles.tierField}>
+                    <Text style={styles.tierLabel}>Max ($)</Text>
+                    <TextInput
+                      style={[styles.tierInput, { borderColor: A.inputBorder, color: A.text }]}
+                      value={tier.max_amount}
+                      onChangeText={v => updateTier(idx, 'max_amount', v)}
+                      placeholder="empty = above"
+                      placeholderTextColor={A.textMuted}
+                      keyboardType="decimal-pad"
+                    />
+                  </View>
+                  <View style={styles.tierField}>
+                    <Text style={styles.tierLabel}>Fee ($)</Text>
+                    <TextInput
+                      style={[styles.tierInput, { borderColor: A.inputBorder, color: A.text }]}
+                      value={tier.fee}
+                      onChangeText={v => updateTier(idx, 'fee', v)}
+                      placeholder="0.00"
+                      placeholderTextColor={A.textMuted}
+                      keyboardType="decimal-pad"
+                    />
+                  </View>
+                </View>
+                <TouchableOpacity onPress={() => removeTier(idx)}>
+                  <Trash2 size={15} color={A.red} />
+                </TouchableOpacity>
+              </View>
+            ))}
+          </View>
+        ) : (
+          <View style={[styles.warnBox, { borderColor: A.amber, marginBottom: 12 }]}>
+            <AlertTriangle size={14} color={A.amber} />
+            <Text style={[styles.warnText, { color: A.amber }]}>No tiers set — the flat delivery fee above will be used.</Text>
+          </View>
+        )}
+
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          <TouchableOpacity style={[styles.saveBtn, { backgroundColor: A.cyan, flex: 1, marginTop: 0 }]} onPress={addTier}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+              <Plus size={14} color="#000" />
+              <Text style={[styles.saveBtnText, { color: '#000' }]}>Add Tier</Text>
+            </View>
+          </TouchableOpacity>
+          {feeTiers.length > 0 && (
+            <TouchableOpacity style={[styles.saveBtn, { backgroundColor: A.blue, flex: 1, marginTop: 0 }]} onPress={saveTiers} disabled={savingTiers}>
+              {savingTiers ? <ActivityIndicator size="small" color="#fff" /> : <Text style={[styles.saveBtnText, { color: '#fff' }]}>Save Tiers</Text>}
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
+
       <TouchableOpacity style={styles.logoutCard} onPress={onLogout}>
         <LogOut size={18} color={A.red} />
         <Text style={{ color: A.red, fontSize: 15, fontWeight: '600' }}>Logout</Text>
@@ -738,4 +1016,10 @@ const styles = StyleSheet.create({
   textInput: { backgroundColor: A.inputBg, borderRadius: 10, borderWidth: 1, borderColor: A.inputBorder, paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, color: A.text, minHeight: 48 },
   inputRow: { flexDirection: 'row', gap: 12 },
   gpsBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: A.greenDim, borderRadius: 10, paddingVertical: 14, borderWidth: 1, borderColor: A.green, marginTop: 16 },
+  searchRow: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: A.inputBg, borderRadius: 10, borderWidth: 1, paddingHorizontal: 12, marginBottom: 8 },
+  tierRow: { borderWidth: 1, borderRadius: 10, padding: 10, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  tierInputs: { flex: 1, flexDirection: 'row', gap: 6 },
+  tierField: { flex: 1 },
+  tierLabel: { fontSize: 10, fontWeight: '600', color: A.textSub, marginBottom: 3 },
+  tierInput: { backgroundColor: A.inputBg, borderRadius: 6, borderWidth: 1, paddingHorizontal: 8, paddingVertical: 8, fontSize: 13, minHeight: 40 },
 });

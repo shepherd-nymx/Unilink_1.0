@@ -15,6 +15,7 @@ import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { ArrowLeft, CircleAlert as AlertCircle, UserCheck, Bike, Car, ChevronRight, MapPin, Phone, Mail, User, Hop as Home, CreditCard, CircleCheck as CheckCircle2, Camera, Image as ImageIcon } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
+import { TermsAndConditions } from '@/components/TermsAndConditions';
 
 const { width } = Dimensions.get('window');
 
@@ -52,6 +53,11 @@ export default function DriverRegister() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [showTermsModal, setShowTermsModal] = useState(false);
+  const [termsContent, setTermsContent] = useState('');
+  const [privacyContent, setPrivacyContent] = useState('');
+  const [termsVersion, setTermsVersion] = useState('');
+  const [termsLoading, setTermsLoading] = useState(false);
 
   useEffect(() => {
     loadUniversities();
@@ -73,6 +79,36 @@ export default function DriverRegister() {
     } catch (err: any) {
       console.error('Failed to load universities:', err);
     }
+  };
+
+  const fetchTermsAndConditions = async () => {
+    setTermsLoading(true);
+    try {
+      const { data, error: termsErr } = await supabase
+        .from('terms_and_conditions')
+        .select('version, content, privacy_policy')
+        .eq('is_active', true)
+        .maybeSingle();
+      if (termsErr || !data) throw termsErr || new Error('No active terms found');
+      setTermsVersion(data.version);
+      setTermsContent(data.content || '');
+      setPrivacyContent(data.privacy_policy || '');
+      setShowTermsModal(true);
+    } catch {
+      setError('Failed to load Terms & Conditions.');
+    } finally {
+      setTermsLoading(false);
+    }
+  };
+
+  const handleTermsAccept = async () => {
+    setShowTermsModal(false);
+    await handleRegister();
+  };
+
+  const handleTermsDecline = () => {
+    setShowTermsModal(false);
+    setError('You must accept the Terms & Conditions to register.');
   };
 
   const handleRegister = async () => {
@@ -102,6 +138,11 @@ export default function DriverRegister() {
     }
     if (deliveryType === 'vehicle' && !vehicleType) {
       setError('Please provide vehicle type');
+      return;
+    }
+
+    if (!termsContent) {
+      await fetchTermsAndConditions();
       return;
     }
 
@@ -196,6 +237,9 @@ export default function DriverRegister() {
         fee_under_10: 2,
         fee_10_to_30: 5,
         fee_30_to_50: 8,
+        terms_accepted: true,
+        terms_version: termsVersion,
+        terms_accepted_at: new Date().toISOString(),
       });
 
       if (insertError) throw insertError;
@@ -574,17 +618,27 @@ export default function DriverRegister() {
           )}
 
           <TouchableOpacity
-            style={[styles.submitButton, loading && styles.submitButtonDisabled]}
-            onPress={handleRegister}
-            disabled={loading}
+            style={[styles.submitButton, (loading || termsLoading) && styles.submitButtonDisabled]}
+            onPress={() => {
+              if (!fullName || !phoneNumber || !address || !nationalId || !email.trim()) {
+                setError('Please fill in all required fields, including email');
+                return;
+              }
+              if (!idPhotoUri) { setError('Please upload a photo of your national ID card'); return; }
+              if (!universityId) { setError('Please select your service location'); return; }
+              if (universityId === 'other' && !customLocation.trim()) { setError('Please enter your service location'); return; }
+              if (deliveryType === 'vehicle' && !vehicleType) { setError('Please provide vehicle type'); return; }
+              if (termsContent) { setShowTermsModal(true); } else { fetchTermsAndConditions(); }
+            }}
+            disabled={loading || termsLoading}
             activeOpacity={0.85}
           >
             <View style={styles.submitButtonGlow} />
-            {loading ? (
+            {loading || termsLoading ? (
               <ActivityIndicator color={DARK_BG} size="small" />
             ) : (
               <>
-                <Text style={styles.submitButtonText}>Submit Application</Text>
+                <Text style={styles.submitButtonText}>Review Terms & Apply</Text>
                 <ChevronRight size={20} color={DARK_BG} />
               </>
             )}
@@ -599,6 +653,16 @@ export default function DriverRegister() {
           <View style={{ height: 40 }} />
         </Animated.View>
       </ScrollView>
+
+      <TermsAndConditions
+        visible={showTermsModal}
+        onAccept={handleTermsAccept}
+        onDecline={handleTermsDecline}
+        userType="driver"
+        termsContent={termsContent}
+        privacyContent={privacyContent}
+        loading={termsLoading}
+      />
     </View>
   );
 }

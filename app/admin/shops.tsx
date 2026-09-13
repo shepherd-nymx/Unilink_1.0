@@ -15,7 +15,7 @@ import {
 import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { A } from '@/lib/admin-theme';
-import { ArrowLeft, Store, CircleCheck as CheckCircle, Circle as XCircle, DollarSign, Clock, Ban, Eye, X, CircleAlert as AlertCircle, ShoppingBag, Settings, MapPin, Calendar, Smartphone } from 'lucide-react-native';
+import { ArrowLeft, Store, CircleCheck as CheckCircle, Circle as XCircle, DollarSign, Clock, Ban, Eye, X, CircleAlert as AlertCircle, ShoppingBag, Settings, MapPin, Calendar, Smartphone, Award } from 'lucide-react-native';
 import { SkeletonList } from '@/components/Skeleton';
 import { ConnectionBadge } from '@/components/ConnectionBadge';
 
@@ -35,6 +35,7 @@ type Shop = {
   rejection_reason: string | null;
   payment_verified_at: string | null;
   approved_at: string | null;
+  premium_badge: string | null;
 };
 
 type ShopOrder = {
@@ -97,6 +98,7 @@ export default function AdminShops() {
   const [ecocashSaved, setEcocashSaved] = useState(false);
   const [error, setError] = useState('');
   const [connState, setConnState] = useState<'connecting' | 'connected' | 'disconnected' | 'error'>('connecting');
+  const [savingBadge, setSavingBadge] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -811,6 +813,42 @@ export default function AdminShops() {
                   )}
                   <Text style={styles.modalLabel}>REGISTERED</Text>
                   <Text style={styles.modalValue}>{new Date(selectedShop.created_at).toLocaleString()}</Text>
+
+                  <Text style={[styles.modalLabel, { marginTop: 20 }]}>PREMIUM BADGE</Text>
+                  <Text style={{ fontSize: 12, color: A.textSub, marginTop: 4, marginBottom: 10 }}>Assign a premium badge to highlight this shop to customers.</Text>
+                  <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' as any }}>
+                    {[
+                      { key: null, label: 'None', color: A.textSub },
+                      { key: 'blue', label: 'Blue', color: '#3b82f6' },
+                      { key: 'green', label: 'Green', color: '#22c55e' },
+                      { key: 'platinum', label: 'Platinum', color: '#e5e4e2' },
+                    ].map(b => {
+                      const active = (selectedShop as any).premium_badge === b.key;
+                      return (
+                        <TouchableOpacity
+                          key={b.label}
+                          style={{
+                            flexDirection: 'row', alignItems: 'center', gap: 6,
+                            paddingHorizontal: 14, paddingVertical: 10, borderRadius: 8, borderWidth: 1.5,
+                            backgroundColor: active ? `${b.color}20` : A.card,
+                            borderColor: active ? b.color : A.border,
+                            opacity: savingBadge ? 0.5 : 1,
+                          }}
+                          onPress={async () => {
+                            setSavingBadge(true);
+                            await supabase.from('shops').update({ premium_badge: b.key }).eq('id', selectedShop.id);
+                            setSavingBadge(false);
+                            setShops(prev => prev.map(s => s.id === selectedShop.id ? { ...s, premium_badge: b.key } as Shop : s));
+                            setSelectedShop({ ...selectedShop, premium_badge: b.key } as Shop);
+                          }}
+                          disabled={savingBadge}
+                        >
+                          {b.key !== null && <Award size={12} color={b.color} />}
+                          <Text style={{ fontSize: 12, fontWeight: '700', color: active ? b.color : A.textSub }}>{b.label}</Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
                 </ScrollView>
               </>
             )}

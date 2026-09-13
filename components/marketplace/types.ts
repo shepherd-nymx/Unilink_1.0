@@ -19,7 +19,39 @@ export type Shop = {
   ecocash_fee: number;
   delivery_fee: number;
   whatsapp_number?: string | null;
+  premium_badge?: string | null;
 };
+
+export type DeliveryFeeTier = {
+  id: string;
+  shop_id: string;
+  min_amount: number;
+  max_amount: number | null;
+  fee: number;
+  label: string | null;
+  sort_order: number;
+};
+
+export function computeTierDeliveryFee(
+  cartTotal: number,
+  tiers: DeliveryFeeTier[],
+  fallbackFee: number
+): number {
+  if (!tiers || tiers.length === 0) return fallbackFee;
+  const sorted = [...tiers].sort((a, b) => a.min_amount - b.min_amount);
+  for (const tier of sorted) {
+    const min = Number(tier.min_amount);
+    const max = tier.max_amount != null ? Number(tier.max_amount) : Infinity;
+    if (cartTotal >= min && cartTotal < max) {
+      return Number(tier.fee);
+    }
+  }
+  const last = sorted[sorted.length - 1];
+  if (last && last.max_amount == null && cartTotal >= Number(last.min_amount)) {
+    return Number(last.fee);
+  }
+  return fallbackFee;
+}
 
 export type Product = {
   id: string;

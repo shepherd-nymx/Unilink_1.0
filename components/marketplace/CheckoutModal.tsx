@@ -5,7 +5,7 @@ import {
   MessageCircle, Store, MapPin, Phone, Navigation, Package, CircleCheck as CheckCircle,
   CircleAlert as AlertTriangle, FileText, ChevronRight, ChevronDown, ChevronUp,
 } from 'lucide-react-native';
-import { CartByShop, Shop, ThemePalette, formatPaymentMethod, getAcceptedMethods, computeShopOpen, formatOperatingHours } from './types';
+import { CartByShop, Shop, ThemePalette, formatPaymentMethod, getAcceptedMethods, computeShopOpen, formatOperatingHours, DeliveryFeeTier, computeTierDeliveryFee } from './types';
 import * as Location from 'expo-location';
 
 type Props = {
@@ -19,12 +19,13 @@ type Props = {
   onClose: () => void;
   onPlaceOrder: (deliveryLocation: string, lat: number | null, lng: number | null, paymentMethod: string, deliveryFee: number, ecocashFeeAmount: number) => void;
   customerId?: string;
+  deliveryFeeTiers?: Record<string, DeliveryFeeTier[]>;
 };
 
 const ALL_PAYMENT_METHODS = ['pay_on_delivery', 'ecocash', 'paynow', 'card', 'bank_transfer'];
 
 export function CheckoutModal({
-  visible, palette, cartByShop, shops, cartTotal, placingOrder, error, onClose, onPlaceOrder, customerId,
+  visible, palette, cartByShop, shops, cartTotal, placingOrder, error, onClose, onPlaceOrder, customerId, deliveryFeeTiers = {},
 }: Props) {
   const [deliveryLocation, setDeliveryLocation] = useState('');
   const [confirmedLatitude, setConfirmedLatitude] = useState<number | null>(null);
@@ -88,12 +89,17 @@ export function CheckoutModal({
       }, 0)
     : 0;
 
-  const shopDeliveryFee = cartByShop.length > 0
-    ? (() => {
-        const shop = shops.find(s => s.id === cartByShop[0].shopId);
-        return shop?.delivery_fee != null ? String(shop.delivery_fee) : null;
-      })()
-    : null;
+  // Compute tier-based delivery fee: sum per-shop fees based on each shop's cart total
+  const tierBasedDeliveryFee = cartByShop.reduce((sum, sc) => {
+    const shop = shops.find(s => s.id === sc.shopId);
+    const fallback = shop?.delivery_fee != null ? Number(shop.delivery_fee) : parseFloat(deliveryFee) || 0;
+    return sum + computeTierDeliveryFee(sc.total, deliveryFeeTiers[sc.shopId] || [], fallback);
+  }, 0);
+
+  const shopHasOwnFee = cartByShop.some(sc => {
+    const shop = shops.find(s => s.id === sc.shopId);
+    return shop?.delivery_fee != null || (deliveryFeeTiers[sc.shopId] && deliveryFeeTiers[sc.shopId].length > 0);
+  });
 
   const shopsWithWhatsapp = cartByShop.filter(sc => {
     const shop = shops.find(s => s.id === sc.shopId);
@@ -107,7 +113,7 @@ export function CheckoutModal({
   const firstWhatsappShop = shopsWithWhatsapp[0] ? shops.find(s => s.id === shopsWithWhatsapp[0].shopId) : null;
   const whatsappNumber = firstWhatsappShop?.whatsapp_number || '';
 
-  const effectiveDeliveryFee = shopDeliveryFee != null ? shopDeliveryFee : deliveryFee;
+  const effectiveDeliveryFee = shopHasOwnFee ? String(tierBasedDeliveryFee.toFixed(2)) : deliveryFee;
 
   const confirmLocation = async () => {
     if (!deliveryLocation.trim()) return;
@@ -392,10 +398,10 @@ export function CheckoutModal({
           ) : null}
 
           <Text style={[styles.label, { color: palette.textSecondary, marginTop: 16 }]}>DELIVERY FEE</Text>
-          {shopDeliveryFee != null ? (
+          {shopHasOwnFee ? (
             <View style={[styles.input, { backgroundColor: palette.inputBg, borderColor: palette.inputBorder, flexDirection: 'row', alignItems: 'center' }]}>
-              <Text style={{ color: palette.textPrimary, fontSize: 15, flex: 1 }}>${parseFloat(shopDeliveryFee).toFixed(2)}</Text>
-              <Text style={{ color: palette.textSecondary, fontSize: 11 }}>Set by shop</Text>
+              <Text style={{ color: palette.textPrimary, fontSize: 15, flex: 1 }}>${tierBasedDeliveryFee.toFixed(2)}</Text>
+              <Text style={{ color: palette.textSecondary, fontSize: 11 }}>Based on order total</Text>
             </View>
           ) : (
             <TextInput
