@@ -7,6 +7,7 @@ import {
   Platform,
   ActivityIndicator,
   Modal,
+  Linking,
 } from 'react-native';
 import { A } from '@/lib/admin-theme';
 import { STATUS_LABELS, type ShopOrder, type Driver } from '@/lib/shop-types';
@@ -20,6 +21,7 @@ import {
   Bike,
   MessageSquare,
   Smartphone,
+  MessageCircle,
 } from 'lucide-react-native';
 
 const VEHICLE_BADGES: Record<string, { label: string; color: string }> = {
@@ -229,8 +231,31 @@ export function OrderDetailModal({
                               </View>
                             </View>
                           </View>
-                          <View style={styles.driverRowAssignBtn}>
-                            <Text style={styles.driverRowAssignBtnText}>Assign</Text>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                            {(() => {
+                              const waNum = (d.whatsapp_number || d.phone_number || '').replace(/[^0-9]/g, '');
+                              if (!waNum) return null;
+                              return (
+                                <TouchableOpacity
+                                  style={styles.driverRowWhatsAppBtn}
+                                  onPress={() => {
+                                    const orderRef = order.id.slice(0, 8);
+                                    const msg = encodeURIComponent(`Hi ${d.full_name}, I have an order (#${orderRef}) from ${order.customer_name || 'a customer'} ready for delivery to ${order.delivery_location || 'the customer'}. Are you available to pick it up?`);
+                                    Linking.openURL(`https://wa.me/${waNum}?text=${msg}`).catch(() => {});
+                                  }}
+                                >
+                                  <MessageCircle size={13} color="#fff" />
+                                  <Text style={styles.driverRowWhatsAppBtnText}>WhatsApp</Text>
+                                </TouchableOpacity>
+                              );
+                            })()}
+                            <TouchableOpacity
+                              style={styles.driverRowAssignBtn}
+                              onPress={() => onAssignDriver(d.id)}
+                              disabled={assigningDriver}
+                            >
+                              <Text style={styles.driverRowAssignBtnText}>Assign</Text>
+                            </TouchableOpacity>
                           </View>
                         </TouchableOpacity>
                       );
@@ -321,6 +346,11 @@ const styles = StyleSheet.create({
     backgroundColor: A.cyan, borderRadius: 8, paddingHorizontal: 14, paddingVertical: 8,
   },
   driverRowAssignBtnText: { color: '#fff', fontSize: 13, fontWeight: '700' },
+  driverRowWhatsAppBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    backgroundColor: '#25D366', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 8,
+  },
+  driverRowWhatsAppBtnText: { color: '#fff', fontSize: 12, fontWeight: '700' },
   driverName: { fontSize: 14, fontWeight: '600', color: A.text },
   driverPhone: { fontSize: 12, color: A.textSub, marginTop: 2 },
   driverBadges: { flexDirection: 'row', gap: 6, marginTop: 6, flexWrap: 'wrap' },

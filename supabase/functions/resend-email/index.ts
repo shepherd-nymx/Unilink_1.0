@@ -1,21 +1,18 @@
 import { createClient } from "npm:@supabase/supabase-js@2.58.0";
+import nodemailer from "npm:nodemailer@6.9.16";
 
 // ---------------------------------------------------------------------------
-// UniLink transactional email dispatcher (Resend)
+// UniLink transactional email dispatcher (Gmail SMTP)
 //
-// Responsibilities:
-//   • Accept a typed email request from the frontend / other edge functions.
-//   • Enforce idempotency via the email_notifications unique indexes.
-//   • Render branded responsive HTML + plain-text bodies.
-//   • Call Resend, log the result (resend_id, status), and never leak secrets.
-//   • Never block the caller's flow on Resend failure — return 200 with a
-//     logged error so retries can happen later.
+// Sends via Gmail using nodemailer. Credentials are read from server-side
+// environment variables (GMAIL_USER, GMAIL_APP_PASSWORD) and never exposed
+// to the client.
 //
-// Required env (configured automatically as Supabase secrets):
-//   RESEND_API_KEY   — Resend API key
+// Required env (configured as Supabase secrets):
+//   GMAIL_USER         — Gmail address (unilinkbase@gmail.com)
+//   GMAIL_APP_PASSWORD — Gmail App Password (16 chars, no spaces)
 //   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY — DB access (bypasses RLS)
-//   EMAIL_FROM       — sender address (default: no-reply@unilinkbase.com)
-//   APP_URL          — public app base URL for CTAs (default: https://unilinkbase.com)
+//   APP_URL            — public app base URL for CTAs (default: https://unilinkbase.com)
 // ---------------------------------------------------------------------------
 
 const corsHeaders = {
@@ -24,8 +21,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
 };
 
-const RESEND_API = "https://api.resend.com/emails";
-const FROM_ADDRESS = "onboarding@resend.dev";
+const FROM_ADDRESS = Deno.env.get("GMAIL_USER") || "unilinkbase@gmail.com";
 const APP_URL = (Deno.env.get("APP_URL") || "https://unilinkbase.com").replace(/\/$/, "");
 
 type EmailType =
@@ -44,7 +40,8 @@ type EmailType =
   | "shop_activated"
   | "shop_new_order"
   | "shop_order_status"
-  | "shop_messenger_assigned";
+  | "shop_messenger_assigned"
+  | "new_dm";
 
 interface EmailRequest {
   type: EmailType;
@@ -137,31 +134,30 @@ async function markFailed(
     .eq("id", id);
 }
 
-async function sendViaResend(payload: {
+async function sendViaGmail(payload: {
   from: string;
   to: string;
   subject: string;
   html: string;
   text: string;
 }): Promise<{ id: string }> {
-  const apiKey = "re_NNaxUkXw_E7kfw4MPGR8BqX31kMZoqy4r";
-  if (!apiKey) throw new Error("RESEND_API_KEY not configured");
+  const gmailUser = Deno.env.get("GMAIL_USER");
+  const gmailPass = Deno.env.get("GMAIL_APP_PASSWORD");
+  if (!gmailUser || !gmailPass) throw new Error("Gmail credentials not configured");
 
-  const res = await fetch(RESEND_API, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(payload),
+  const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: { user: gmailUser, pass: gmailPass },
   });
 
-  const body = await res.json();
-  if (!res.ok) {
-    const msg = body?.message || body?.error || `Resend HTTP ${res.status}`;
-    throw new Error(msg);
-  }
-  return { id: body.id };
+  const info = await transporter.sendMail({
+    from: `UniLink <${payload.from}>`,
+    to: payload.to,
+    subject: payload.subject,
+    html: payload.html,
+    text: payload.text,
+  });
+  return { id: info.messageId || `gmail_${Date.now()}` };
 }
 
 function logoBlock(): string {
@@ -462,6 +458,20 @@ function renderShopMessengerAssigned(d: Record<string, any>): { subject: string;
   return { subject: `Delivery assigned — #${orderNum}`, html, text };
 }
 
+function renderNewDm(d: Record<string, any>): { subject: string; html: string; text: string } {
+  const senderName = d.senderName || "Someone";
+  const preview = d.preview || "";
+  const chatUrl = d.chatUrl || `${APP_URL}`;
+  const html = `
+    <h1>New message from ${escapeHtml(senderName)}</h1>
+    <p>You have a new direct message on UniLink.</p>
+    ${preview ? `<p style="font-size:16px;background:#f0f4f8;border-radius:8px;padding:12px 16px;">${escapeHtml(preview)}</p>` : ""}
+    ${ctaButton(chatUrl, "Open Chat")}
+    <p class="small">Reply in the app to continue the conversation.</p>`;
+  const text = `New message from ${senderName}\n\n${preview}\n\nOpen chat: ${chatUrl}`;
+  return { subject: `New message from ${senderName}`, html, text };
+}
+
 function render(req: EmailRequest): { subject: string; html: string; text: string } {
   const d = req.data || {};
   switch (req.type) {
@@ -481,6 +491,7 @@ function render(req: EmailRequest): { subject: string; html: string; text: strin
     case "shop_new_order": return renderShopNewOrder(d);
     case "shop_order_status": return renderShopOrderStatus(d);
     case "shop_messenger_assigned": return renderShopMessengerAssigned(d);
+    case "new_dm": return renderNewDm(d);
     default: throw new Error(`Unknown email type: ${req.type}`);
   }
 }
@@ -556,8 +567,8 @@ async function sendOne(
   if (!id) return { id: null, status: "skipped", duplicate: false, error: "no slot" };
 
   try {
-    const { id: resendId } = await sendViaResend({
-      from: `UniLink <${FROM_ADDRESS}>`,
+    const { id: resendId } = await sendViaGmail({
+      from: FROM_ADDRESS,
       to: req.to,
       subject: rendered.subject,
       html: emailShell(rendered.subject, rendered.html, rendered.subject),
@@ -630,8 +641,8 @@ Deno.serve(async (req: Request) => {
         });
       }
       try {
-        const { id: resendId } = await sendViaResend({
-          from: `UniLink <${FROM_ADDRESS}>`,
+        const { id: resendId } = await sendViaGmail({
+          from: FROM_ADDRESS,
           to: retryReq.to,
           subject: rendered.subject,
           html: emailShell(rendered.subject, rendered.html, rendered.subject),

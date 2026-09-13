@@ -33,6 +33,7 @@ const OTHER_BUBBLE = '#0a1a2e';
 const OTHER_BUBBLE_BORDER = '#0e2240';
 const BROADCAST_BG = '#1a1200';
 const BROADCAST_BORDER = '#3a2800';
+const APP_BASE_URL = 'https://unilinkbase.com';
 
 type Message = {
   id: string;
@@ -323,6 +324,58 @@ export default function ChatInterface({
     return () => { supabase.removeChannel(channel); };
   };
 
+  const sendDmEmailNotification = async (messageText: string) => {
+    try {
+      const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
+      const anonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+      if (!supabaseUrl || !anonKey || !conversationId) return;
+
+      let recipientEmail: string | null = null;
+      let senderName = 'Someone';
+      let chatUrl = APP_BASE_URL;
+
+      if (currentUserType === 'customer' && driverId) {
+        const { data } = await supabase.from('drivers').select('email, full_name').eq('id', driverId).maybeSingle();
+        recipientEmail = data?.email || null;
+        senderName = customerName || 'Customer';
+        chatUrl = `${APP_BASE_URL}/driver/chat`;
+      } else if (currentUserType === 'customer' && shopId) {
+        const { data } = await supabase.from('shops').select('contact_email, name').eq('id', shopId).maybeSingle();
+        recipientEmail = data?.contact_email || null;
+        senderName = customerName || 'Customer';
+        chatUrl = `${APP_BASE_URL}/shop/chat`;
+      } else if (currentUserType === 'driver' && customerId) {
+        const { data } = await supabase.from('customers').select('email, full_name').eq('id', customerId).maybeSingle();
+        recipientEmail = data?.email || null;
+        senderName = driverName || 'Your messenger';
+        chatUrl = `${APP_BASE_URL}/customer/chat`;
+      } else if (currentUserType === 'shop' && customerId) {
+        const { data } = await supabase.from('customers').select('email, full_name').eq('id', customerId).maybeSingle();
+        recipientEmail = data?.email || null;
+        senderName = shopName || 'Shop';
+        chatUrl = `${APP_BASE_URL}/customer/marketplace/chat`;
+      }
+
+      if (!recipientEmail) return;
+
+      await fetch(`${supabaseUrl}/functions/v1/resend-email`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${anonKey}` },
+        body: JSON.stringify({
+          type: 'new_dm',
+          to: recipientEmail,
+          data: {
+            senderName,
+            preview: messageText.length > 120 ? messageText.slice(0, 120) + '...' : messageText,
+            chatUrl,
+          },
+        }),
+      });
+    } catch {
+      // fire-and-forget — never block the chat
+    }
+  };
+
   const sendMessage = async () => {
     if (!newMessage.trim() || !conversationId || sending) return;
     setSending(true);
@@ -337,6 +390,7 @@ export default function ChatInterface({
         is_broadcast: false,
       });
       if (error) throw error;
+      sendDmEmailNotification(messageText);
     } catch (err) {
       console.error('Error sending message:', err);
       setNewMessage(messageText);
