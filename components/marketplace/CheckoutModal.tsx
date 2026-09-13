@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, TextInput, StyleSheet, ActivityIndicator, Platform } from 'react-native';
-import { X, Truck, CreditCard, CircleAlert as AlertCircle, Lock, ExternalLink, Zap } from 'lucide-react-native';
+import { View, Text, ScrollView, TouchableOpacity, TextInput, StyleSheet, ActivityIndicator, Platform, Linking } from 'react-native';
+import { X, Truck, CreditCard, CircleAlert as AlertCircle, Lock, ExternalLink, Zap, MessageCircle } from 'lucide-react-native';
 import { CartByShop, Shop, ThemePalette, formatPaymentMethod, getAcceptedMethods, computeShopOpen } from './types';
 
 type Props = {
@@ -24,6 +24,11 @@ export function CheckoutModal({
   const [deliveryLocation, setDeliveryLocation] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('pay_on_delivery');
   const [deliveryFee, setDeliveryFee] = useState('2.00');
+  const [whatsappConfirmed, setWhatsappConfirmed] = useState(false);
+
+  useEffect(() => {
+    if (visible) setWhatsappConfirmed(false);
+  }, [visible]);
 
   const unavailableShops = cartByShop.filter(sc => {
     const shop = shops.find(s => s.id === sc.shopId);
@@ -72,15 +77,37 @@ export function CheckoutModal({
       })()
     : null;
 
+  const shopsWithWhatsapp = cartByShop.filter(sc => {
+    const shop = shops.find(s => s.id === sc.shopId);
+    return !!shop?.whatsapp_number;
+  });
+  const requiresWhatsapp = shopsWithWhatsapp.length > 0;
+  const whatsappShopNames = shopsWithWhatsapp.map(sc => {
+    const shop = shops.find(s => s.id === sc.shopId);
+    return shop?.name || '';
+  }).filter(Boolean);
+  const firstWhatsappShop = shopsWithWhatsapp[0] ? shops.find(s => s.id === shopsWithWhatsapp[0].shopId) : null;
+  const whatsappNumber = firstWhatsappShop?.whatsapp_number || '';
+
   const effectiveDeliveryFee = shopDeliveryFee != null ? shopDeliveryFee : deliveryFee;
 
   const handlePlace = () => {
     if (!deliveryLocation.trim()) return;
     if (anyBlocked) return;
+    if (requiresWhatsapp && !whatsappConfirmed) return;
     onPlaceOrder(deliveryLocation.trim(), null, null, paymentMethod, parseFloat(effectiveDeliveryFee) || 0, totalEcocashFee);
   };
 
-  const canPlace = !!deliveryLocation.trim() && !placingOrder && !anyBlocked;
+  const canPlace = !!deliveryLocation.trim() && !placingOrder && !anyBlocked && (!requiresWhatsapp || whatsappConfirmed);
+
+  const openShopWhatsApp = () => {
+    const num = (whatsappNumber || '').replace(/[^0-9]/g, '');
+    if (!num) return;
+    const msg = encodeURIComponent(
+      `Hi ${whatsappShopNames.join(', ')}, I'd like to place an order through UniLink marketplace.`
+    );
+    Linking.openURL(`https://wa.me/${num}?text=${msg}`).then(() => setWhatsappConfirmed(true)).catch(() => {});
+  };
   const isPaynow = paymentMethod === 'paynow';
   const numericDeliveryFee = parseFloat(effectiveDeliveryFee) || 0;
   const grandTotal = cartTotal + numericDeliveryFee + totalEcocashFee;
@@ -127,6 +154,38 @@ export function CheckoutModal({
               The shop will assign a messenger to deliver your order. No need to select one yourself.
             </Text>
           </View>
+
+          {requiresWhatsapp && !anyBlocked ? (
+            <View style={{ marginTop: 12, gap: 6 }}>
+              <TouchableOpacity
+                style={{
+                  flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+                  paddingVertical: 14, borderRadius: 12,
+                  backgroundColor: whatsappConfirmed ? `${palette.success}15` : '#25D366',
+                  borderWidth: whatsappConfirmed ? 1.5 : 0,
+                  borderColor: '#25D366',
+                }}
+                onPress={openShopWhatsApp}
+                activeOpacity={0.8}
+              >
+                <MessageCircle size={16} color={whatsappConfirmed ? '#25D366' : '#fff'} />
+                <Text style={{
+                  fontSize: 13, fontWeight: '800',
+                  color: whatsappConfirmed ? '#25D366' : '#fff',
+                }}>
+                  {whatsappConfirmed ? 'WhatsApp Sent' : 'Send WhatsApp to Shop (Required)'}
+                </Text>
+              </TouchableOpacity>
+              {!whatsappConfirmed && (
+                <Text style={{
+                  fontSize: 11, color: palette.warning,
+                  textAlign: 'center', lineHeight: 16,
+                }}>
+                  {whatsappShopNames.join(', ')} requires you to send a WhatsApp message confirming your order before placing it.
+                </Text>
+              )}
+            </View>
+          ) : null}
 
           <Text style={[styles.label, { color: palette.textSecondary, marginTop: 16 }]}>DELIVERY FEE</Text>
           {shopDeliveryFee != null ? (
@@ -229,7 +288,7 @@ export function CheckoutModal({
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
               {isPaynow && <ExternalLink size={16} color="#fff" />}
               <Text style={styles.placeOrderBtnText}>
-                {anyUnavailable ? 'Shop Unavailable' : anyClosed ? 'Shop Closed — No Orders' : isPaynow ? `Pay ${grandTotal.toFixed(2)} via Paynow` : 'Place Order(s)'}
+                {anyUnavailable ? 'Shop Unavailable' : anyClosed ? 'Shop Closed — No Orders' : requiresWhatsapp && !whatsappConfirmed ? 'Send WhatsApp First' : isPaynow ? `Pay ${grandTotal.toFixed(2)} via Paynow` : 'Place Order(s)'}
               </Text>
             </View>
           )}

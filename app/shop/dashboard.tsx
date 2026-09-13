@@ -294,6 +294,8 @@ export default function ShopDashboard() {
               driverWhatsApp: result.driver_whatsapp,
               shopName: shop.name,
               shopAddress: shop.address || shop.name,
+              shopWhatsApp: shop.whatsapp_number || null,
+              recipientType: 'driver',
               customerName: selectedOrder.customer_name || 'Customer',
               customerPhone: selectedOrder.customer_phone || 'N/A',
               deliveryLocation: selectedOrder.delivery_location || 'See app',

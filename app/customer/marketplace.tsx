@@ -102,6 +102,7 @@ export default function Marketplace() {
     try {
       const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
       const anonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+      const shop = shops.find(s => s.id === shopCart.shopId);
       await fetch(`${supabaseUrl}/functions/v1/send-whatsapp-notification`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${anonKey}` },
@@ -110,6 +111,8 @@ export default function Marketplace() {
           orderNumber,
           shopName: shopCart.shopName,
           shopAddress: 'See order details in app',
+          shopWhatsApp: shop?.whatsapp_number || null,
+          recipientType: 'shop',
           customerName: customerData?.full_name || 'Customer',
           customerPhone: customerData?.phone_number || 'N/A',
           deliveryLocation,
@@ -127,7 +130,7 @@ export default function Marketplace() {
     try {
       const { data: shopData, error: shopErr } = await supabase
         .from('shops')
-        .select('id, name, logo_url, description, address, hours, slug, latitude, longitude, is_available, operating_hours, accepted_payment_methods, location_verified, completed_orders_count, location, ecocash_fee, delivery_fee')
+        .select('id, name, logo_url, description, address, hours, slug, latitude, longitude, is_available, operating_hours, accepted_payment_methods, location_verified, completed_orders_count, location, ecocash_fee, delivery_fee, whatsapp_number')
         .eq('status', 'active')
         .order('name');
       if (shopErr) throw shopErr;
@@ -350,6 +353,11 @@ export default function Marketplace() {
             address: deliveryLocation,
           }, order?.id);
         }
+
+        sendWhatsAppNotification(
+          order?.id || '', order?.id?.slice(0, 8) || '', shopCart,
+          customer, deliveryLocation, paymentMethod, deliveryFee
+        );
       }
 
       setCart([]);
