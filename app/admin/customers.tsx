@@ -13,7 +13,7 @@ import {
 import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { parseDMS, toDMS } from '@/lib/gps-utils';
-import { ArrowLeft, Plus, User, MapPin, CreditCard as Edit2, Trash2, School } from 'lucide-react-native';
+import { ArrowLeft, Plus, User, CreditCard as Edit2, Trash2, School, Mail } from 'lucide-react-native';
 import { A } from '@/lib/admin-theme';
 
 type Customer = {
@@ -21,12 +21,13 @@ type Customer = {
   username: string;
   phone_number: string;
   full_name: string;
-  location: string;
+  email?: string;
+  location?: string;
   latitude: number | null;
   longitude: number | null;
   created_at: string;
   university_id?: string;
-  universities?: { name: string };
+  universities?: { name: string } | { name: string }[] | null;
 };
 
 export default function ManageCustomers() {
@@ -42,12 +43,13 @@ export default function ManageCustomers() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [totalCount, setTotalCount] = useState(0);
 
   const [formData, setFormData] = useState({
     username: '',
     phoneNumber: '',
     fullName: '',
-    location: '',
+    email: '',
     gpsCoordinates: '',
   });
 
@@ -69,19 +71,22 @@ export default function ManageCustomers() {
 
   const loadCustomers = async () => {
     try {
+      setLoading(true);
       let query = supabase
         .from('customers')
-        .select('*, universities(name)')
-        .order('created_at', { ascending: false });
+        .select('id, username, phone_number, full_name, email, latitude, longitude, created_at, university_id, universities(name)', { count: 'exact' })
+        .order('created_at', { ascending: false })
+        .limit(1000);
 
       if (selectedUniversityFilter) {
         query = query.eq('university_id', selectedUniversityFilter);
       }
 
-      const { data, error: dbError } = await query;
+      const { data, error: dbError, count } = await query;
 
       if (dbError) throw dbError;
       setCustomers(data || []);
+      setTotalCount(count ?? (data || []).length);
     } catch (err: any) {
       setError(err.message || 'Failed to load customers');
     } finally {
@@ -104,7 +109,7 @@ export default function ManageCustomers() {
   };
 
   const addCustomer = async () => {
-    if (!formData.username || !formData.phoneNumber || !formData.fullName || !formData.location) {
+    if (!formData.username || !formData.phoneNumber || !formData.fullName) {
       setError('Please fill in all required fields');
       return;
     }
@@ -126,21 +131,21 @@ export default function ManageCustomers() {
         return;
       }
 
-      const customerData = {
+      const customerData: any = {
         username: formData.username,
         phone_number: formData.phoneNumber,
         full_name: formData.fullName,
-        location: formData.location,
         latitude: coords.latitude,
         longitude: coords.longitude,
       };
+      if (formData.email) customerData.email = formData.email;
 
       const { error: dbError } = await supabase.from('customers').insert(customerData);
 
       if (dbError) throw dbError;
 
       setShowModal(false);
-      setFormData({ username: '', phoneNumber: '', fullName: '', location: '', gpsCoordinates: '' });
+      setFormData({ username: '', phoneNumber: '', fullName: '', email: '', gpsCoordinates: '' });
       loadCustomers();
     } catch (err: any) {
       setError(err.message || 'Failed to add customer');
@@ -150,7 +155,7 @@ export default function ManageCustomers() {
   };
 
   const updateCustomer = async () => {
-    if (!editingCustomer || !formData.username || !formData.phoneNumber || !formData.fullName || !formData.location) {
+    if (!editingCustomer || !formData.username || !formData.phoneNumber || !formData.fullName) {
       setError('Please fill in all required fields');
       return;
     }
@@ -172,14 +177,14 @@ export default function ManageCustomers() {
         return;
       }
 
-      const customerData = {
+      const customerData: any = {
         username: formData.username,
         phone_number: formData.phoneNumber,
         full_name: formData.fullName,
-        location: formData.location,
         latitude: coords.latitude,
         longitude: coords.longitude,
       };
+      if (formData.email) customerData.email = formData.email;
 
       const { error: dbError } = await supabase
         .from('customers')
@@ -190,7 +195,7 @@ export default function ManageCustomers() {
 
       setShowModal(false);
       setEditingCustomer(null);
-      setFormData({ username: '', phoneNumber: '', fullName: '', location: '', gpsCoordinates: '' });
+      setFormData({ username: '', phoneNumber: '', fullName: '', email: '', gpsCoordinates: '' });
       loadCustomers();
     } catch (err: any) {
       setError(err.message || 'Failed to update customer');
@@ -208,7 +213,7 @@ export default function ManageCustomers() {
       username: customer.username,
       phoneNumber: customer.phone_number,
       fullName: customer.full_name,
-      location: customer.location || '',
+      email: customer.email || '',
       gpsCoordinates: gpsString,
     });
     setShowModal(true);
@@ -291,7 +296,7 @@ export default function ManageCustomers() {
         <TouchableOpacity
           onPress={() => {
             setEditingCustomer(null);
-            setFormData({ username: '', phoneNumber: '', fullName: '', location: '', gpsCoordinates: '' });
+            setFormData({ username: '', phoneNumber: '', fullName: '', email: '', gpsCoordinates: '' });
             setShowModal(true);
           }}
           style={{
@@ -356,7 +361,7 @@ export default function ManageCustomers() {
         {/* Section title */}
         <View style={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 8 }}>
           <Text style={{ fontSize: 10, fontWeight: '700', letterSpacing: 2, color: A.textMuted }}>
-            ALL CUSTOMERS — {customers.length}
+            ALL CUSTOMERS — {totalCount}
           </Text>
         </View>
 
@@ -414,19 +419,12 @@ export default function ManageCustomers() {
                       {customer.universities && (
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 }}>
                           <School size={12} color={A.cyan} />
-                          <Text style={{ fontSize: 12, color: A.cyan, fontWeight: '500' }}>{customer.universities.name}</Text>
+                          <Text style={{ fontSize: 12, color: A.cyan, fontWeight: '500' }}>{Array.isArray(customer.universities) ? customer.universities[0]?.name : customer.universities.name}</Text>
                         </View>
                       )}
-                      {customer.location ? (
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6 }}>
-                          <MapPin size={13} color={A.green} />
-                          <Text style={{ fontSize: 13, color: A.green, fontWeight: '500' }}>{customer.location}</Text>
-                        </View>
-                      ) : (
-                        <Text style={{ fontSize: 12, color: A.textMuted, fontStyle: 'italic', marginTop: 6 }}>
-                          No location set
-                        </Text>
-                      )}
+                      {customer.email ? (
+                        <Text style={{ fontSize: 12, color: A.textSub, marginTop: 2 }}>{customer.email}</Text>
+                      ) : null}
                       {customer.latitude && customer.longitude && (
                         <Text
                           style={{
@@ -524,17 +522,16 @@ export default function ManageCustomers() {
               </View>
 
               <View style={{ gap: 6 }}>
-                <Text style={{ fontSize: 11, fontWeight: '700', letterSpacing: 1, color: A.textMuted }}>LOCATION</Text>
+                <Text style={{ fontSize: 11, fontWeight: '700', letterSpacing: 1, color: A.textMuted }}>EMAIL (OPTIONAL)</Text>
                 <TextInput
                   style={{ backgroundColor: A.inputBg, borderWidth: 1, borderColor: A.inputBorder, borderRadius: 10, padding: 12, fontSize: 15, color: A.text }}
-                  value={formData.location}
-                  onChangeText={text => setFormData({ ...formData, location: text })}
-                  placeholder="e.g., Harare CBD, Avondale, Borrowdale"
+                  value={formData.email}
+                  onChangeText={text => setFormData({ ...formData, email: text })}
+                  placeholder="customer@email.com"
                   placeholderTextColor={A.textMuted}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
                 />
-                <Text style={{ fontSize: 11, color: A.textSub, fontStyle: 'italic' }}>
-                  Enter the area or neighborhood name where the customer is located
-                </Text>
               </View>
 
               <View style={{ gap: 6 }}>
@@ -559,7 +556,7 @@ export default function ManageCustomers() {
                 onPress={() => {
                   setShowModal(false);
                   setEditingCustomer(null);
-                  setFormData({ username: '', phoneNumber: '', fullName: '', location: '', gpsCoordinates: '' });
+                  setFormData({ username: '', phoneNumber: '', fullName: '', email: '', gpsCoordinates: '' });
                   setError('');
                 }}
               >
