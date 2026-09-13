@@ -12,7 +12,7 @@ type Props = {
   placingOrder: boolean;
   error: string;
   onClose: () => void;
-  onPlaceOrder: (deliveryLocation: string, lat: number | null, lng: number | null, paymentMethod: string, deliveryFee: number) => void;
+  onPlaceOrder: (deliveryLocation: string, lat: number | null, lng: number | null, paymentMethod: string, deliveryFee: number, ecocashFeeAmount: number) => void;
   customerId?: string;
   selectedDriver: Driver | null;
   availableDrivers: Driver[];
@@ -23,7 +23,7 @@ type Props = {
   onCloseDriverPicker: () => void;
 };
 
-const ALL_PAYMENT_METHODS = ['pay_on_delivery', 'paynow', 'card', 'bank_transfer'];
+const ALL_PAYMENT_METHODS = ['pay_on_delivery', 'ecocash', 'paynow', 'card', 'bank_transfer'];
 
 export function CheckoutModal({
   visible, palette, cartByShop, shops, cartTotal, placingOrder, error, onClose, onPlaceOrder, customerId,
@@ -75,17 +75,40 @@ export function CheckoutModal({
     }
   }, [acceptedIntersection, paymentMethod]);
 
+  const isEcocash = paymentMethod === 'ecocash';
+
+  const shopsWithEcocash = cartByShop.filter(sc => {
+    const shop = shops.find(s => s.id === sc.shopId);
+    return shop ? getAcceptedMethods(shop).includes('ecocash') : false;
+  });
+  const totalEcocashFee = isEcocash
+    ? shopsWithEcocash.reduce((sum, sc) => {
+        const shop = shops.find(s => s.id === sc.shopId);
+        return sum + (shop?.ecocash_fee || 0);
+      }, 0)
+    : 0;
+
+  const shopDeliveryFee = cartByShop.length > 0
+    ? (() => {
+        const shop = shops.find(s => s.id === cartByShop[0].shopId);
+        return shop?.delivery_fee != null ? String(shop.delivery_fee) : null;
+      })()
+    : null;
+
+  const effectiveDeliveryFee = shopDeliveryFee != null ? shopDeliveryFee : deliveryFee;
+
   const handlePlace = () => {
     if (!deliveryLocation.trim()) return;
     if (!selectedDriver) return;
     if (anyBlocked) return;
-    onPlaceOrder(deliveryLocation.trim(), null, null, paymentMethod, parseFloat(deliveryFee) || 2);
+    onPlaceOrder(deliveryLocation.trim(), null, null, paymentMethod, parseFloat(effectiveDeliveryFee) || 0, totalEcocashFee);
   };
 
   const needsWhatsapp = !!selectedDriver?.whatsapp_number && !whatsappSent;
   const canPlace = deliveryLocation.trim() && selectedDriver && !placingOrder && !anyBlocked && !needsWhatsapp;
   const isPaynow = paymentMethod === 'paynow';
-  const grandTotal = cartTotal + (parseFloat(deliveryFee) || 0);
+  const numericDeliveryFee = parseFloat(effectiveDeliveryFee) || 0;
+  const grandTotal = cartTotal + numericDeliveryFee + totalEcocashFee;
 
   return (
     <View style={styles.overlay}>
@@ -263,15 +286,22 @@ export function CheckoutModal({
           ) : null}
 
           <Text style={[styles.label, { color: palette.textSecondary, marginTop: 16 }]}>DELIVERY FEE</Text>
-          <TextInput
-            style={[styles.input, { backgroundColor: palette.inputBg, borderColor: palette.inputBorder, color: palette.textPrimary }]}
-            value={deliveryFee}
-            onChangeText={setDeliveryFee}
-            placeholder="2.00"
-            placeholderTextColor={palette.placeholderColor}
-            keyboardType="decimal-pad"
-            editable={!anyBlocked}
-          />
+          {shopDeliveryFee != null ? (
+            <View style={[styles.input, { backgroundColor: palette.inputBg, borderColor: palette.inputBorder, flexDirection: 'row', alignItems: 'center' }]}>
+              <Text style={{ color: palette.textPrimary, fontSize: 15, flex: 1 }}>${parseFloat(shopDeliveryFee).toFixed(2)}</Text>
+              <Text style={{ color: palette.textSecondary, fontSize: 11 }}>Set by shop</Text>
+            </View>
+          ) : (
+            <TextInput
+              style={[styles.input, { backgroundColor: palette.inputBg, borderColor: palette.inputBorder, color: palette.textPrimary }]}
+              value={deliveryFee}
+              onChangeText={setDeliveryFee}
+              placeholder="2.00"
+              placeholderTextColor={palette.placeholderColor}
+              keyboardType="decimal-pad"
+              editable={!anyBlocked}
+            />
+          )}
 
           <Text style={[styles.label, { color: palette.textSecondary, marginTop: 16 }]}>PAYMENT METHOD</Text>
           {acceptedIntersection.length === 0 ? (
@@ -301,17 +331,31 @@ export function CheckoutModal({
               <Text style={{ color: palette.textSecondary, fontSize: 13 }}>Items total</Text>
               <Text style={{ color: palette.textPrimary, fontSize: 13 }}>${cartTotal.toFixed(2)}</Text>
             </View>
+            {isEcocash && totalEcocashFee > 0 ? (
+              <View style={styles.summaryRow}>
+                <Text style={{ color: palette.textSecondary, fontSize: 13 }}>EcoCash fee</Text>
+                <Text style={{ color: palette.warning, fontSize: 13 }}>${totalEcocashFee.toFixed(2)}</Text>
+              </View>
+            ) : null}
             <View style={styles.summaryRow}>
               <Text style={{ color: palette.textSecondary, fontSize: 13 }}>Delivery fee</Text>
-              <Text style={{ color: palette.textPrimary, fontSize: 13 }}>${(parseFloat(deliveryFee) || 0).toFixed(2)}</Text>
+              <Text style={{ color: palette.textPrimary, fontSize: 13 }}>${numericDeliveryFee.toFixed(2)}</Text>
             </View>
             <View style={styles.summaryRow}>
               <Text style={{ color: palette.textPrimary, fontSize: 15, fontWeight: '700' }}>Grand Total</Text>
-              <Text style={{ color: palette.primary, fontSize: 17, fontWeight: '800' }}>${(cartTotal + (parseFloat(deliveryFee) || 0)).toFixed(2)}</Text>
+              <Text style={{ color: palette.primary, fontSize: 17, fontWeight: '800' }}>${grandTotal.toFixed(2)}</Text>
             </View>
           </View>
 
           <Text style={{ color: palette.textSecondary, fontSize: 11, marginTop: 8 }}>Note: {cartByShop.length} separate order(s) will be created, one per shop.</Text>
+
+          {isEcocash && canPlace ? (
+            <View style={[styles.paynowInfoBox, { backgroundColor: `${palette.warning}15`, borderColor: `${palette.warning}40` }]}>
+              <Text style={[styles.paynowInfoText, { color: palette.warning }]}>
+                An EcoCash surcharge of ${totalEcocashFee.toFixed(2)} has been added to your total by the shop(s). You will complete payment via EcoCash on delivery.
+              </Text>
+            </View>
+          ) : null}
 
           {isPaynow && canPlace ? (
             <View style={[styles.paynowInfoBox, { backgroundColor: `${palette.primary}10`, borderColor: `${palette.primary}40` }]}>

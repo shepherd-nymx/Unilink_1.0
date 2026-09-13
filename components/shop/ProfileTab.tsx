@@ -19,12 +19,13 @@ import {
   type OperatingHours,
   type DaySchedule,
 } from '@/lib/shop-types';
-import { Store, LogOut, MapPin, Navigation, Globe, Clock, CreditCard, BadgeCheck, TriangleAlert as AlertTriangle, X, Check } from 'lucide-react-native';
+import { Store, LogOut, MapPin, Navigation, Globe, Clock, CreditCard, DollarSign, BadgeCheck, TriangleAlert as AlertTriangle, X, Check } from 'lucide-react-native';
 import * as Location from 'expo-location';
 
 const PAYMENT_OPTIONS: { key: string; label: string }[] = [
   { key: 'pay_on_delivery', label: 'Pay on Delivery' },
-  { key: 'paynow', label: 'Paynow' },
+  { key: 'ecocash', label: 'EcoCash' },
+  { key: 'paynow', label: 'PayNow' },
   { key: 'bank_transfer', label: 'Bank Transfer' },
 ];
 
@@ -63,8 +64,11 @@ export function ProfileTab({
   const [savingAvail, setSavingAvail] = useState(false);
   const [hours, setHours] = useState<OperatingHours>(shop.operating_hours || emptyHours());
   const [savingHours, setSavingHours] = useState(false);
-  const [payMethods, setPayMethods] = useState<string[]>(shop.accepted_payment_methods || ['pay_on_delivery', 'paynow']);
+  const [payMethods, setPayMethods] = useState<string[]>(shop.accepted_payment_methods || ['pay_on_delivery', 'ecocash']);
   const [savingPay, setSavingPay] = useState(false);
+  const [ecocashFee, setEcocashFee] = useState(shop.ecocash_fee != null ? String(shop.ecocash_fee) : '0');
+  const [deliveryFee, setDeliveryFee] = useState(shop.delivery_fee != null ? String(shop.delivery_fee) : '0');
+  const [savingFees, setSavingFees] = useState(false);
   const [msg, setMsg] = useState('');
 
   const useGps = async () => {
@@ -155,6 +159,24 @@ export function ProfileTab({
     }
     onShopUpdated({ ...shop, accepted_payment_methods: payMethods });
     setMsg('Payment methods saved');
+  };
+
+  const saveFees = async () => {
+    setSavingFees(true);
+    setMsg('');
+    const ecFee = parseFloat(ecocashFee) || 0;
+    const delFee = parseFloat(deliveryFee) || 0;
+    const { error } = await supabase
+      .from('shops')
+      .update({ ecocash_fee: ecFee, delivery_fee: delFee })
+      .eq('id', shop.id);
+    setSavingFees(false);
+    if (error) {
+      setMsg(error.message);
+      return;
+    }
+    onShopUpdated({ ...shop, ecocash_fee: ecFee, delivery_fee: delFee });
+    setMsg('Fees saved');
   };
 
   const openMaps = () => {
@@ -343,6 +365,41 @@ export function ProfileTab({
         </TouchableOpacity>
       </View>
 
+      {/* Fees */}
+      <View style={styles.card}>
+        <View style={styles.cardHeader}>
+          <DollarSign size={16} color={A.amber} />
+          <Text style={styles.cardTitle}>Fees & Surcharges</Text>
+        </View>
+        <View style={styles.fieldGroup}>
+          <Text style={styles.label}>EcoCash Surcharge (USD)</Text>
+          <TextInput
+            style={styles.feeInput}
+            value={ecocashFee}
+            onChangeText={setEcocashFee}
+            placeholder="0.00"
+            placeholderTextColor={A.textMuted}
+            keyboardType="decimal-pad"
+          />
+          <Text style={styles.feeHint}>Extra fee added to customer's total when they pay via EcoCash.</Text>
+        </View>
+        <View style={styles.fieldGroup}>
+          <Text style={styles.label}>Delivery Fee (USD)</Text>
+          <TextInput
+            style={styles.feeInput}
+            value={deliveryFee}
+            onChangeText={setDeliveryFee}
+            placeholder="0.00"
+            placeholderTextColor={A.textMuted}
+            keyboardType="decimal-pad"
+          />
+          <Text style={styles.feeHint}>Default delivery fee charged to customers based on their GPS location.</Text>
+        </View>
+        <TouchableOpacity style={[styles.saveBtn, { backgroundColor: A.amber }]} onPress={saveFees} disabled={savingFees}>
+          {savingFees ? <ActivityIndicator size="small" color="#000" /> : <Text style={[styles.saveBtnText, { color: '#000' }]}>Save Fees</Text>}
+        </TouchableOpacity>
+      </View>
+
       <TouchableOpacity style={styles.logoutCard} onPress={onLogout}>
         <LogOut size={18} color={A.red} />
         <Text style={{ color: A.red, fontSize: 15, fontWeight: '600' }}>Logout</Text>
@@ -443,6 +500,9 @@ const styles = StyleSheet.create({
   saveBtnText: { fontSize: 14, fontWeight: '700' },
   payRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: A.border },
   payLabel: { fontSize: 14, flex: 1 },
+  fieldGroup: { gap: 6, marginBottom: 14 },
+  feeInput: { backgroundColor: A.inputBg, borderRadius: 10, borderWidth: 1, borderColor: A.inputBorder, paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, color: A.text, minHeight: 48 },
+  feeHint: { fontSize: 11, color: A.textSub, marginTop: 4, lineHeight: 16 },
   logoutCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, backgroundColor: A.redDim, borderRadius: 12, paddingVertical: 16, borderWidth: 1, borderColor: A.red },
   msgBar: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 8 },
   modalOverlay: { flex: 1, backgroundColor: A.overlay, justifyContent: 'flex-end' },

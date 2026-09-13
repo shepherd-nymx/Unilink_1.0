@@ -148,7 +148,7 @@ export default function Marketplace() {
     try {
       const { data: shopData, error: shopErr } = await supabase
         .from('shops')
-        .select('id, name, logo_url, description, address, hours, slug, latitude, longitude, is_available, operating_hours, accepted_payment_methods, location_verified, completed_orders_count, location')
+        .select('id, name, logo_url, description, address, hours, slug, latitude, longitude, is_available, operating_hours, accepted_payment_methods, location_verified, completed_orders_count, location, ecocash_fee, delivery_fee')
         .eq('status', 'active')
         .order('name');
       if (shopErr) throw shopErr;
@@ -277,7 +277,8 @@ export default function Marketplace() {
     lat: number | null,
     lng: number | null,
     paymentMethod: string,
-    deliveryFee: number
+    deliveryFee: number,
+    ecocashFeeAmount: number
   ) => {
     if (!customerId) {
       setError('Please login to place an order');
@@ -322,7 +323,7 @@ export default function Marketplace() {
           price: Number(item.product.price),
           qty: item.quantity,
         }));
-        const orderTotal = shopCart.total + deliveryFee;
+        const orderTotal = shopCart.total + deliveryFee + ecocashFeeAmount;
 
         const { data: order, error: orderErr } = await supabase
           .from('shop_orders')
@@ -332,6 +333,7 @@ export default function Marketplace() {
             products: orderProducts,
             total_amount: orderTotal,
             delivery_fee: deliveryFee,
+            ecocash_fee_amount: ecocashFeeAmount,
             delivery_location: deliveryLocation,
             delivery_latitude: lat,
             delivery_longitude: lng,
@@ -350,8 +352,7 @@ export default function Marketplace() {
           sendWhatsAppNotification(
             order.id, order.id.slice(0, 8), selectedDriver,
             shopCart, customer, deliveryLocation, paymentMethod, deliveryFee
-          );
-        }
+          );        }
 
         const { data: shopInfo } = await supabase
           .from('shops')
@@ -384,7 +385,7 @@ export default function Marketplace() {
 
       if (paymentMethod === 'paynow') {
         const { startPaynowPayment, generateReference } = await import('@/lib/paynow-service');
-        const grandTotal = cartByShop.reduce((sum, sc) => sum + sc.total, 0) + deliveryFee;
+        const grandTotal = cartByShop.reduce((sum, sc) => sum + sc.total, 0) + deliveryFee + ecocashFeeAmount;
         const ref = generateReference('marketplace_order', customerId);
         const result = await startPaynowPayment({
           paymentType: 'marketplace_order',

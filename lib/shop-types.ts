@@ -14,6 +14,7 @@ export type ShopOrder = {
   products: any[];
   total_amount: number;
   delivery_fee: number;
+  ecocash_fee_amount: number;
   delivery_location: string | null;
   payment_method: string;
   status: string;
@@ -74,6 +75,8 @@ export type ShopData = {
   accepted_payment_methods?: string[];
   location_verified?: boolean;
   completed_orders_count?: number;
+  ecocash_fee?: number;
+  delivery_fee?: number;
 };
 
 export const STATUS_FLOW = [
@@ -113,7 +116,8 @@ export const STATUS_COLORS: Record<string, string> = {
 
 export const PAYMENT_METHOD_LABELS: Record<string, string> = {
   pay_on_delivery: 'Pay on Delivery',
-  ecocash: 'Paynow',
+  ecocash: 'EcoCash',
+  paynow: 'PayNow',
   bank_transfer: 'Bank Transfer',
 };
 

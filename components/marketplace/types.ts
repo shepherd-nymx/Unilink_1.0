@@ -14,6 +14,8 @@ export type Shop = {
   location_verified: boolean | null;
   completed_orders_count: number | null;
   location: string | null;
+  ecocash_fee: number;
+  delivery_fee: number;
 };
 
 export type Product = {
@@ -119,7 +121,7 @@ export function formatOperatingHours(oh: Record<string, any> | null): { day: str
 export function formatPaymentMethod(method: string): string {
   switch (method) {
     case 'pay_on_delivery': return 'Pay on Delivery';
-    case 'ecocash': return 'Paynow';
+    case 'ecocash': return 'EcoCash';
     case 'paynow': return 'PayNow';
     case 'card': return 'Card';
     case 'bank_transfer': return 'Bank Transfer';

@@ -1,6 +1,6 @@
 export type ServiceType = 'buy_and_deliver' | 'pickup_and_deliver';
 export type RequestStatus = 'pending' | 'accepted' | 'in_progress' | 'delivered' | 'cancelled' | 'expired';
-export type PaymentMethod = 'pay_on_delivery' | 'paynow';
+export type PaymentMethod = 'pay_on_delivery' | 'paynow' | 'ecocash';
 export type DeliveryMethod = 'vehicle' | 'walking';
 export type DeliveryMode = 'direct' | 'open_request';
 

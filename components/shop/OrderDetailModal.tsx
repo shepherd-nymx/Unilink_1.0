@@ -76,7 +76,23 @@ export function OrderDetailModal({
             ))}
 
             <View style={styles.modalTotalRow}>
-              <Text style={styles.modalTotalLabel}>Total</Text>
+              <Text style={styles.modalTotalLabel}>Items Subtotal</Text>
+              <Text style={styles.modalTotalValue}>${(Number(order.total_amount) - Number(order.delivery_fee || 0) - Number((order as any).ecocash_fee_amount || 0)).toFixed(2)}</Text>
+            </View>
+            {Number((order as any).ecocash_fee_amount || 0) > 0 ? (
+              <View style={styles.modalTotalRow}>
+                <Text style={styles.modalTotalLabel}>EcoCash Fee</Text>
+                <Text style={styles.modalTotalValue}>${Number((order as any).ecocash_fee_amount || 0).toFixed(2)}</Text>
+              </View>
+            ) : null}
+            {Number(order.delivery_fee || 0) > 0 ? (
+              <View style={styles.modalTotalRow}>
+                <Text style={styles.modalTotalLabel}>Delivery Fee</Text>
+                <Text style={styles.modalTotalValue}>${Number(order.delivery_fee || 0).toFixed(2)}</Text>
+              </View>
+            ) : null}
+            <View style={styles.modalTotalRow}>
+              <Text style={styles.modalTotalLabel}>Grand Total</Text>
               <Text style={styles.modalTotalValue}>${Number(order.total_amount).toFixed(2)}</Text>
             </View>
 
