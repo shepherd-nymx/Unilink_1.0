@@ -24,6 +24,8 @@ import { ProductCard } from '@/components/marketplace/ProductCard';
 import { ShopProfileModal } from '@/components/marketplace/ShopProfileModal';
 import { CheckoutModal } from '@/components/marketplace/CheckoutModal';
 
+type ServiceLocationMap = Record<string, { location_name: string; location_type: string }[]>;
+
 export default function Marketplace() {
   const router = useRouter();
   const { isDark } = useTheme();
@@ -46,6 +48,9 @@ export default function Marketplace() {
   const [selectedShopId, setSelectedShopId] = useState<string | null>(null);
   const [areas, setAreas] = useState<string[]>([]);
   const [selectedArea, setSelectedArea] = useState<string | null>(null);
+  const [customerUniversityId, setCustomerUniversityId] = useState<string | null>(null);
+  const [customerUniversityName, setCustomerUniversityName] = useState<string | null>(null);
+  const [shopServiceLocations, setShopServiceLocations] = useState<ServiceLocationMap>({});
 
   const selectedShopData = selectedShopId ? shops.find(s => s.id === selectedShopId) || null : null;
   const [showCheckout, setShowCheckout] = useState(false);
@@ -128,13 +133,46 @@ export default function Marketplace() {
   const loadData = async () => {
     setLoading(true);
     try {
+      // Load customer's university for location filtering
+      if (customerId) {
+        const { data: customer } = await supabase
+          .from('customers')
+          .select('university_id')
+          .eq('id', customerId)
+          .maybeSingle();
+        if (customer?.university_id) {
+          setCustomerUniversityId(customer.university_id);
+          const { data: uni } = await supabase
+            .from('universities')
+            .select('name')
+            .eq('id', customer.university_id)
+            .maybeSingle();
+          if (uni?.name) setCustomerUniversityName(uni.name);
+        }
+      }
+
       const { data: shopData, error: shopErr } = await supabase
         .from('shops')
         .select('id, name, logo_url, description, address, hours, slug, latitude, longitude, is_available, operating_hours, accepted_payment_methods, location_verified, completed_orders_count, location, ecocash_fee, delivery_fee, whatsapp_number, average_rating, total_ratings')
         .eq('status', 'active')
         .order('name');
       if (shopErr) throw shopErr;
-      setShops((shopData || []) as Shop[]);
+      const allShops = (shopData || []) as Shop[];
+      setShops(allShops);
+
+      // Load service locations for all active shops
+      if (allShops.length > 0) {
+        const { data: slData } = await supabase
+          .from('shop_service_locations')
+          .select('shop_id, location_name, location_type')
+          .in('shop_id', allShops.map(s => s.id));
+        const slMap: ServiceLocationMap = {};
+        (slData || []).forEach((sl: any) => {
+          if (!slMap[sl.shop_id]) slMap[sl.shop_id] = [];
+          slMap[sl.shop_id].push({ location_name: sl.location_name, location_type: sl.location_type });
+        });
+        setShopServiceLocations(slMap);
+      }
 
       const { data: prodData, error: prodErr } = await supabase
         .from('shop_products')
@@ -201,6 +239,14 @@ export default function Marketplace() {
 
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
   const cartTotal = cart.reduce((sum, item) => sum + Number(item.product.price) * item.quantity, 0);
+
+  const shopServesCustomer = (shopId: string): boolean => {
+    const sls = shopServiceLocations[shopId];
+    if (!sls || sls.length === 0) return true; // No restriction = visible to all
+    if (!customerUniversityName) return true; // Can't filter if we don't know customer's location
+    return sls.some(sl => sl.location_name.toLowerCase() === customerUniversityName.toLowerCase());
+  };
+
   const anyCartBlocked = cartByShop.some(sc => {
     const s = shops.find(sh => sh.id === sc.shopId);
     if (!s) return false;
@@ -432,7 +478,9 @@ export default function Marketplace() {
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
           <Text style={[styles.headerTitle, { color: palette.textPrimary }]} numberOfLines={1}>Shop Groceries</Text>
-          <Text style={[styles.headerSub, { color: palette.textSecondary }]}>{shops.length} shops available</Text>
+          <Text style={[styles.headerSub, { color: palette.textSecondary }]}>
+            {shops.filter(s => shopServesCustomer(s.id)).length} shops{customerUniversityName ? ` near ${customerUniversityName}` : ''} available
+          </Text>
         </View>
         <TouchableOpacity
           style={[styles.cartBtn, { backgroundColor: cartCount > 0 ? palette.primary : palette.inputBg, borderColor: cartCount > 0 ? palette.primary : palette.inputBorder }]}
@@ -515,6 +563,7 @@ export default function Marketplace() {
                 {shops
                   .filter(shop => !searchQuery.trim() || shop.name.toLowerCase().includes(searchQuery.toLowerCase()))
                   .filter(shop => !selectedArea || shop.location === selectedArea)
+                  .filter(shop => shopServesCustomer(shop.id))
                   .map(shop => {
                     const open = shop.operating_hours ? computeShopOpen(shop) : true;
                     return (

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -19,7 +19,7 @@ import {
   type OperatingHours,
   type DaySchedule,
 } from '@/lib/shop-types';
-import { Store, LogOut, MapPin, Navigation, Globe, Clock, CreditCard, DollarSign, BadgeCheck, TriangleAlert as AlertTriangle, X, Check, MessageCircle } from 'lucide-react-native';
+import { Store, LogOut, MapPin, Navigation, Globe, Clock, CreditCard, DollarSign, BadgeCheck, TriangleAlert as AlertTriangle, X, Check, MessageCircle, Plus, Trash2 } from 'lucide-react-native';
 import * as Location from 'expo-location';
 
 const PAYMENT_OPTIONS: { key: string; label: string }[] = [
@@ -72,6 +72,14 @@ export function ProfileTab({
   const [whatsappInput, setWhatsappInput] = useState(shop.whatsapp_number || '');
   const [savingWhatsapp, setSavingWhatsapp] = useState(false);
   const [msg, setMsg] = useState('');
+
+  // Service locations
+  const [serviceLocations, setServiceLocations] = useState<{ id: string; location_name: string; location_type: string }[]>([]);
+  const [availableUniversities, setAvailableUniversities] = useState<{ id: string; name: string }[]>([]);
+  const [availableAreas, setAvailableAreas] = useState<string[]>([]);
+  const [customLocationInput, setCustomLocationInput] = useState('');
+  const [savingLocations, setSavingLocations] = useState(false);
+  const [showLocationPicker, setShowLocationPicker] = useState(false);
 
   const useGps = async () => {
     setLocating(true);
@@ -196,6 +204,67 @@ export function ProfileTab({
     }
     onShopUpdated({ ...shop, whatsapp_number: cleaned || null });
     setMsg('WhatsApp number saved');
+  };
+
+  useEffect(() => {
+    loadServiceLocations();
+    loadAvailableLocations();
+  }, []);
+
+  const loadServiceLocations = async () => {
+    const { data } = await supabase
+      .from('shop_service_locations')
+      .select('id, location_name, location_type')
+      .eq('shop_id', shop.id)
+      .order('location_name');
+    if (data) setServiceLocations(data);
+  };
+
+  const loadAvailableLocations = async () => {
+    const { data: unis } = await supabase
+      .from('universities')
+      .select('id, name')
+      .eq('is_active', true)
+      .order('name');
+    if (unis) setAvailableUniversities(unis);
+
+    const { data: areas } = await supabase
+      .from('shop_areas')
+      .select('name')
+      .order('sort_order', { ascending: true });
+    if (areas) setAvailableAreas(areas.map((a: any) => a.name));
+  };
+
+  const addServiceLocation = async (name: string, type: string) => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    if (serviceLocations.some(sl => sl.location_name.toLowerCase() === trimmed.toLowerCase())) {
+      setMsg(`${trimmed} is already in your service locations`);
+      return;
+    }
+    setSavingLocations(true);
+    setMsg('');
+    const { error } = await supabase
+      .from('shop_service_locations')
+      .insert({ shop_id: shop.id, location_name: trimmed, location_type: type });
+    setSavingLocations(false);
+    if (error) { setMsg(error.message); return; }
+    await loadServiceLocations();
+    setCustomLocationInput('');
+    setShowLocationPicker(false);
+    setMsg('Service location added');
+  };
+
+  const removeServiceLocation = async (id: string) => {
+    setSavingLocations(true);
+    const { error } = await supabase
+      .from('shop_service_locations')
+      .delete()
+      .eq('id', id);
+    setSavingLocations(false);
+    if (error) { setMsg(error.message); return; }
+    setServiceLocations(prev => prev.filter(sl => sl.id !== id));
+    setMsg('Service location removed');
   };
 
   const openMaps = () => {
@@ -443,6 +512,116 @@ export function ProfileTab({
         <TouchableOpacity style={[styles.saveBtn, { backgroundColor: '#25D366' }]} onPress={saveWhatsapp} disabled={savingWhatsapp}>
           {savingWhatsapp ? <ActivityIndicator size="small" color="#fff" /> : <Text style={[styles.saveBtnText, { color: '#fff' }]}>Save WhatsApp Number</Text>}
         </TouchableOpacity>
+      </View>
+
+      {/* Service Locations — choose which customer locations can see this shop */}
+      <View style={styles.card}>
+        <View style={styles.cardHeader}>
+          <MapPin size={16} color={A.green} />
+          <Text style={styles.cardTitle}>Service Locations</Text>
+        </View>
+        <Text style={styles.whatsappDesc}>
+          Choose which customer locations (universities and areas) can see your shop in the marketplace. Customers outside these locations won't find you. Leave empty to be visible everywhere.
+        </Text>
+
+        {serviceLocations.length > 0 ? (
+          <View style={{ gap: 8, marginBottom: 12 }}>
+            {serviceLocations.map(sl => (
+              <View key={sl.id} style={[styles.payRow, { borderBottomWidth: 0 }]}>
+                <View style={[styles.checkbox, { backgroundColor: sl.location_type === 'university' ? A.greenDim : A.cyanDim || A.cyan + '22', borderColor: sl.location_type === 'university' ? A.green : A.cyan }]}>
+                  <MapPin size={10} color={sl.location_type === 'university' ? A.green : A.cyan} />
+                </View>
+                <Text style={[styles.payLabel, { color: A.text, flex: 1 }]}>{sl.location_name}</Text>
+                <Text style={{ fontSize: 9, color: A.textSub, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                  {sl.location_type === 'university' ? 'Uni' : 'Custom'}
+                </Text>
+                <TouchableOpacity onPress={() => removeServiceLocation(sl.id)} disabled={savingLocations}>
+                  <Trash2 size={15} color={A.red} />
+                </TouchableOpacity>
+              </View>
+            ))}
+          </View>
+        ) : (
+          <View style={[styles.warnBox, { borderColor: A.amber, marginBottom: 12 }]}>
+            <AlertTriangle size={14} color={A.amber} />
+            <Text style={[styles.warnText, { color: A.amber }]}>No locations set — your shop is visible to all customers.</Text>
+          </View>
+        )}
+
+        {showLocationPicker ? (
+          <View style={{ gap: 10, marginBottom: 12 }}>
+            {availableUniversities.length > 0 && (
+              <View>
+                <Text style={[styles.label, { marginBottom: 6 }]}>UNIVERSITIES</Text>
+                <ScrollView style={{ maxHeight: 120 }} nestedScrollEnabled>
+                  {availableUniversities
+                    .filter(u => !serviceLocations.some(sl => sl.location_name === u.name))
+                    .map(u => (
+                      <TouchableOpacity
+                        key={u.id}
+                        style={[styles.payRow, { borderBottomWidth: 1, borderBottomColor: A.border }]}
+                        onPress={() => addServiceLocation(u.name, 'university')}
+                        disabled={savingLocations}
+                      >
+                        <Plus size={14} color={A.green} />
+                        <Text style={[styles.payLabel, { color: A.text }]}>{u.name}</Text>
+                      </TouchableOpacity>
+                    ))}
+                </ScrollView>
+              </View>
+            )}
+            {availableAreas.length > 0 && (
+              <View>
+                <Text style={[styles.label, { marginBottom: 6 }]}>AREAS</Text>
+                <ScrollView style={{ maxHeight: 100 }} nestedScrollEnabled>
+                  {availableAreas
+                    .filter(a => !serviceLocations.some(sl => sl.location_name === a))
+                    .slice(0, 20)
+                    .map(a => (
+                      <TouchableOpacity
+                        key={a}
+                        style={[styles.payRow, { borderBottomWidth: 1, borderBottomColor: A.border }]}
+                        onPress={() => addServiceLocation(a, 'custom')}
+                        disabled={savingLocations}
+                      >
+                        <Plus size={14} color={A.cyan} />
+                        <Text style={[styles.payLabel, { color: A.text }]}>{a}</Text>
+                      </TouchableOpacity>
+                    ))}
+                </ScrollView>
+              </View>
+            )}
+            <View>
+              <Text style={[styles.label, { marginBottom: 6 }]}>ADD CUSTOM LOCATION</Text>
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                <TextInput
+                  style={[styles.feeInput, { flex: 1 }]}
+                  value={customLocationInput}
+                  onChangeText={setCustomLocationInput}
+                  placeholder="e.g. CBD, Belgravia..."
+                  placeholderTextColor={A.textMuted}
+                />
+                <TouchableOpacity
+                  style={[styles.saveBtn, { backgroundColor: A.green, marginTop: 0, paddingHorizontal: 16, paddingVertical: 12 }]}
+                  onPress={() => addServiceLocation(customLocationInput, 'custom')}
+                  disabled={savingLocations || !customLocationInput.trim()}
+                >
+                  {savingLocations ? <ActivityIndicator size="small" color="#000" /> : <Text style={[styles.saveBtnText, { color: '#000' }]}>Add</Text>}
+                </TouchableOpacity>
+              </View>
+            </View>
+            <TouchableOpacity onPress={() => setShowLocationPicker(false)}>
+              <Text style={{ color: A.textSub, fontSize: 12, textAlign: 'center' }}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <TouchableOpacity style={[styles.saveBtn, { backgroundColor: A.green }]} onPress={() => setShowLocationPicker(true)}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Plus size={16} color="#000" />
+              <Text style={[styles.saveBtnText, { color: '#000' }]}>Add Service Location</Text>
+            </View>
+          </TouchableOpacity>
+        )}
       </View>
 
       <TouchableOpacity style={styles.logoutCard} onPress={onLogout}>

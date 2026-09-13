@@ -1,7 +1,12 @@
 import { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, TextInput, StyleSheet, ActivityIndicator, Platform, Linking } from 'react-native';
-import { X, Truck, CreditCard, CircleAlert as AlertCircle, Lock, ExternalLink, Zap, MessageCircle } from 'lucide-react-native';
-import { CartByShop, Shop, ThemePalette, formatPaymentMethod, getAcceptedMethods, computeShopOpen } from './types';
+import {
+  X, Truck, CreditCard, CircleAlert as AlertCircle, Lock, ExternalLink, Zap,
+  MessageCircle, Store, MapPin, Phone, Navigation, Package, CircleCheck as CheckCircle,
+  CircleAlert as AlertTriangle, FileText, ChevronRight, ChevronDown, ChevronUp,
+} from 'lucide-react-native';
+import { CartByShop, Shop, ThemePalette, formatPaymentMethod, getAcceptedMethods, computeShopOpen, formatOperatingHours } from './types';
+import * as Location from 'expo-location';
 
 type Props = {
   visible: boolean;
@@ -22,12 +27,25 @@ export function CheckoutModal({
   visible, palette, cartByShop, shops, cartTotal, placingOrder, error, onClose, onPlaceOrder, customerId,
 }: Props) {
   const [deliveryLocation, setDeliveryLocation] = useState('');
+  const [confirmedLatitude, setConfirmedLatitude] = useState<number | null>(null);
+  const [confirmedLongitude, setConfirmedLongitude] = useState<number | null>(null);
+  const [locationConfirmed, setLocationConfirmed] = useState(false);
+  const [confirmingLocation, setConfirmingLocation] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('pay_on_delivery');
   const [deliveryFee, setDeliveryFee] = useState('2.00');
   const [whatsappConfirmed, setWhatsappConfirmed] = useState(false);
+  const [expandedShopId, setExpandedShopId] = useState<string | null>(null);
+  const [showOrderSummary, setShowOrderSummary] = useState(false);
 
   useEffect(() => {
-    if (visible) setWhatsappConfirmed(false);
+    if (visible) {
+      setWhatsappConfirmed(false);
+      setLocationConfirmed(false);
+      setConfirmedLatitude(null);
+      setConfirmedLongitude(null);
+      setShowOrderSummary(false);
+      setExpandedShopId(null);
+    }
   }, [visible]);
 
   const unavailableShops = cartByShop.filter(sc => {
@@ -91,14 +109,36 @@ export function CheckoutModal({
 
   const effectiveDeliveryFee = shopDeliveryFee != null ? shopDeliveryFee : deliveryFee;
 
-  const handlePlace = () => {
+  const confirmLocation = async () => {
     if (!deliveryLocation.trim()) return;
-    if (anyBlocked) return;
-    if (requiresWhatsapp && !whatsappConfirmed) return;
-    onPlaceOrder(deliveryLocation.trim(), null, null, paymentMethod, parseFloat(effectiveDeliveryFee) || 0, totalEcocashFee);
+    setConfirmingLocation(true);
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status === 'granted') {
+        const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+        setConfirmedLatitude(pos.coords.latitude);
+        setConfirmedLongitude(pos.coords.longitude);
+      }
+      setLocationConfirmed(true);
+    } catch {
+      setLocationConfirmed(true);
+    } finally {
+      setConfirmingLocation(false);
+    }
   };
 
-  const canPlace = !!deliveryLocation.trim() && !placingOrder && !anyBlocked && (!requiresWhatsapp || whatsappConfirmed);
+  const handlePlace = () => {
+    if (!deliveryLocation.trim()) return;
+    if (!locationConfirmed) return;
+    if (anyBlocked) return;
+    if (requiresWhatsapp && !whatsappConfirmed) return;
+    onPlaceOrder(deliveryLocation.trim(), confirmedLatitude, confirmedLongitude, paymentMethod, parseFloat(effectiveDeliveryFee) || 0, totalEcocashFee);
+  };
+
+  const canPlace = !!deliveryLocation.trim() && locationConfirmed && !placingOrder && !anyBlocked && (!requiresWhatsapp || whatsappConfirmed);
+  const isPaynow = paymentMethod === 'paynow';
+  const numericDeliveryFee = parseFloat(effectiveDeliveryFee) || 0;
+  const grandTotal = cartTotal + numericDeliveryFee + totalEcocashFee;
 
   const openShopWhatsApp = () => {
     const num = (whatsappNumber || '').replace(/[^0-9]/g, '');
@@ -108,9 +148,6 @@ export function CheckoutModal({
     );
     Linking.openURL(`https://wa.me/${num}?text=${msg}`).then(() => setWhatsappConfirmed(true)).catch(() => {});
   };
-  const isPaynow = paymentMethod === 'paynow';
-  const numericDeliveryFee = parseFloat(effectiveDeliveryFee) || 0;
-  const grandTotal = cartTotal + numericDeliveryFee + totalEcocashFee;
 
   return (
     <View style={styles.overlay}>
@@ -137,16 +174,183 @@ export function CheckoutModal({
             </View>
           ) : null}
 
-          <Text style={[styles.label, { color: palette.textSecondary }]}>DELIVERY LOCATION *</Text>
+          {/* === SHOP DATA SHEETS — essential details of each shop === */}
+          <Text style={[styles.label, { color: palette.textSecondary, marginTop: 4 }]}>SHOP DETAILS</Text>
+          {cartByShop.map(sc => {
+            const shop = shops.find(s => s.id === sc.shopId);
+            if (!shop) return null;
+            const expanded = expandedShopId === sc.shopId;
+            const open = shop.operating_hours ? computeShopOpen(shop) : true;
+            return (
+              <View key={sc.shopId} style={[styles.shopSheet, { backgroundColor: palette.inputBg, borderColor: palette.inputBorder }]}>
+                <TouchableOpacity
+                  style={styles.shopSheetHeader}
+                  onPress={() => setExpandedShopId(expanded ? null : sc.shopId)}
+                >
+                  <View style={[styles.shopSheetLogo, { backgroundColor: palette.cardBg }]}>
+                    {shop.logo_url && Platform.OS === 'web' ? (
+                      <img src={shop.logo_url} style={{ width: 36, height: 36, borderRadius: 18, objectFit: 'cover' as any }} alt={shop.name} />
+                    ) : (
+                      <Store size={18} color={palette.primary} />
+                    )}
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.shopSheetName, { color: palette.textPrimary }]} numberOfLines={1}>{shop.name}</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                      <View style={[styles.shopSheetBadge, { backgroundColor: open ? `${palette.success}22` : `${palette.error}22` }]}>
+                        <View style={[styles.shopSheetDot, { backgroundColor: open ? palette.success : palette.error }]} />
+                        <Text style={[styles.shopSheetBadgeText, { color: open ? palette.success : palette.error }]}>{open ? 'Open' : 'Closed'}</Text>
+                      </View>
+                      {shop.location ? (
+                        <View style={[styles.shopSheetBadge, { backgroundColor: `${palette.primary}15` }]}>
+                          <MapPin size={9} color={palette.primary} />
+                          <Text style={[styles.shopSheetBadgeText, { color: palette.primary }]}>{shop.location}</Text>
+                        </View>
+                      ) : null}
+                    </View>
+                  </View>
+                  {expanded ? <ChevronUp size={16} color={palette.textSecondary} /> : <ChevronDown size={16} color={palette.textSecondary} />}
+                </TouchableOpacity>
+
+                {expanded && (
+                  <View style={{ paddingTop: 10, gap: 6 }}>
+                    {shop.description ? (
+                      <View style={styles.shopDetailRow}>
+                        <FileText size={12} color={palette.textSecondary} />
+                        <Text style={[styles.shopDetailText, { color: palette.textSecondary }]}>{shop.description}</Text>
+                      </View>
+                    ) : null}
+                    {shop.address ? (
+                      <View style={styles.shopDetailRow}>
+                        <MapPin size={12} color={palette.textSecondary} />
+                        <Text style={[styles.shopDetailText, { color: palette.textSecondary }]}>{shop.address}</Text>
+                      </View>
+                    ) : null}
+                    {shop.latitude != null && shop.longitude != null ? (
+                      <TouchableOpacity
+                        style={styles.shopDetailRow}
+                        onPress={() => Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${shop.latitude},${shop.longitude}`)}
+                      >
+                        <Navigation size={12} color={palette.primary} />
+                        <Text style={[styles.shopDetailText, { color: palette.primary }]}>View Shop on Map</Text>
+                      </TouchableOpacity>
+                    ) : null}
+                    {shop.operating_hours ? (
+                      <View style={{ marginTop: 4 }}>
+                        {formatOperatingHours(shop.operating_hours).map(row => (
+                          <View key={row.day} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 2 }}>
+                            <Text style={{ fontSize: 11, color: palette.textSecondary }}>{row.day}</Text>
+                            <Text style={{ fontSize: 11, color: palette.textSecondary }}>{row.label}</Text>
+                          </View>
+                        ))}
+                      </View>
+                    ) : null}
+                    <View style={styles.shopItemsPreview}>
+                      {sc.items.map(item => (
+                        <View key={item.product.id} style={styles.shopItemPreviewRow}>
+                          <Text style={[styles.shopItemPreviewName, { color: palette.textPrimary }]} numberOfLines={1}>
+                            {item.product.name} ×{item.quantity}
+                          </Text>
+                          <Text style={[styles.shopItemPreviewPrice, { color: palette.textSecondary }]}>
+                            ${(Number(item.product.price) * item.quantity).toFixed(2)}
+                          </Text>
+                        </View>
+                      ))}
+                      <View style={[styles.shopItemPreviewTotal, { borderTopColor: palette.cardBorder }]}>
+                        <Text style={{ fontSize: 12, color: palette.textSecondary }}>Shop subtotal</Text>
+                        <Text style={{ fontSize: 14, fontWeight: '700', color: palette.primary }}>${sc.total.toFixed(2)}</Text>
+                      </View>
+                    </View>
+                  </View>
+                )}
+              </View>
+            );
+          })}
+
+          {/* === ORDER SUMMARY DATA SHEET === */}
+          <TouchableOpacity
+            style={[styles.summaryToggle, { backgroundColor: `${palette.primary}10`, borderColor: `${palette.primary}30` }]}
+            onPress={() => setShowOrderSummary(!showOrderSummary)}
+          >
+            <FileText size={15} color={palette.primary} />
+            <Text style={[styles.summaryToggleText, { color: palette.primary }]}>Order Summary</Text>
+            {showOrderSummary ? <ChevronUp size={16} color={palette.primary} /> : <ChevronDown size={16} color={palette.primary} />}
+          </TouchableOpacity>
+
+          {showOrderSummary && (
+            <View style={[styles.summarySheet, { backgroundColor: palette.inputBg, borderColor: palette.inputBorder }]}>
+              {cartByShop.map(sc => (
+                <View key={sc.shopId} style={{ marginBottom: 10 }}>
+                  <Text style={[styles.summaryShopName, { color: palette.textPrimary }]}>{sc.shopName}</Text>
+                  {sc.items.map(item => (
+                    <View key={item.product.id} style={styles.summaryItemRow}>
+                      <Text style={[styles.summaryItemName, { color: palette.textSecondary }]}>
+                        {item.product.name} ×{item.quantity}
+                      </Text>
+                      <Text style={[styles.summaryItemPrice, { color: palette.textSecondary }]}>
+                        ${(Number(item.product.price) * item.quantity).toFixed(2)}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              ))}
+              <View style={[styles.summaryDivider, { borderTopColor: palette.cardBorder }]}>
+                <View style={styles.summaryRow}>
+                  <Text style={{ color: palette.textSecondary, fontSize: 13 }}>Items total ({cartByShop.length} shop(s))</Text>
+                  <Text style={{ color: palette.textPrimary, fontSize: 13 }}>${cartTotal.toFixed(2)}</Text>
+                </View>
+              </View>
+            </View>
+          )}
+
+          {/* === LOCATION CONFIRMATION — customer confirms right before order === */}
+          <Text style={[styles.label, { color: palette.textSecondary, marginTop: 16 }]}>DELIVERY LOCATION *</Text>
           <TextInput
             style={[styles.input, { backgroundColor: palette.inputBg, borderColor: palette.inputBorder, color: palette.textPrimary }]}
             value={deliveryLocation}
-            onChangeText={setDeliveryLocation}
+            onChangeText={(v) => { setDeliveryLocation(v); setLocationConfirmed(false); setConfirmedLatitude(null); setConfirmedLongitude(null); }}
             placeholder="Enter delivery address"
             placeholderTextColor={palette.placeholderColor}
             multiline
             editable={!anyBlocked}
           />
+
+          {!locationConfirmed && deliveryLocation.trim() ? (
+            <TouchableOpacity
+              style={[styles.confirmLocBtn, { backgroundColor: palette.success, opacity: confirmingLocation ? 0.6 : 1 }]}
+              onPress={confirmLocation}
+              disabled={confirmingLocation || !deliveryLocation.trim() || anyBlocked}
+            >
+              {confirmingLocation ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <>
+                  <Navigation size={16} color="#fff" />
+                  <Text style={styles.confirmLocBtnText}>Confirm Location</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          ) : null}
+
+          {locationConfirmed ? (
+            <View style={[styles.locConfirmedBox, { backgroundColor: `${palette.success}10`, borderColor: `${palette.success}30` }]}>
+              <CheckCircle size={16} color={palette.success} />
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.locConfirmedTitle, { color: palette.success }]}>Location Confirmed</Text>
+                <Text style={[styles.locConfirmedAddr, { color: palette.textSecondary }]} numberOfLines={2}>{deliveryLocation}</Text>
+                {confirmedLatitude != null && confirmedLongitude != null ? (
+                  <Text style={[styles.locConfirmedGps, { color: palette.textSecondary }]}>
+                    GPS: {confirmedLatitude.toFixed(4)}, {confirmedLongitude.toFixed(4)}
+                  </Text>
+                ) : (
+                  <Text style={[styles.locConfirmedGps, { color: palette.textSecondary }]}>GPS not captured (address only)</Text>
+                )}
+              </View>
+              <TouchableOpacity onPress={() => { setLocationConfirmed(false); setConfirmedLatitude(null); setConfirmedLongitude(null); }}>
+                <Text style={{ color: palette.warning, fontSize: 12, fontWeight: '600' }}>Change</Text>
+              </TouchableOpacity>
+            </View>
+          ) : null}
 
           <View style={[styles.infoBox, { backgroundColor: `${palette.primary}10`, borderColor: `${palette.primary}30` }]}>
             <Truck size={16} color={palette.primary} />
@@ -288,7 +492,7 @@ export function CheckoutModal({
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
               {isPaynow && <ExternalLink size={16} color="#fff" />}
               <Text style={styles.placeOrderBtnText}>
-                {anyUnavailable ? 'Shop Unavailable' : anyClosed ? 'Shop Closed — No Orders' : requiresWhatsapp && !whatsappConfirmed ? 'Send WhatsApp First' : isPaynow ? `Pay ${grandTotal.toFixed(2)} via Paynow` : 'Place Order(s)'}
+                {anyUnavailable ? 'Shop Unavailable' : anyClosed ? 'Shop Closed — No Orders' : requiresWhatsapp && !whatsappConfirmed ? 'Send WhatsApp First' : !locationConfirmed ? 'Confirm Location First' : isPaynow ? `Pay ${grandTotal.toFixed(2)} via Paynow` : 'Place Order(s)'}
               </Text>
             </View>
           )}
@@ -321,4 +525,35 @@ const styles = StyleSheet.create({
   paynowInfoText: { fontSize: 11, fontWeight: '600', flex: 1, lineHeight: 16 },
   infoBox: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, padding: 12, borderRadius: 10, borderWidth: 1, marginBottom: 12 },
   infoText: { fontSize: 12, fontWeight: '600', flex: 1, lineHeight: 17 },
+  // Shop data sheet styles
+  shopSheet: { borderRadius: 12, borderWidth: 1, padding: 12, marginBottom: 8 },
+  shopSheetHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  shopSheetLogo: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center' },
+  shopSheetName: { fontSize: 14, fontWeight: '700' },
+  shopSheetBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 7, paddingVertical: 3, borderRadius: 8 },
+  shopSheetBadgeText: { fontSize: 10, fontWeight: '700' },
+  shopSheetDot: { width: 5, height: 5, borderRadius: 2.5 },
+  shopDetailRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 3 },
+  shopDetailText: { fontSize: 12, flex: 1 },
+  shopItemsPreview: { marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: 'rgba(128,128,128,0.15)' },
+  shopItemPreviewRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 3 },
+  shopItemPreviewName: { fontSize: 12, flex: 1 },
+  shopItemPreviewPrice: { fontSize: 12, fontWeight: '600' },
+  shopItemPreviewTotal: { flexDirection: 'row', justifyContent: 'space-between', paddingTop: 6, marginTop: 4, borderTopWidth: 1 },
+  // Order summary sheet styles
+  summaryToggle: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12, borderRadius: 10, borderWidth: 1, marginTop: 8 },
+  summaryToggleText: { flex: 1, fontSize: 13, fontWeight: '700' },
+  summarySheet: { borderRadius: 12, borderWidth: 1, padding: 14, marginTop: 4 },
+  summaryShopName: { fontSize: 13, fontWeight: '700', marginBottom: 4 },
+  summaryItemRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 2 },
+  summaryItemName: { fontSize: 12, flex: 1 },
+  summaryItemPrice: { fontSize: 12, fontWeight: '600' },
+  summaryDivider: { borderTopWidth: 1, paddingTop: 8 },
+  // Location confirmation styles
+  confirmLocBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderRadius: 12, paddingVertical: 14, marginTop: 8 },
+  confirmLocBtnText: { color: '#fff', fontSize: 14, fontWeight: '800' },
+  locConfirmedBox: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: 12, borderWidth: 1, marginTop: 8 },
+  locConfirmedTitle: { fontSize: 13, fontWeight: '700' },
+  locConfirmedAddr: { fontSize: 12, marginTop: 2 },
+  locConfirmedGps: { fontSize: 10, marginTop: 2 },
 });
