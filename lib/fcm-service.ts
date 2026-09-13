@@ -3,7 +3,7 @@ import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 import { supabase } from './supabase';
 
-export type UserType = 'customer' | 'driver';
+export type UserType = 'customer' | 'driver' | 'shop';
 
 interface DeviceInfo {
   platform: string;

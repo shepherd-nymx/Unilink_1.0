@@ -14,6 +14,17 @@ import {
 import { sendPushNotification, drainNotificationQueue } from '@/lib/fcm-service';
 import { registerDeviceToken } from '@/lib/device-token-service';
 
+const SHOP_STATUS_LABELS: Record<string, string> = {
+  pending: 'Order received',
+  confirmed: 'Order confirmed',
+  preparing: 'Being prepared',
+  ready: 'Ready for pickup',
+  picked_up: 'Picked up by messenger',
+  out_for_delivery: 'Out for delivery',
+  delivered: 'Delivered',
+  cancelled: 'Cancelled',
+};
+
 export type InAppMessage = {
   title: string;
   body: string;
@@ -42,7 +53,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   const [hasNotificationPermission, setHasNotificationPermission] = useState(false);
   const [inAppMessage, setInAppMessage] = useState<InAppMessage | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
-  const [userType, setUserType] = useState<'driver' | 'customer' | 'admin' | null>(null);
+  const [userType, setUserType] = useState<'driver' | 'customer' | 'admin' | 'shop' | null>(null);
   const subscriptionsRef = useRef<any[]>([]);
   const prevUserIdRef = useRef<string | null>(null);
 
@@ -193,7 +204,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       body: string,
       data?: any,
       targetUserIds?: string[],
-      targetUserType?: 'customer' | 'driver'
+      targetUserType?: 'customer' | 'driver' | 'shop'
     ) => {
       if (data?.type === 'new_message') {
         setInAppMessage({ title, body, data });
@@ -376,9 +387,120 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       subscriptionsRef.current.push(driverMessageSub);
     }
 
+    // ─── SHOP SUBSCRIPTIONS ─────────────────────────────────────────────────
+    if (userType === 'shop') {
+      const shopOrderInsertSub = supabase
+        .channel(`shop-order-insert-${userId}`)
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'shop_orders' }, async (payload) => {
+          const newOrder = payload.new;
+          if (newOrder.shop_id !== userId) return;
+          const customerName = newOrder.customer_name || 'A customer';
+          await notify(
+            'New Order Received!',
+            `${customerName} placed a new order from your shop.`,
+            { type: 'shop_new_order', orderId: newOrder.id },
+            [userId], 'shop'
+          );
+        })
+        .subscribe();
+      subscriptionsRef.current.push(shopOrderInsertSub);
+
+      const shopOrderStatusSub = supabase
+        .channel(`shop-order-status-${userId}`)
+        .on('postgres_changes',
+          { event: 'UPDATE', schema: 'public', table: 'shop_orders', filter: `shop_id=eq.${userId}` },
+          async (payload) => {
+            const oldStatus = payload.old.status;
+            const newStatus = payload.new.status;
+            if (oldStatus === newStatus) return;
+            if (newStatus === 'cancelled') {
+              await notify(
+                'Order Cancelled',
+                `Order #${payload.new.id.slice(0, 8)} was cancelled by the customer.`,
+                { type: 'shop_order_cancelled', orderId: payload.new.id },
+                [userId], 'shop'
+              );
+            } else if (newStatus === 'delivered') {
+              await notify(
+                'Order Delivered',
+                `Order #${payload.new.id.slice(0, 8)} has been delivered successfully.`,
+                { type: 'shop_order_delivered', orderId: payload.new.id },
+                [userId], 'shop'
+              );
+            }
+          }
+        )
+        .subscribe();
+      subscriptionsRef.current.push(shopOrderStatusSub);
+    }
+
     // ─── CUSTOMER SUBSCRIPTIONS ─────────────────────────────────────────────
     if (userType === 'customer') {
       refreshUnreadCount();
+
+      const customerShopOrderSub = supabase
+        .channel(`customer-shop-order-${userId}`)
+        .on('postgres_changes',
+          { event: 'UPDATE', schema: 'public', table: 'shop_orders', filter: `customer_id=eq.${userId}` },
+          async (payload) => {
+            const oldStatus = payload.old.status;
+            const newStatus = payload.new.status;
+            if (oldStatus === newStatus) return;
+            const label = SHOP_STATUS_LABELS[newStatus] || newStatus;
+            if (newStatus === 'confirmed') {
+              await notify(
+                'Order Confirmed!',
+                `Your shop order has been confirmed. The shop is preparing your items.`,
+                { type: 'shop_order_status', status: newStatus, orderId: payload.new.id },
+                [userId], 'customer'
+              );
+            } else if (newStatus === 'preparing') {
+              await notify(
+                'Order Being Prepared',
+                'The shop is now preparing your order.',
+                { type: 'shop_order_status', status: newStatus, orderId: payload.new.id },
+                [userId], 'customer'
+              );
+            } else if (newStatus === 'ready') {
+              await notify(
+                'Order Ready!',
+                'Your order is ready and waiting for a messenger to pick it up.',
+                { type: 'shop_order_status', status: newStatus, orderId: payload.new.id },
+                [userId], 'customer'
+              );
+            } else if (newStatus === 'picked_up') {
+              await notify(
+                'Order Picked Up',
+                'A messenger has picked up your order and is on the way.',
+                { type: 'shop_order_status', status: newStatus, orderId: payload.new.id },
+                [userId], 'customer'
+              );
+            } else if (newStatus === 'out_for_delivery') {
+              await notify(
+                'Out for Delivery!',
+                'Your order is on its way to you.',
+                { type: 'shop_order_status', status: newStatus, orderId: payload.new.id },
+                [userId], 'customer'
+              );
+            } else if (newStatus === 'delivered') {
+              await notify(
+                'Order Delivered!',
+                'Your shop order has been delivered successfully.',
+                { type: 'shop_order_status', status: newStatus, orderId: payload.new.id },
+                [userId], 'customer'
+              );
+            } else if (newStatus === 'cancelled') {
+              await notify(
+                'Order Cancelled',
+                'Your shop order has been cancelled.',
+                { type: 'shop_order_status', status: newStatus, orderId: payload.new.id },
+                [userId], 'customer'
+              );
+            }
+          }
+        )
+        .subscribe();
+      subscriptionsRef.current.push(customerShopOrderSub);
 
       const customerConversationSub = supabase
         .channel(`customer-conversation-${userId}`)
@@ -439,17 +561,24 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       const customerMessageSub = supabase
         .channel(`customer-messages-${userId}`)
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages' }, async (payload) => {
-          if (payload.new.sender_type !== 'driver') return;
+          if (payload.new.sender_type === 'customer') return;
           const { data: convData } = await supabase
             .from('chat_conversations').select('customer_id').eq('id', payload.new.conversation_id).maybeSingle();
           if (convData?.customer_id !== userId) return;
           refreshUnreadCount();
-          const { data: driverData } = await supabase
-            .from('drivers').select('full_name').eq('id', payload.new.sender_id).maybeSingle();
-          const senderName = driverData?.full_name || 'Driver';
+          let senderName = 'Driver';
+          if (payload.new.sender_type === 'shop') {
+            const { data: shopData } = await supabase
+              .from('shops').select('name').eq('id', payload.new.sender_id).maybeSingle();
+            senderName = shopData?.name || 'Shop';
+          } else {
+            const { data: driverData } = await supabase
+              .from('drivers').select('full_name').eq('id', payload.new.sender_id).maybeSingle();
+            senderName = driverData?.full_name || 'Driver';
+          }
           await notify(
             `Message from ${senderName}`, payload.new.message,
-            { type: 'new_message', conversationId: payload.new.conversation_id, senderType: 'driver', customerId: userId },
+            { type: 'new_message', conversationId: payload.new.conversation_id, senderType: payload.new.sender_type, customerId: userId },
             [userId], 'customer'
           );
         })
