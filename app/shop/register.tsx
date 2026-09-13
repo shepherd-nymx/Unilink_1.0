@@ -46,6 +46,8 @@ export default function ShopRegister() {
   const [address, setAddress] = useState('');
   const [hours, setHours] = useState('');
   const [area, setArea] = useState('');
+  const [latitude, setLatitude] = useState('');
+  const [longitude, setLongitude] = useState('');
   const [areas, setAreas] = useState<{ id: string; name: string; city: string | null }[]>([]);
   const [showAreaPicker, setShowAreaPicker] = useState(false);
   const [logoUri, setLogoUri] = useState<string | null>(null);
@@ -162,6 +164,8 @@ export default function ShopRegister() {
           description: description || null,
           address,
           location: area,
+          latitude: latitude.trim() ? parseFloat(latitude) : null,
+          longitude: longitude.trim() ? parseFloat(longitude) : null,
           contact_phone: contactPhone,
           contact_email: emailTrim,
           hours: hours || null,
@@ -362,6 +366,47 @@ export default function ShopRegister() {
                   )}
                 </View>
               )}
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={[styles.label, { color: textSecondary }]}>
+                SHOP GPS COORDINATES
+              </Text>
+              <Text style={{ fontSize: 11, color: placeholderColor, marginBottom: 6 }}>
+                Enter your shop's latitude and longitude so messengers can navigate to you
+              </Text>
+              <View style={{ flexDirection: 'row', gap: 10 }}>
+                <View style={{ flex: 1 }}>
+                  <View style={[styles.inputWrapper, { backgroundColor: inputBg, borderColor: focused === 'lat' ? primary : inputBorder }]}>
+                    <View style={styles.inputIcon}><MapPin size={16} color={focused === 'lat' ? primary : placeholderColor} /></View>
+                    <TextInput
+                      style={[styles.input, { color: textPrimary }]}
+                      value={latitude}
+                      onChangeText={setLatitude}
+                      placeholder="Latitude"
+                      placeholderTextColor={placeholderColor}
+                      keyboardType="decimal-pad"
+                      onFocus={() => setFocused('lat')}
+                      onBlur={() => setFocused(null)}
+                    />
+                  </View>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <View style={[styles.inputWrapper, { backgroundColor: inputBg, borderColor: focused === 'lng' ? primary : inputBorder }]}>
+                    <View style={styles.inputIcon}><MapPin size={16} color={focused === 'lng' ? primary : placeholderColor} /></View>
+                    <TextInput
+                      style={[styles.input, { color: textPrimary }]}
+                      value={longitude}
+                      onChangeText={setLongitude}
+                      placeholder="Longitude"
+                      placeholderTextColor={placeholderColor}
+                      keyboardType="decimal-pad"
+                      onFocus={() => setFocused('lng')}
+                      onBlur={() => setFocused(null)}
+                    />
+                  </View>
+                </View>
+              </View>
             </View>
 
             <View style={styles.inputGroup}>
