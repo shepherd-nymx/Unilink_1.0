@@ -256,8 +256,10 @@ export default function AdminShops() {
 
   const updateShopStatus = async (shopId: string, newStatus: string, extra?: Record<string, any>) => {
     const updates: Record<string, any> = { status: newStatus, ...extra };
-    if (newStatus === 'payment_required') updates.approved_at = new Date().toISOString();
-    if (newStatus === 'active') updates.payment_verified_at = new Date().toISOString();
+    if (newStatus === 'active') {
+      updates.payment_verified_at = new Date().toISOString();
+      if (!updates.approved_at) updates.approved_at = new Date().toISOString();
+    }
     if (newStatus === 'suspended') updates.suspended_at = new Date().toISOString();
 
     const { error: err } = await supabase
@@ -269,8 +271,7 @@ export default function AdminShops() {
     // Send email notification
     const shop = shops.find(s => s.id === shopId);
     if (shop?.contact_email) {
-      const emailType = newStatus === 'payment_required' ? 'shop_approval' :
-        newStatus === 'active' ? 'shop_activated' :
+      const emailType = newStatus === 'active' ? 'shop_activated' :
         newStatus === 'rejected' ? 'shop_notification' : '';
       if (emailType) {
         try {
@@ -436,10 +437,10 @@ export default function AdminShops() {
                           <>
                             <TouchableOpacity
                               style={[styles.actionBtn, { backgroundColor: A.greenDim, borderColor: A.green }]}
-                              onPress={() => updateShopStatus(shop.id, 'payment_required')}
+                              onPress={() => updateShopStatus(shop.id, 'active', { approved_at: new Date().toISOString() })}
                             >
                               <CheckCircle size={14} color={A.green} />
-                              <Text style={[styles.actionBtnText, { color: A.green }]}>Approve</Text>
+                              <Text style={[styles.actionBtnText, { color: A.green }]}>Approve & Activate</Text>
                             </TouchableOpacity>
                             <TouchableOpacity
                               style={[styles.actionBtn, { backgroundColor: A.redDim, borderColor: A.red }]}
