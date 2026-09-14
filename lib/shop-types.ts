@@ -85,6 +85,7 @@ export type ShopData = {
   ecocash_name?: string | null;
   commission_deadline?: string | null;
   category?: string | null;
+  logo_url?: string | null;
 };
 
 export const STATUS_FLOW = [

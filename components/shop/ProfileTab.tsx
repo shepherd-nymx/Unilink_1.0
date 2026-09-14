@@ -10,6 +10,7 @@ import {
   Modal,
   Linking,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { A } from '@/lib/admin-theme';
 import { supabase } from '@/lib/supabase';
@@ -19,8 +20,9 @@ import {
   type OperatingHours,
   type DaySchedule,
 } from '@/lib/shop-types';
-import { Store, LogOut, MapPin, Navigation, Globe, Clock, CreditCard, DollarSign, BadgeCheck, TriangleAlert as AlertTriangle, X, Check, MessageCircle, Plus, Trash2, Ban, Search, Smartphone, Tag, ChevronDown } from 'lucide-react-native';
+import { Store, LogOut, MapPin, Navigation, Globe, Clock, CreditCard, DollarSign, BadgeCheck, TriangleAlert as AlertTriangle, X, Check, MessageCircle, Plus, Trash2, Ban, Search, Smartphone, Tag, ChevronDown, Camera, Image as ImageIcon } from 'lucide-react-native';
 import * as Location from 'expo-location';
+import * as ImagePicker from 'expo-image-picker';
 import { SHOP_CATEGORIES } from '@/components/marketplace/types';
 
 const PAYMENT_OPTIONS: { key: string; label: string }[] = [
@@ -81,6 +83,13 @@ export function ProfileTab({
   const [category, setCategory] = useState(shop.category || '');
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
   const [savingCategory, setSavingCategory] = useState(false);
+
+  // Shop info editing
+  const [editName, setEditName] = useState(shop.name);
+  const [editDescription, setEditDescription] = useState(shop.description || '');
+  const [editPhone, setEditPhone] = useState(shop.contact_phone);
+  const [savingInfo, setSavingInfo] = useState(false);
+  const [logoUploading, setLogoUploading] = useState(false);
 
   // Service locations
   const [serviceLocations, setServiceLocations] = useState<{ id: string; location_name: string; location_type: string }[]>([]);
@@ -239,6 +248,66 @@ export function ProfileTab({
     }
     onShopUpdated({ ...shop, whatsapp_number: cleaned || null });
     setMsg('WhatsApp number saved');
+  };
+
+  const pickLogo = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      setMsg('Permission to access photos is required');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'] as any,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+    if (!result.canceled && result.assets[0]?.uri) {
+      await uploadLogo(result.assets[0].uri);
+    }
+  };
+
+  const uploadLogo = async (uri: string) => {
+    setLogoUploading(true);
+    setMsg('');
+    try {
+      const fileExt = uri.split('.').pop()?.toLowerCase() || 'jpg';
+      const fileName = `logo-${shop.id}-${Date.now()}.${fileExt}`;
+      const response = await fetch(uri);
+      const blob = await response.blob();
+      const { error: uploadError } = await supabase.storage
+        .from('shop-assets')
+        .upload(fileName, blob, { contentType: blob.type || 'image/jpeg' });
+      if (uploadError) throw uploadError;
+      const { data: urlData } = supabase.storage.from('shop-assets').getPublicUrl(fileName);
+      const logoUrl = urlData.publicUrl;
+      const { error: updateError } = await supabase
+        .from('shops')
+        .update({ logo_url: logoUrl })
+        .eq('id', shop.id);
+      if (updateError) throw updateError;
+      onShopUpdated({ ...shop, logo_url: logoUrl });
+      setMsg('Logo updated successfully');
+    } catch (e: any) {
+      setMsg(e.message || 'Failed to upload logo');
+    } finally {
+      setLogoUploading(false);
+    }
+  };
+
+  const saveShopInfo = async () => {
+    setSavingInfo(true);
+    setMsg('');
+    const updates = {
+      name: editName.trim() || shop.name,
+      description: editDescription.trim() || null,
+      contact_phone: editPhone.trim() || shop.contact_phone,
+    };
+    const { error } = await supabase.from('shops').update(updates).eq('id', shop.id);
+    setSavingInfo(false);
+    if (error) { setMsg(error.message); return; }
+    onShopUpdated({ ...shop, ...updates });
+    setMsg('Shop information saved');
   };
 
   useEffect(() => {
@@ -463,24 +532,66 @@ export function ProfileTab({
             </View>
           )}
         </View>
-        <View style={styles.row}>
-          <Text style={styles.label}>Name</Text>
-          <Text style={styles.value}>{shop.name}</Text>
+
+        {/* Logo */}
+        <View style={{ alignItems: 'center', marginBottom: 16 }}>
+          {shop.logo_url ? (
+            <Image source={{ uri: shop.logo_url }} style={{ width: 80, height: 80, borderRadius: 16, marginBottom: 8 }} />
+          ) : (
+            <View style={{ width: 80, height: 80, borderRadius: 16, backgroundColor: A.inputBg, borderWidth: 1, borderColor: A.border, justifyContent: 'center', alignItems: 'center', marginBottom: 8 }}>
+              <Store size={28} color={A.textMuted} />
+            </View>
+          )}
+          <TouchableOpacity
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 8, paddingHorizontal: 14, borderRadius: 8, backgroundColor: A.cyanDim, borderWidth: 1, borderColor: A.cyan }}
+            onPress={pickLogo}
+            disabled={logoUploading}
+          >
+            {logoUploading ? <ActivityIndicator size="small" color={A.cyan} /> : <Camera size={14} color={A.cyan} />}
+            <Text style={{ fontSize: 12, fontWeight: '600', color: A.cyan }}>{logoUploading ? 'Uploading...' : 'Change Logo'}</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Editable fields */}
+        <View style={styles.fieldGroup}>
+          <Text style={styles.label}>Shop Name</Text>
+          <TextInput
+            style={styles.feeInput}
+            value={editName}
+            onChangeText={setEditName}
+            placeholder="Shop name"
+            placeholderTextColor={A.textMuted}
+          />
+        </View>
+        <View style={styles.fieldGroup}>
+          <Text style={styles.label}>Description</Text>
+          <TextInput
+            style={[styles.feeInput, { minHeight: 70 }]}
+            value={editDescription}
+            onChangeText={setEditDescription}
+            placeholder="Tell customers about your shop..."
+            placeholderTextColor={A.textMuted}
+            multiline
+          />
+        </View>
+        <View style={styles.fieldGroup}>
+          <Text style={styles.label}>Contact Phone</Text>
+          <TextInput
+            style={styles.feeInput}
+            value={editPhone}
+            onChangeText={setEditPhone}
+            placeholder="e.g. +263771234567"
+            placeholderTextColor={A.textMuted}
+            keyboardType="phone-pad"
+          />
         </View>
         <View style={styles.row}>
-          <Text style={styles.label}>Email</Text>
+          <Text style={styles.label}>Email (not editable)</Text>
           <Text style={styles.value}>{shop.contact_email}</Text>
         </View>
-        <View style={styles.row}>
-          <Text style={styles.label}>Phone</Text>
-          <Text style={styles.value}>{shop.contact_phone}</Text>
-        </View>
-        {shop.description ? (
-          <View style={styles.row}>
-            <Text style={styles.label}>Description</Text>
-            <Text style={styles.value}>{shop.description}</Text>
-          </View>
-        ) : null}
+        <TouchableOpacity style={[styles.saveBtn, { backgroundColor: A.cyan }]} onPress={saveShopInfo} disabled={savingInfo}>
+          {savingInfo ? <ActivityIndicator size="small" color="#000" /> : <Text style={[styles.saveBtnText, { color: '#000' }]}>Save Shop Info</Text>}
+        </TouchableOpacity>
         <View style={[styles.row, { flexDirection: 'column', alignItems: 'flex-start', gap: 6 }]}>
           <Text style={styles.label}>Category</Text>
           <TouchableOpacity
