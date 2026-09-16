@@ -347,8 +347,8 @@ function renderShopNotification(d: Record<string, any>): { subject: string; html
     <h1>${escapeHtml(heading)}</h1>
     <p>${escapeHtml(body)}</p>
     ${rows ? `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width:100%;font-size:14px;margin:8px 0 16px 0;">${rows}</table>` : ""}
-    ${ctaButton(`${APP_URL}/admin/deliveries`, "Open Dashboard")}`;
-  const text = `${heading}\n\n${body}\n\nDashboard: ${APP_URL}/admin/deliveries`;
+    ${ctaButton(`${APP_URL}/shop/dashboard`, "Open Dashboard")}`;
+  const text = `${heading}\n\n${body}\n\nDashboard: ${APP_URL}/shop/dashboard`;
   return { subject: heading, html, text };
 }
 
@@ -437,8 +437,8 @@ function renderShopOrderStatus(d: Record<string, any>): { subject: string; html:
     <h1>Order #${orderNum} — ${escapeHtml(label)}</h1>
     <p>Your order status has been updated.</p>
     <p style="font-size:18px;font-weight:800;color:#0066ff;">${escapeHtml(label)}</p>
-    ${ctaButton(`${APP_URL}/customer/marketplace/orders`, "Track Order")}`;
-  const text = `Order #${orderNum} — ${label}\n\nTrack: ${APP_URL}/customer/marketplace/orders`;
+    ${ctaButton(`${APP_URL}/customer/orders?orderId=${encodeURIComponent(orderNum)}`, "Track Order")}`;
+  const text = `Order #${orderNum} — ${label}\n\nTrack: ${APP_URL}/customer/orders?orderId=${encodeURIComponent(orderNum)}`;
   return { subject: `Order #${orderNum}: ${label}`, html, text };
 }
 
