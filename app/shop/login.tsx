@@ -30,6 +30,7 @@ export default function ShopLogin() {
   const [resetEmail, setResetEmail] = useState('');
   const [resetLoading, setResetLoading] = useState(false);
   const [resetMessage, setResetMessage] = useState('');
+  const [orphanRecovery, setOrphanRecovery] = useState(false);
 
   useEffect(() => {
     Animated.parallel([
@@ -96,8 +97,17 @@ export default function ShopLogin() {
         .eq('owner_id', authData.user.id)
         .maybeSingle();
       if (shopError) throw shopError;
-      if (!shop) throw new Error('No shop found for this account');
+      if (!shop) {
+        // Auth account exists but no shop record — orphaned registration.
+        // Offer recovery: redirect to register page so they can complete setup.
+        try { await supabase.auth.signOut(); } catch {}
+        setOrphanRecovery(true);
+        setError('Your account exists but your shop profile was not fully created. Please complete your registration.');
+        setLoading(false);
+        return;
+      }
 
+      setOrphanRecovery(false);
       await saveShopSession({
         shopId: shop.id,
         ownerId: authData.user.id,
@@ -204,6 +214,15 @@ export default function ShopLogin() {
             </TouchableOpacity>
           </View>
         </View>
+
+        {orphanRecovery && (
+          <TouchableOpacity
+            style={[styles.submitBtn, { backgroundColor: primary, marginTop: 0 }]}
+            onPress={() => router.push('/shop/register')}
+          >
+            <Text style={styles.submitBtnText}>Complete Your Registration</Text>
+          </TouchableOpacity>
+        )}
 
         <TouchableOpacity style={styles.registerLink} onPress={() => router.push('/shop/register')}>
           <Text style={{ color: textSecondary, fontSize: 14 }}>

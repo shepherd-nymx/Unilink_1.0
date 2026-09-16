@@ -244,7 +244,11 @@ export default function CustomerRegister() {
         })
         .select()
         .single();
-      if (customerError) throw customerError;
+      if (customerError) {
+        // Clean up the orphaned auth account so the user can retry registration
+        if (authId) { try { await supabase.auth.signOut(); } catch {} }
+        throw customerError;
+      }
       const { error: addressError } = await supabase.from('customer_addresses').insert({
         customer_id: customer.id,
         address_type: 'default',

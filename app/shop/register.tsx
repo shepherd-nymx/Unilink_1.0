@@ -196,13 +196,53 @@ export default function ShopRegister() {
 
     setLoading(true);
     try {
-      const { data: authData, error: authError } = await supabase.auth.signUp({
+      // Step 1: Create auth account or sign in if one already exists (orphan recovery)
+      let authUserId: string;
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email: emailTrim,
         password,
       });
-      if (authError) throw authError;
-      if (!authData.user) throw new Error('Failed to create account');
+      if (signUpError) {
+        if (signUpError.message.toLowerCase().includes('already registered') || signUpError.message.toLowerCase().includes('already been registered')) {
+          // An auth account exists but may not have a shop record (orphan from a failed registration).
+          // Sign in with the provided credentials to recover and retry the shop insert.
+          const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+            email: emailTrim,
+            password,
+          });
+          if (signInError) throw new Error('An account with this email already exists. If you forgot your password, use the reset link on the login page.');
+          if (!signInData.user) throw new Error('Login failed during recovery. Please try again.');
+          authUserId = signInData.user.id;
+        } else {
+          throw signUpError;
+        }
+      } else if (!signUpData.user) {
+        throw new Error('Failed to create account');
+      } else {
+        authUserId = signUpData.user.id;
+      }
 
+      // Step 2: Check if a shop record already exists for this auth user (orphan recovery)
+      const { data: existingShop } = await supabase
+        .from('shops')
+        .select('id, name, status')
+        .eq('owner_id', authUserId)
+        .maybeSingle();
+      if (existingShop) {
+        // Shop already exists — just log them in
+        await saveShopSession({
+          shopId: existingShop.id,
+          ownerId: authUserId,
+          email: emailTrim,
+          shopName: existingShop.name,
+          shopStatus: existingShop.status,
+        });
+        setSuccess(true);
+        setTimeout(() => { router.replace('/shop/dashboard'); }, 1500);
+        return;
+      }
+
+      // Step 3: Upload logo (if provided)
       let logoUrl: string | null = null;
       if (logoUri) {
         try {
@@ -221,10 +261,11 @@ export default function ShopRegister() {
         }
       }
 
+      // Step 4: Create the shop record
       const { data: shop, error: shopError } = await supabase
         .from('shops')
         .insert({
-          owner_id: authData.user.id,
+          owner_id: authUserId,
           name: shopName,
           logo_url: logoUrl,
           description: description || null,
@@ -247,17 +288,19 @@ export default function ShopRegister() {
       if (shopError) throw shopError;
       if (!shop) throw new Error('Failed to create shop record');
 
+      // Step 5: Log terms acceptance (non-fatal)
       try {
         await supabase.from('terms_acceptance_log').insert({
-          user_id: authData.user.id,
+          user_id: authUserId,
           user_type: 'shop',
           terms_version: termsVersion,
         });
       } catch {}
 
+      // Step 6: Save session and redirect
       await saveShopSession({
         shopId: shop.id,
-        ownerId: authData.user.id,
+        ownerId: authUserId,
         email: emailTrim,
         shopName: shop.name,
         shopStatus: shop.status,
@@ -288,6 +331,8 @@ export default function ShopRegister() {
         router.replace('/shop/dashboard');
       }, 1500);
     } catch (err: any) {
+      // Sign out any partial auth session so a retry starts clean
+      try { await supabase.auth.signOut(); } catch {}
       setError(err.message || 'Registration failed. Please try again.');
     } finally {
       setLoading(false);
