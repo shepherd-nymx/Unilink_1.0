@@ -1,12 +1,8 @@
 {
   "buildCommand": "npm run build:web",
   "outputDirectory": "dist",
-  "framework": null,
   "rewrites": [
-    {
-      "source": "/((?!_expo|assets|manifest.json|favicon.ico|icon-192.png|icon-512.png|service-worker.js|version.json).*)",
-      "destination": "/index.html"
-    }
+    { "source": "/(.*)", "destination": "/index.html" }
   ],
   "headers": [
     {
