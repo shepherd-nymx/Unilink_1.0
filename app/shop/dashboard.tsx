@@ -740,10 +740,22 @@ export default function ShopDashboard() {
                       </Text>
                       <View style={styles.orderFooter}>
                         <Text style={styles.orderTotal}>${Number(order.total_amount).toFixed(2)}</Text>
-                        <Text style={styles.orderTime}>
-                          {new Date(order.created_at).toLocaleDateString()} {new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                          <Text style={styles.orderTime}>
+                            {new Date(order.created_at).toLocaleDateString()} {new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </Text>
+                        </View>
                       </View>
+                      {canManageShop && order.status !== 'cancelled' && (
+                        <TouchableOpacity
+                          style={[styles.trackBtn, { backgroundColor: A.cyanDim, borderColor: A.cyan }]}
+                          onPress={(e) => { e.stopPropagation?.(); openOrderDetail(order); }}
+                          activeOpacity={0.8}
+                        >
+                          <Truck size={13} color={A.cyan} />
+                          <Text style={[styles.trackBtnText, { color: A.cyan }]}>Track Order</Text>
+                        </TouchableOpacity>
+                      )}
                     </TouchableOpacity>
                   );
                 })
@@ -1054,6 +1066,8 @@ const styles = StyleSheet.create({
   orderFooter: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 },
   orderTotal: { fontSize: 15, fontWeight: '700', color: A.green },
   orderTime: { fontSize: 11, color: A.textMuted },
+  trackBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 8, borderRadius: 8, borderWidth: 1, marginTop: 10 },
+  trackBtnText: { fontSize: 12, fontWeight: '700' },
   addProductBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
     backgroundColor: A.cyanDim, borderRadius: 10, paddingVertical: 14,

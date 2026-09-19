@@ -10,7 +10,7 @@ import {
   Linking,
 } from 'react-native';
 import { A } from '@/lib/admin-theme';
-import { STATUS_LABELS, type ShopOrder, type Driver } from '@/lib/shop-types';
+import { STATUS_LABELS, STATUS_FLOW, type ShopOrder, type Driver } from '@/lib/shop-types';
 import {
   CircleCheck as CheckCircle,
   Circle as XCircle,
@@ -22,6 +22,9 @@ import {
   MessageSquare,
   Smartphone,
   MessageCircle,
+  Clock,
+  Package,
+  MapPin,
 } from 'lucide-react-native';
 
 const VEHICLE_BADGES: Record<string, { label: string; color: string }> = {
@@ -114,6 +117,56 @@ export function OrderDetailModal({
                 </View>
               </View>
             ) : null}
+
+            {/* Order tracking flow */}
+            <Text style={styles.modalSectionLabel}>Order Tracking</Text>
+            <View style={styles.trackerContainer}>
+              {STATUS_FLOW.map((step, i) => {
+                const currentStepIndex = STATUS_FLOW.indexOf(order.status as any);
+                const isCancelled = order.status === 'cancelled';
+                const isActive = !isCancelled && i <= currentStepIndex;
+                const isCurrent = !isCancelled && i === currentStepIndex;
+                const stepColor = isActive ? (isCurrent ? A.cyan : A.green) : A.border;
+                const isLast = i === STATUS_FLOW.length - 1;
+                const stepIcons: Record<string, any> = {
+                  pending: Clock,
+                  confirmed: CheckCircle,
+                  preparing: Package,
+                  ready: Package,
+                  assigned: Truck,
+                  picked_up: Truck,
+                  out_for_delivery: Truck,
+                  delivered: CheckCircle,
+                };
+                const StepIcon = stepIcons[step] || Clock;
+                return (
+                  <View key={step} style={styles.trackerStep}>
+                    <View style={styles.trackerStepLeft}>
+                      <View style={[styles.trackerDot, { backgroundColor: isActive ? stepColor : A.inputBg, borderColor: stepColor }]}>
+                        <StepIcon size={10} color={isActive ? '#fff' : A.textMuted} />
+                      </View>
+                      {!isLast && (
+                        <View style={[styles.trackerLine, { backgroundColor: !isCancelled && i < currentStepIndex ? A.green : A.border }]} />
+                      )}
+                    </View>
+                    <View style={styles.trackerStepRight}>
+                      <Text style={[styles.trackerLabel, { color: isActive ? A.text : A.textMuted, fontWeight: isCurrent ? '700' as any : '500' }]}>
+                        {STATUS_LABELS[step] || step}
+                      </Text>
+                      {isCurrent && (
+                        <Text style={styles.trackerCurrent}>Current status</Text>
+                      )}
+                    </View>
+                  </View>
+                );
+              })}
+              {order.status === 'cancelled' && (
+                <View style={[styles.cancelledBox, { backgroundColor: A.redDim, borderColor: A.red }]}>
+                  <XCircle size={14} color={A.red} />
+                  <Text style={[styles.cancelledText, { color: A.red }]}>This order was cancelled</Text>
+                </View>
+              )}
+            </View>
           </ScrollView>
 
           {onChat && order.customer_id && (
@@ -360,4 +413,14 @@ const styles = StyleSheet.create({
     backgroundColor: A.inputBg, borderWidth: 1, borderColor: A.border,
   },
   driverBadgeText: { fontSize: 9, fontWeight: '700' },
+  trackerContainer: { marginTop: 4, marginBottom: 8 },
+  trackerStep: { flexDirection: 'row', minHeight: 44 },
+  trackerStepLeft: { alignItems: 'center', width: 28 },
+  trackerDot: { width: 20, height: 20, borderRadius: 10, borderWidth: 2, justifyContent: 'center', alignItems: 'center' },
+  trackerLine: { flex: 1, width: 2, minHeight: 24, marginTop: 2 },
+  trackerStepRight: { flex: 1, paddingBottom: 12 },
+  trackerLabel: { fontSize: 13 },
+  trackerCurrent: { fontSize: 10, color: A.cyan, fontWeight: '600', marginTop: 2 },
+  cancelledBox: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 10, borderRadius: 8, borderWidth: 1, marginTop: 8 },
+  cancelledText: { fontSize: 12, fontWeight: '600' },
 });
