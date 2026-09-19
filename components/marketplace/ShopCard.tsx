@@ -37,12 +37,12 @@ export function ShopCard({ shop, palette, onPress }: Props) {
       <View style={styles.badgeRow}>
         <View style={[styles.availBadge, { backgroundColor: open ? `${palette.success}22` : `${palette.error}22` }]}>
           <View style={[styles.dot, { backgroundColor: open ? palette.success : palette.error }]} />
-          <Text style={[styles.badgeText, { color: open ? palette.success : palette.error }]}>{open ? 'Open' : 'Closed'}</Text>
+          <Text style={[styles.badgeText, { color: open ? palette.success : palette.error }]} numberOfLines={1}>{open ? 'Open' : 'Closed'}</Text>
         </View>
         {shop.location_verified ? (
           <View style={[styles.verifiedBadge, { backgroundColor: `${palette.primary}18` }]}>
             <BadgeCheck size={11} color={palette.primary} />
-            <Text style={[styles.badgeText, { color: palette.primary }]}>Verified</Text>
+            <Text style={[styles.badgeText, { color: palette.primary }]} numberOfLines={1}>Verified</Text>
           </View>
         ) : null}
         {shop.premium_badge ? (
@@ -60,7 +60,7 @@ export function ShopCard({ shop, palette, onPress }: Props) {
             <Text style={[styles.badgeText, {
               color: shop.premium_badge === 'platinum' ? '#e5e4e2' :
                 shop.premium_badge === 'blue' ? '#3b82f6' : '#22c55e',
-            }]}>{shop.premium_badge === 'platinum' ? 'Platinum' : shop.premium_badge === 'blue' ? 'Blue' : 'Green'}</Text>
+            }]} numberOfLines={1}>{shop.premium_badge === 'platinum' ? 'Platinum' : shop.premium_badge === 'blue' ? 'Blue' : 'Green'}</Text>
           </View>
         ) : null}
       </View>
@@ -104,13 +104,13 @@ export function ShopCard({ shop, palette, onPress }: Props) {
 const styles = StyleSheet.create({
   shopCard: { width: 130, borderRadius: 12, borderWidth: 1, padding: 12, gap: 6 },
   shopLogo: { width: 48, height: 48, borderRadius: 24, justifyContent: 'center', alignItems: 'center' },
-  badgeRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' },
-  availBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 6, paddingVertical: 3, borderRadius: 8 },
+  badgeRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap', overflow: 'hidden' as any },
+  availBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 6, paddingVertical: 3, borderRadius: 8, flexShrink: 1, maxWidth: '100%' as any },
   dot: { width: 6, height: 6, borderRadius: 3 },
-  badgeText: { fontSize: 9, fontWeight: '700' },
-  verifiedBadge: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 6, paddingVertical: 3, borderRadius: 8 },
-  premiumBadge: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 6, paddingVertical: 3, borderRadius: 8, borderWidth: 1 },
-  shopName: { fontSize: 13, fontWeight: '600' },
+  badgeText: { fontSize: 9, fontWeight: '700', flexShrink: 1 },
+  verifiedBadge: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 6, paddingVertical: 3, borderRadius: 8, flexShrink: 1 },
+  premiumBadge: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 6, paddingVertical: 3, borderRadius: 8, borderWidth: 1, flexShrink: 1 },
+  shopName: { fontSize: 13, fontWeight: '600', flexShrink: 1 },
   ordersRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   ordersText: { fontSize: 10 },
   shopHours: { fontSize: 10 },

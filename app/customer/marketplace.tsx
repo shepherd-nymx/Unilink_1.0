@@ -649,22 +649,22 @@ export default function Marketplace() {
                             {shop.category ? (
                               <View style={[styles.shopSelectBadge, { backgroundColor: `${palette.accent}18` }]}>
                                 <Tag size={9} color={palette.accent} />
-                                <Text style={[styles.shopSelectBadgeText, { color: palette.accent }]}>{shop.category}</Text>
+                                <Text style={[styles.shopSelectBadgeText, { color: palette.accent }]} numberOfLines={1}>{shop.category}</Text>
                               </View>
                             ) : null}
                             {shop.location ? (
                               <View style={[styles.shopSelectBadge, { backgroundColor: `${palette.primary}15` }]}>
                                 <MapPin size={9} color={palette.primary} />
-                                <Text style={[styles.shopSelectBadgeText, { color: palette.primary }]}>{shop.location}</Text>
+                                <Text style={[styles.shopSelectBadgeText, { color: palette.primary }]} numberOfLines={1}>{shop.location}</Text>
                               </View>
                             ) : null}
                             <View style={[styles.shopSelectBadge, { backgroundColor: open ? `${palette.success}22` : `${palette.error}22` }]}>
                               <View style={[styles.shopSelectDot, { backgroundColor: open ? palette.success : palette.error }]} />
-                              <Text style={[styles.shopSelectBadgeText, { color: open ? palette.success : palette.error }]}>{open ? 'Open' : 'Closed'}</Text>
+                              <Text style={[styles.shopSelectBadgeText, { color: open ? palette.success : palette.error }]} numberOfLines={1}>{open ? 'Open' : 'Closed'}</Text>
                             </View>
                             {!shop.is_available ? (
                               <View style={[styles.shopSelectBadge, { backgroundColor: `${palette.error}22` }]}>
-                                <Text style={[styles.shopSelectBadgeText, { color: palette.error }]}>Unavailable</Text>
+                                <Text style={[styles.shopSelectBadgeText, { color: palette.error }]} numberOfLines={1}>Unavailable</Text>
                               </View>
                             ) : null}
                             {shop.premium_badge ? (
@@ -683,7 +683,7 @@ export default function Marketplace() {
                                 <Text style={[styles.shopSelectBadgeText, {
                                   color: shop.premium_badge === 'platinum' ? '#e5e4e2' :
                                     shop.premium_badge === 'blue' ? '#3b82f6' : '#22c55e',
-                                }]}>{shop.premium_badge === 'platinum' ? 'Platinum' : shop.premium_badge === 'blue' ? 'Blue' : 'Green'}</Text>
+                                }]} numberOfLines={1}>{shop.premium_badge === 'platinum' ? 'Platinum' : shop.premium_badge === 'blue' ? 'Blue' : 'Green'}</Text>
                               </View>
                             ) : null}
                           </View>
@@ -1008,14 +1008,14 @@ const styles = StyleSheet.create({
   shopSelectLogo: { width: 52, height: 52, borderRadius: 26, justifyContent: 'center', alignItems: 'center' },
   shopSelectName: { fontSize: 16, fontWeight: '700' },
   shopSelectDesc: { fontSize: 12, marginTop: 2, lineHeight: 17 },
-  shopSelectMeta: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 },
-  shopSelectBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
+  shopSelectMeta: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8, flexWrap: 'wrap' as any, overflow: 'hidden' as any },
+  shopSelectBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, flexShrink: 1 },
   areaChip: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
     paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, borderWidth: 1,
   },
   shopSelectDot: { width: 6, height: 6, borderRadius: 3 },
-  shopSelectBadgeText: { fontSize: 10, fontWeight: '700' },
+  shopSelectBadgeText: { fontSize: 10, fontWeight: '700', flexShrink: 1 },
   selectedShopBanner: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
     borderRadius: 14, borderWidth: 1, padding: 10,

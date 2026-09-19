@@ -407,8 +407,8 @@ export default function AdminShops() {
                     <View key={shop.id} style={styles.shopCard}>
                       <View style={styles.shopCardHeader}>
                         <View style={{ flex: 1 }}>
-                          <Text style={styles.shopName}>{shop.name}</Text>
-                          <Text style={styles.shopContact}>{shop.contact_email} | {shop.contact_phone}</Text>
+                          <Text style={styles.shopName} numberOfLines={1}>{shop.name}</Text>
+                          <Text style={styles.shopContact} numberOfLines={1}>{shop.contact_email} | {shop.contact_phone}</Text>
                           {shop.address && <Text style={styles.shopAddress}>{shop.address}</Text>}
                           {shop.location && (
                             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}>
@@ -418,7 +418,7 @@ export default function AdminShops() {
                           )}
                         </View>
                         <View style={[styles.statusBadge, { backgroundColor: `${statusColor}20`, borderColor: statusColor }]}>
-                          <Text style={[styles.statusText, { color: statusColor }]}>
+                          <Text style={[styles.statusText, { color: statusColor }]} numberOfLines={1}>
                             {STATUS_LABELS[shop.status] || shop.status}
                           </Text>
                         </View>
@@ -509,7 +509,7 @@ export default function AdminShops() {
                         <Text style={[styles.statusText, { color: A.cyan }]}>{order.status}</Text>
                       </View>
                     </View>
-                    <Text style={styles.orderShop}>{Array.isArray(order.shops) ? order.shops[0]?.name : order.shops?.name || 'Unknown'}</Text>
+                    <Text style={styles.orderShop} numberOfLines={1}>{Array.isArray(order.shops) ? order.shops[0]?.name : order.shops?.name || 'Unknown'}</Text>
                     <Text style={styles.orderCustomer}>{order.customer_name || 'Customer'}</Text>
                     <View style={styles.orderFooter}>
                       <Text style={styles.orderTotal}>${Number(order.total_amount).toFixed(2)}</Text>
@@ -605,7 +605,7 @@ export default function AdminShops() {
                     <View key={row.shopId} style={[styles.shopCard, { borderColor: fullyPaid ? A.green : isOverdue ? A.red : A.border }]}>
                       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                         <View style={{ flex: 1 }}>
-                          <Text style={styles.shopName}>{row.shopName}</Text>
+                          <Text style={styles.shopName} numberOfLines={1}>{row.shopName}</Text>
                           <View style={{ flexDirection: 'row', gap: 12, marginTop: 6, flexWrap: 'wrap' as any }}>
                             <View>
                               <Text style={{ fontSize: 10, color: A.textSub, fontWeight: '600' }}>REVENUE</Text>
@@ -922,12 +922,12 @@ const styles = StyleSheet.create({
   shopCard: {
     backgroundColor: A.card, borderRadius: 12, padding: 14, borderWidth: 1, borderColor: A.border,
   },
-  shopCardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  shopName: { fontSize: 15, fontWeight: '700', color: A.text },
+  shopCardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 },
+  shopName: { fontSize: 15, fontWeight: '700', color: A.text, flexShrink: 1 },
   shopContact: { fontSize: 11, color: A.textSub, marginTop: 4 },
   shopAddress: { fontSize: 11, color: A.textMuted, marginTop: 2 },
-  statusBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, borderWidth: 1 },
-  statusText: { fontSize: 10, fontWeight: '600' },
+  statusBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, borderWidth: 1, flexShrink: 0 },
+  statusText: { fontSize: 10, fontWeight: '600', flexShrink: 1 },
   shopActions: { flexDirection: 'row', gap: 8, marginTop: 12, flexWrap: 'wrap' as any },
   actionBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 6,

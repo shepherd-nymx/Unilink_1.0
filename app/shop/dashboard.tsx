@@ -586,9 +586,9 @@ export default function ShopDashboard() {
           <View style={styles.headerLogoBox}>
             <Store size={20} color={A.cyan} />
           </View>
-          <View>
+          <View style={{ flex: 1, marginRight: 8 }}>
             <Text style={styles.headerTitle} numberOfLines={1}>{shop.name}</Text>
-            <Text style={styles.headerSub}>{STATUS_LABELS[shop.status] || shop.status}</Text>
+            <Text style={styles.headerSub} numberOfLines={1}>{STATUS_LABELS[shop.status] || shop.status}</Text>
           </View>
         </View>
         <View style={{ flexDirection: 'row', gap: 8 }}>
