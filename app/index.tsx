@@ -796,15 +796,11 @@ export default function Home() {
               </TouchableOpacity>
             </View>
 
-            {/* Shop Owner + Admin row */}
+            {/* Shop Owner button */}
             <View style={s.adminRow}>
               <TouchableOpacity style={s.adminBtn} onPress={() => router.push('/shop/login')}>
                 <Store size={15} color={colors.textTertiary} />
                 <Text style={s.adminBtnText}>Shop Owner</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={s.adminBtn} onPress={() => router.push('/admin/login')}>
-                <UserCog size={15} color={colors.textTertiary} />
-                <Text style={s.adminBtnText}>Admin</Text>
               </TouchableOpacity>
             </View>
 
