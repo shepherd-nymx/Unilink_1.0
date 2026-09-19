@@ -1510,12 +1510,12 @@ export default function CustomerDashboard() {
               <Text style={styles.tutorialBtnText}>How it works</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              onPress={() => router.push('/customer/marketplace')}
+              onPress={() => router.push({ pathname: '/customer/delivery-request', params: { customerId, customerName } } as any)}
               style={[styles.tutorialBtn, { backgroundColor: '#00e5ff', borderColor: '#00e5ff' }]}
               activeOpacity={0.75}
             >
-              <ShoppingBag size={13} color="#050D1A" />
-              <Text style={[styles.tutorialBtnText, { color: '#050D1A' }]}>Shop Groceries</Text>
+              <Truck size={13} color="#050D1A" strokeWidth={2.5} />
+              <Text style={[styles.tutorialBtnText, { color: '#050D1A' }]}>Request Delivery</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -2026,14 +2026,14 @@ export default function CustomerDashboard() {
         </Animated.View>
       )}
 
-      {/* Request Delivery FAB */}
+      {/* Shop Groceries FAB */}
       <TouchableOpacity
         style={styles.deliveryFab}
-        onPress={() => router.push({ pathname: '/customer/delivery-request', params: { customerId, customerName } } as any)}
+        onPress={() => router.push('/customer/marketplace')}
         activeOpacity={0.85}
       >
-        <Truck size={20} color="#fff" strokeWidth={2.5} />
-        <Text style={styles.deliveryFabText}>Request Delivery</Text>
+        <ShoppingBag size={20} color="#fff" strokeWidth={2.5} />
+        <Text style={styles.deliveryFabText}>Shop Groceries</Text>
       </TouchableOpacity>
 
       {/* Bottom Navigation Bar */}
