@@ -34,6 +34,38 @@ import OpenRequestWaitingModal from '@/components/OpenRequestWaitingModal';
 import CustomerTutorial from '@/components/CustomerTutorial';
 import AnimatedDeliveryBackground from '@/components/AnimatedDeliveryBackground';
 
+const CACHE_PREFIX = 'cache_customer_';
+const CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
+
+interface CacheEntry<T> {
+  data: T;
+  timestamp: number;
+}
+
+function saveCache<T>(key: string, data: T): void {
+  if (Platform.OS !== 'web' || typeof localStorage === 'undefined') return;
+  try {
+    localStorage.setItem(CACHE_PREFIX + key, JSON.stringify({ data, timestamp: Date.now() } as CacheEntry<T>));
+  } catch {}
+}
+
+function loadCache<T>(key: string): T | null {
+  if (Platform.OS !== 'web' || typeof localStorage === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem(CACHE_PREFIX + key);
+    if (!raw) return null;
+    const entry = JSON.parse(raw) as CacheEntry<T>;
+    return entry?.data ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function isOnline(): boolean {
+  if (Platform.OS !== 'web' || typeof navigator === 'undefined') return true;
+  return navigator.onLine;
+}
+
 type Category = {
   id: string;
   name: string;
@@ -288,8 +320,17 @@ export default function CustomerDashboard() {
           longitude: data.longitude,
         });
       }
+
+      saveCache(`customer_${customerId}`, data);
     } catch (err: any) {
       console.error('Failed to load customer data:', err);
+      const cached = loadCache<{ latitude: number; longitude: number; full_name: string }>(`customer_${customerId}`);
+      if (cached) {
+        if (cached.full_name) setFetchedName(cached.full_name);
+        if (cached.latitude && cached.longitude) {
+          setCustomerCoords({ latitude: cached.latitude, longitude: cached.longitude });
+        }
+      }
     }
   };
 
@@ -323,10 +364,27 @@ export default function CustomerDashboard() {
 
       if (dbError) throw dbError;
 
-      setGroceryItems(data.map(item => ({ ...item, quantity: 0 })));
+      const mappedItems = data.map(item => ({ ...item, quantity: 0 }));
+      setGroceryItems(mappedItems);
+
+      saveCache('categories', categoryData || []);
+      saveCache('grocery_items', mappedItems);
     } catch (err: any) {
       console.error('Failed to load items:', err);
-      setError('Could not load items. Please try again.');
+      const cachedCats = loadCache<Category[]>('categories');
+      const cachedItems = loadCache<GroceryItem[]>('grocery_items');
+      if (cachedCats) {
+        setCategories(cachedCats);
+        setExpandedCategories(new Set(cachedCats.map(c => c.id)));
+      }
+      if (cachedItems) {
+        setGroceryItems(cachedItems);
+      }
+      if (!cachedItems) {
+        setError('Could not load items. Please try again.');
+      } else {
+        setError('You are offline. Showing cached items.');
+      }
     } finally {
       setLoading(false);
     }
@@ -359,8 +417,13 @@ export default function CustomerDashboard() {
       })) || [];
 
       setDrivers(driversWithLocation);
+      saveCache(`drivers_${customerId}`, driversWithLocation);
     } catch (err: any) {
       console.error('Failed to load drivers:', err);
+      const cachedDrivers = loadCache<Driver[]>(`drivers_${customerId}`);
+      if (cachedDrivers) {
+        setDrivers(cachedDrivers);
+      }
     }
   };
 
