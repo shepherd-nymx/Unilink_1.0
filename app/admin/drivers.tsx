@@ -534,7 +534,7 @@ export default function ManageDrivers() {
               border: `1px solid ${A.inputBorder}`,
               borderRadius: 10,
               padding: '12px 16px',
-              outline: 'none',
+              outlineStyle: 'none',
               width: '100%',
               fontFamily: 'system-ui',
             } as any}

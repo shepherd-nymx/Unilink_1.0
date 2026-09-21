@@ -507,7 +507,7 @@ export default function DriverRegister() {
                     fontSize: 14,
                     color: universityId ? TEXT_PRIMARY : TEXT_MUTED,
                     fontFamily: 'system-ui, -apple-system, sans-serif',
-                    outline: 'none',
+                    outlineStyle: 'none',
                     width: '100%',
                     boxShadow: focusedField === 'location' ? `0 0 0 1px ${NEON_CYAN}20` : 'none',
                     transition: 'all 0.2s ease',
@@ -866,7 +866,7 @@ const styles = StyleSheet.create({
   inputFocused: {
     borderColor: NEON_CYAN,
     backgroundColor: 'rgba(0,229,255,0.04)',
-    ...(Platform.OS === 'web' ? { outline: 'none', boxShadow: `0 0 0 1px rgba(0,229,255,0.15)` } : {}),
+    ...(Platform.OS === 'web' ? { outlineStyle: 'none', boxShadow: `0 0 0 1px rgba(0,229,255,0.15)` } : {}),
   } as any,
   deliveryTypeContainer: {
     flexDirection: 'row',

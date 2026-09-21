@@ -398,7 +398,7 @@ export default function CustomerRegister() {
                       fontSize: 15,
                       color: universityId ? textPrimary : placeholderColor,
                       fontFamily: 'system-ui, -apple-system, sans-serif',
-                      outline: 'none',
+                      outlineStyle: 'none',
                     }}
                     onFocus={() => setFocused('location')}
                     onBlur={() => setFocused(null)}
@@ -453,7 +453,7 @@ export default function CustomerRegister() {
                           onBlur={() => { setFocused(null); setTimeout(() => setShowPlaceDropdown(false), 180); }}
                           style={{
                             flex: 1, padding: '10px 0', fontSize: 15, color: textPrimary,
-                            backgroundColor: 'transparent', border: 'none', outline: 'none',
+                            backgroundColor: 'transparent', border: 'none', outlineStyle: 'none',
                             fontFamily: 'system-ui, -apple-system, sans-serif', width: '100%', marginLeft: 0,
                           }}
                         />
