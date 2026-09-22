@@ -8,6 +8,16 @@ import { saveUserData } from '@/lib/storage-service';
 import { registerForPushNotificationsOnLogin } from '@/lib/notification-service';
 import { registerDeviceToken } from '@/lib/device-token-service';
 
+function GoogleIcon({ size = 18 }: { size?: number }) {
+  return (
+    <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
+      <Text style={{ fontSize: size, lineHeight: size, fontWeight: '700' }} allowFontScaling={false}>
+        <Text style={{ color: '#4285F4' }}>G</Text>
+      </Text>
+    </View>
+  );
+}
+
 export default function CustomerLogin() {
   const router = useRouter();
   const { registered } = useLocalSearchParams();
@@ -23,6 +33,7 @@ export default function CustomerLogin() {
   const [resetEmail, setResetEmail] = useState('');
   const [resetLoading, setResetLoading] = useState(false);
   const [resetMessage, setResetMessage] = useState('');
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(40)).current;
@@ -122,7 +133,102 @@ export default function CustomerLogin() {
     }
   };
 
-  const primary = '#1A73E8';
+  const handleGoogleSignIn = async () => {
+    setGoogleLoading(true);
+    setError('');
+    try {
+      const { data: authData, error: authError } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${typeof window !== 'undefined' ? window.location.origin : ''}/customer/login`,
+        },
+      });
+      if (authError) throw authError;
+      // signInWithOAuth redirects the browser, so we won't reach here on web.
+      // The session will be restored on return via getSession in a useEffect below.
+    } catch (err: any) {
+      setError(err.message || 'Google sign-in failed');
+      setGoogleLoading(false);
+    }
+  };
+
+  // Handle OAuth redirect callback: after Google redirects back, check for session
+  useEffect(() => {
+    const handleOAuthCallback = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const authId = session.user.id;
+      const email = session.user.email || '';
+      const metaName = (session.user.user_metadata as any)?.full_name || '';
+
+      // Look up customer by auth_id
+      const { data: existing } = await supabase
+        .from('customers')
+        .select('*')
+        .eq('auth_id', authId)
+        .maybeSingle();
+
+      if (existing) {
+        // Check if profile is complete
+        const needsCompletion =
+          !existing.full_name || !existing.phone_number ||
+          !existing.university_id || !existing.latitude || !existing.longitude;
+
+        if (needsCompletion) {
+          saveUserData({ id: existing.id, type: 'customer', name: existing.full_name || undefined });
+          registerForPushNotificationsOnLogin(existing.id, 'customer').catch(() => {});
+          registerDeviceToken(existing.id).catch(() => {});
+          router.replace({
+            pathname: '/customer/complete-profile',
+            params: { customerId: existing.id },
+          });
+        } else {
+          saveUserData({ id: existing.id, type: 'customer', name: existing.full_name });
+          registerForPushNotificationsOnLogin(existing.id, 'customer').catch(() => {});
+          registerDeviceToken(existing.id).catch(() => {});
+          router.replace({
+            pathname: '/customer/dashboard',
+            params: { customerId: existing.id, customerName: existing.full_name },
+          });
+        }
+      } else {
+        // Create a minimal customer row for the Google user
+        const { data: newCustomer, error: createError } = await supabase
+          .from('customers')
+          .insert({
+            auth_id: authId,
+            email,
+            full_name: metaName || '',
+            phone_number: '',
+            username: null,
+            password_hash: null,
+            latitude: 0,
+            longitude: 0,
+            terms_accepted: false,
+          })
+          .select()
+          .single();
+
+        if (createError) {
+          throw new Error('Could not create your account. Please try again.');
+        }
+
+        saveUserData({ id: newCustomer.id, type: 'customer' });
+        registerForPushNotificationsOnLogin(newCustomer.id, 'customer').catch(() => {});
+        registerDeviceToken(newCustomer.id).catch(() => {});
+        router.replace({
+          pathname: '/customer/complete-profile',
+          params: { customerId: newCustomer.id },
+        });
+      }
+    };
+
+    handleOAuthCallback().catch((err) => {
+      setError(err.message || 'Google sign-in failed. Please try again.');
+      setGoogleLoading(false);
+    });
+  }, []);
   const primaryLight = '#4A9EFF';
   const bg = isDark ? '#050D1A' : '#F0F4FF';
   const cardBg = isDark ? '#0D1B2E' : '#FFFFFF';
@@ -262,6 +368,32 @@ export default function CustomerLogin() {
               <View style={[styles.loginButtonShine, { backgroundColor: 'rgba(255,255,255,0.08)' }]} />
             </TouchableOpacity>
           </View>
+
+          {/* Divider */}
+          <View style={styles.dividerRow}>
+            <View style={[styles.dividerLine, { backgroundColor: inputBorder }]} />
+            <Text style={[styles.dividerText, { color: textSecondary }]}>or</Text>
+            <View style={[styles.dividerLine, { backgroundColor: inputBorder }]} />
+          </View>
+
+          {/* Google Sign-In */}
+          <TouchableOpacity
+            style={[styles.googleButton, { backgroundColor: cardBg, borderColor: inputBorder, opacity: googleLoading ? 0.7 : 1 }]}
+            onPress={handleGoogleSignIn}
+            disabled={googleLoading || loading}
+            activeOpacity={0.85}
+          >
+            <View style={styles.googleButtonInner}>
+              {googleLoading ? (
+                <ActivityIndicator size="small" color={textPrimary} />
+              ) : (
+                <>
+                  <GoogleIcon size={18} />
+                  <Text style={[styles.googleButtonText, { color: textPrimary }]}>Continue with Google</Text>
+                </>
+              )}
+            </View>
+          </TouchableOpacity>
         </View>
 
         {/* Register link */}
@@ -550,6 +682,41 @@ const styles = StyleSheet.create({
   },
   registerLinkBold: {
     fontWeight: '700',
+  },
+  dividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginTop: 20,
+    marginBottom: 16,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+  },
+  dividerText: {
+    fontSize: 12,
+    fontWeight: '600',
+    letterSpacing: 1,
+  },
+  googleButton: {
+    borderRadius: 14,
+    height: 54,
+    borderWidth: 1.5,
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  googleButtonInner: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+  },
+  googleButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    letterSpacing: 0.3,
   },
   modalOverlay: {
     flex: 1,
