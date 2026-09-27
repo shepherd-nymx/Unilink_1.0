@@ -609,8 +609,8 @@ export default function DriverSettings() {
         <View style={ss.section}>
           <Text style={ss.sectionTitle}>WhatsApp Number</Text>
           <Text style={ss.sectionDesc}>Customers will use this to notify you when an order is placed</Text>
-          <View style={{ flexDirection: 'row', gap: 8 }}>
-            <View style={[ss.inputWrap, { flex: 0.35 }]}>
+          <View style={{ flexDirection: 'row', gap: 8, width: '100%' }}>
+            <View style={[ss.inputWrap, { width: 92, flexShrink: 1 }]}>
               <Text style={{ fontSize: 13, fontWeight: '700', color: TEXT2 }}>Code</Text>
               <TextInput
                 style={[ss.inputInline, { fontSize: 13 }]}
@@ -622,7 +622,7 @@ export default function DriverSettings() {
                 autoCorrect={false}
               />
             </View>
-            <View style={[ss.inputWrap, { flex: 1 }]}>
+            <View style={[ss.inputWrap, { flex: 1, minWidth: 0 }]}>
               <MessageCircle size={14} color={TEXT2} />
               <TextInput
                 style={ss.inputInline}
@@ -877,7 +877,7 @@ const ss = StyleSheet.create({
     borderRadius: 10, padding: 10, fontSize: 13, color: TEXT,
   },
   inputWrap: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
+    flexDirection: 'row', alignItems: 'center', gap: 8, minWidth: 0,
     backgroundColor: CARD2, borderWidth: 1, borderColor: TEXT3,
     borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8,
   },

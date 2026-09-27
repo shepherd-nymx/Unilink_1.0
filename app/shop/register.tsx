@@ -596,8 +596,8 @@ export default function ShopRegister() {
               <Text style={[styles.label, { color: textSecondary }]}>
                 CONTACT PHONE <Text style={{ color: errorColor }}>*</Text>
               </Text>
-              <View style={{ flexDirection: 'row', gap: 8 }}>
-                <View style={[styles.inputWrapper, { flex: 0.3, backgroundColor: inputBg, borderColor: focused === 'phoneCc' ? primary : inputBorder }]}>
+              <View style={{ flexDirection: 'row', gap: 8, width: '100%' }}>
+                <View style={[styles.inputWrapper, { width: 92, flexShrink: 1, backgroundColor: inputBg, borderColor: focused === 'phoneCc' ? primary : inputBorder }]}>
                   <TextInput
                     style={[styles.input, { color: textPrimary }]}
                     value={contactPhoneCc}
@@ -609,7 +609,7 @@ export default function ShopRegister() {
                     onBlur={() => setFocused(null)}
                   />
                 </View>
-                <View style={[styles.inputWrapper, { flex: 1, backgroundColor: inputBg, borderColor: focused === 'phone' ? primary : inputBorder }]}>
+                <View style={[styles.inputWrapper, { flex: 1, minWidth: 0, backgroundColor: inputBg, borderColor: focused === 'phone' ? primary : inputBorder }]}>
                   <View style={styles.inputIcon}><Phone size={16} color={focused === 'phone' ? primary : placeholderColor} /></View>
                   <TextInput
                     style={[styles.input, { color: textPrimary }]}

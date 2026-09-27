@@ -686,7 +686,7 @@ export function ProfileTab({
               keyboardType="phone-pad"
             />
             <TextInput
-              style={[styles.feeInput, { flex: 1 }]}
+              style={[styles.feeInput, { flex: 1, minWidth: 0 }]}
               value={phoneNum}
               onChangeText={setPhoneNum}
               placeholder="771234567"
@@ -906,9 +906,9 @@ export function ProfileTab({
         </View>
         <View style={styles.fieldGroup}>
           <Text style={styles.label}>EcoCash Phone Number</Text>
-          <View style={{ flexDirection: 'row', gap: 8 }}>
+          <View style={{ flexDirection: 'row', gap: 8, width: '100%' }}>
             <TextInput
-              style={[styles.feeInput, { flex: 0.3 }]}
+              style={[styles.feeInput, { width: 92, flexShrink: 1 }]}
               value={ecocashCc}
               onChangeText={setEcocashCc}
               placeholder="+263"
@@ -916,7 +916,7 @@ export function ProfileTab({
               keyboardType="phone-pad"
             />
             <TextInput
-              style={[styles.feeInput, { flex: 1 }]}
+              style={[styles.feeInput, { flex: 1, minWidth: 0 }]}
               value={ecocashNum}
               onChangeText={setEcocashNum}
               placeholder="771234567"
@@ -976,9 +976,9 @@ export function ProfileTab({
         </Text>
         <View style={styles.fieldGroup}>
           <Text style={styles.label}>WhatsApp Number</Text>
-          <View style={{ flexDirection: 'row', gap: 8 }}>
+          <View style={{ flexDirection: 'row', gap: 8, width: '100%' }}>
             <TextInput
-              style={[styles.feeInput, { flex: 0.3 }]}
+              style={[styles.feeInput, { width: 92, flexShrink: 1 }]}
               value={whatsappCc}
               onChangeText={setWhatsappCc}
               placeholder="+263"
@@ -986,7 +986,7 @@ export function ProfileTab({
               keyboardType="phone-pad"
             />
             <TextInput
-              style={[styles.feeInput, { flex: 1 }]}
+              style={[styles.feeInput, { flex: 1, minWidth: 0 }]}
               value={whatsappNum}
               onChangeText={setWhatsappNum}
               placeholder="771234567"
