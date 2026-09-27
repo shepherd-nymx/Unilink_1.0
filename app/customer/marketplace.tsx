@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -274,31 +274,45 @@ export default function Marketplace() {
 
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
-  useEffect(() => {
-    if (!showCheckout) return;
+  const fetchNearbyDrivers = useCallback(async () => {
     const customerAssigned = cartByShop.filter(sc => {
       const shop = shops.find(s => s.id === sc.shopId);
       return shop?.driver_assignment_mode === 'customer_assigned';
     });
     if (customerAssigned.length === 0) return;
-    (async () => {
-      try {
-        const { data, error } = await supabase.rpc('get_nearby_drivers', {
-          p_customer_lat: customerAddress?.latitude ?? null,
-          p_customer_lng: customerAddress?.longitude ?? null,
-          p_university_id: customerUniversityId ?? null,
-        });
-        if (!error && data) {
-          const drivers = data as Driver[];
-          const map: Record<string, Driver[]> = {};
-          for (const sc of customerAssigned) {
-            map[sc.shopId] = drivers;
-          }
-          setDriversByShop(map);
+    try {
+      const { data, error } = await supabase.rpc('get_nearby_drivers', {
+        p_customer_lat: customerAddress?.latitude ?? null,
+        p_customer_lng: customerAddress?.longitude ?? null,
+        p_university_id: customerUniversityId ?? null,
+      });
+      if (!error && data) {
+        const drivers = data as Driver[];
+        const map: Record<string, Driver[]> = {};
+        for (const sc of customerAssigned) {
+          map[sc.shopId] = drivers;
         }
-      } catch {}
-    })();
-  }, [showCheckout, cartByShop, shops, customerAddress, customerUniversityId]);
+        setDriversByShop(map);
+      }
+    } catch {}
+  }, [cartByShop, shops, customerAddress, customerUniversityId]);
+
+  useEffect(() => {
+    if (!showCheckout) return;
+    fetchNearbyDrivers();
+  }, [showCheckout, fetchNearbyDrivers]);
+
+  // Realtime: refresh driver list when drivers change availability/status
+  useEffect(() => {
+    if (!showCheckout) return;
+    const channel = supabase
+      .channel('marketplace-drivers-availability')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'drivers' }, () => {
+        fetchNearbyDrivers();
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [showCheckout, fetchNearbyDrivers]);
   const cartTotal = cart.reduce((sum, item) => sum + Number(item.product.price) * item.quantity, 0);
 
   const shopServesCustomer = (shopId: string): boolean => {

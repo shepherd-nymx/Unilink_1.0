@@ -73,14 +73,7 @@ export default function DeliveryRequestPage() {
     if (!customerId) return;
     setLoadingDrivers(true);
     try {
-      // Get customer's university for filtering
-      const { data: cust } = await supabase
-        .from('customers')
-        .select('university_id')
-        .eq('id', customerId)
-        .maybeSingle();
-
-      let query = supabase
+      const { data } = await supabase
         .from('drivers')
         .select(`
           id, full_name, phone_number, delivery_type, payment_methods,
@@ -95,13 +88,6 @@ export default function DeliveryRequestPage() {
         .eq('approval_status', 'approved')
         .order('average_rating', { ascending: false });
 
-      if (cust?.university_id) {
-        query = query.or(
-          `university_id.eq.${cust.university_id},active_university_id.eq.${cust.university_id}`
-        );
-      }
-
-      const { data } = await query;
       setDrivers(
         (data ?? []).map((d: any) => ({ ...d, location: d.address ?? '' }))
       );
@@ -112,6 +98,18 @@ export default function DeliveryRequestPage() {
   // Load drivers as soon as a service is chosen
   useEffect(() => {
     if (selectedService) loadDrivers();
+  }, [selectedService, loadDrivers]);
+
+  // Realtime: refresh driver list when drivers change availability/status
+  useEffect(() => {
+    if (!selectedService) return;
+    const channel = supabase
+      .channel('drivers-availability')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'drivers' }, () => {
+        loadDrivers();
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
   }, [selectedService, loadDrivers]);
 
   const handleSelectDirect = (driver: Driver) => {
