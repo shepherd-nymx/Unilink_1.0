@@ -5,7 +5,7 @@ import {
   MessageCircle, Store, MapPin, Phone, Navigation, Package, CircleCheck as CheckCircle,
   CircleAlert as AlertTriangle, FileText, ChevronRight, ChevronDown, ChevronUp, Crosshair, Home,
 } from 'lucide-react-native';
-import { CartByShop, Shop, ThemePalette, formatPaymentMethod, getAcceptedMethods, computeShopOpen, formatOperatingHours, DeliveryFeeTier, computeTierDeliveryFee, Driver } from './types';
+import { CartByShop, Shop, ThemePalette, formatPaymentMethod, getAcceptedMethods, computeShopOpen, formatOperatingHours, DeliveryFeeTier, ShopDistanceFeeTier, computeTierDeliveryFee, computeDistanceDeliveryFee, haversineKm, Driver } from './types';
 import * as Location from 'expo-location';
 
 type Props = {
@@ -21,13 +21,14 @@ type Props = {
   customerId?: string;
   customerAddress?: { formatted_address: string | null; latitude: number | null; longitude: number | null } | null;
   deliveryFeeTiers?: Record<string, DeliveryFeeTier[]>;
+  distanceFeeTiers?: Record<string, ShopDistanceFeeTier[]>;
   driversByShop?: Record<string, Driver[]>;
 };
 
 const ALL_PAYMENT_METHODS = ['pay_on_delivery', 'ecocash', 'paynow', 'card', 'bank_transfer'];
 
 export function CheckoutModal({
-  visible, palette, cartByShop, shops, cartTotal, placingOrder, error, onClose, onPlaceOrder, customerId, customerAddress, deliveryFeeTiers = {}, driversByShop = {},
+  visible, palette, cartByShop, shops, cartTotal, placingOrder, error, onClose, onPlaceOrder, customerId, customerAddress, deliveryFeeTiers = {}, distanceFeeTiers = {}, driversByShop = {},
 }: Props) {
   const [deliveryLocation, setDeliveryLocation] = useState('');
   const [confirmedLatitude, setConfirmedLatitude] = useState<number | null>(null);
@@ -113,6 +114,7 @@ export function CheckoutModal({
 
   // Compute tier-based delivery fee: sum per-shop fees based on each shop's cart total
   // For customer-assigned shops with a selected driver, use the driver's distance_fee instead
+  // For shop-assigned shops with distance fee tiers, use distance from shop to customer
   const tierBasedDeliveryFee = cartByShop.reduce((sum, sc) => {
     const shop = shops.find(s => s.id === sc.shopId);
     if (shop?.driver_assignment_mode === 'customer_assigned' && selectedDrivers[sc.shopId]) {
@@ -121,7 +123,13 @@ export function CheckoutModal({
       if (driver?.distance_fee != null) return sum + Number(driver.distance_fee);
     }
     const fallback = shop?.delivery_fee != null ? Number(shop.delivery_fee) : parseFloat(deliveryFee) || 0;
-    return sum + computeTierDeliveryFee(sc.total, deliveryFeeTiers[sc.shopId] || [], fallback);
+    const orderCostFee = computeTierDeliveryFee(sc.total, deliveryFeeTiers[sc.shopId] || [], fallback);
+    const distTiers = distanceFeeTiers[sc.shopId] || [];
+    if (distTiers.length > 0 && confirmedLatitude != null && confirmedLongitude != null && shop?.latitude != null && shop?.longitude != null) {
+      const dist = haversineKm(shop.latitude, shop.longitude, confirmedLatitude, confirmedLongitude);
+      return sum + computeDistanceDeliveryFee(dist, distTiers, orderCostFee);
+    }
+    return sum + orderCostFee;
   }, 0);
 
   const shopHasOwnFee = cartByShop.some(sc => {
@@ -131,6 +139,7 @@ export function CheckoutModal({
       const driver = drivers.find(d => d.id === selectedDrivers[sc.shopId]);
       if (driver?.distance_fee != null) return true;
     }
+    if (distanceFeeTiers[sc.shopId] && distanceFeeTiers[sc.shopId].length > 0 && confirmedLatitude != null && confirmedLongitude != null && shop?.latitude != null && shop?.longitude != null) return true;
     return shop?.delivery_fee != null || (deliveryFeeTiers[sc.shopId] && deliveryFeeTiers[sc.shopId].length > 0);
   });
 
@@ -654,7 +663,7 @@ export function CheckoutModal({
           {shopHasOwnFee ? (
             <View style={[styles.input, { backgroundColor: palette.inputBg, borderColor: palette.inputBorder, flexDirection: 'row', alignItems: 'center' }]}>
               <Text style={{ color: palette.textPrimary, fontSize: 15, flex: 1 }}>${tierBasedDeliveryFee.toFixed(2)}</Text>
-              <Text style={{ color: palette.textSecondary, fontSize: 11 }}>{hasCustomerAssignedShops && allDriversSelected ? "Messenger's distance fee" : 'Based on order total'}</Text>
+              <Text style={{ color: palette.textSecondary, fontSize: 11 }}>{hasCustomerAssignedShops && allDriversSelected ? "Messenger's distance fee" : 'Based on order cost / distance'}</Text>
             </View>
           ) : (
             <TextInput

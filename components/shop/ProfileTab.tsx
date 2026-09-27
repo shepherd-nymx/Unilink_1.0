@@ -111,6 +111,10 @@ export function ProfileTab({
   const [feeTiers, setFeeTiers] = useState<{ id?: string; min_amount: string; max_amount: string; fee: string; label: string }[]>([]);
   const [savingTiers, setSavingTiers] = useState(false);
 
+  // Distance-based delivery fee tiers
+  const [distFeeTiers, setDistFeeTiers] = useState<{ id?: string; min_km: string; max_km: string; fee: string; label: string }[]>([]);
+  const [savingDistTiers, setSavingDistTiers] = useState(false);
+
   const useGps = async () => {
     setLocating(true);
     setMsg('');
@@ -331,6 +335,7 @@ export function ProfileTab({
     loadAvailableLocations();
     loadBlacklist();
     loadFeeTiers();
+    loadDistFeeTiers();
   }, []);
 
   const loadBlacklist = async () => {
@@ -458,6 +463,67 @@ export function ProfileTab({
       setMsg(e.message || 'Failed to save tiers');
     } finally {
       setSavingTiers(false);
+    }
+  };
+
+  const loadDistFeeTiers = async () => {
+    const { data } = await supabase
+      .from('shop_distance_fee_tiers')
+      .select('id, min_km, max_km, fee, label, sort_order')
+      .eq('shop_id', shop.id)
+      .order('min_km', { ascending: true });
+    if (data) {
+      setDistFeeTiers(data.map((t: any) => ({
+        id: t.id,
+        min_km: String(t.min_km),
+        max_km: t.max_km != null ? String(t.max_km) : '',
+        fee: String(t.fee),
+        label: t.label || '',
+      })));
+    }
+  };
+
+  const addDistTier = () => {
+    setDistFeeTiers(prev => [...prev, { min_km: '0', max_km: '', fee: '0', label: '' }]);
+  };
+
+  const updateDistTier = (idx: number, field: 'min_km' | 'max_km' | 'fee' | 'label', value: string) => {
+    setDistFeeTiers(prev => prev.map((t, i) => i === idx ? { ...t, [field]: value } : t));
+  };
+
+  const removeDistTier = (idx: number) => {
+    setDistFeeTiers(prev => prev.filter((_, i) => i !== idx));
+  };
+
+  const saveDistTiers = async () => {
+    setSavingDistTiers(true);
+    setMsg('');
+    try {
+      await supabase.from('shop_distance_fee_tiers').delete().eq('shop_id', shop.id);
+      for (let i = 0; i < distFeeTiers.length; i++) {
+        const t = distFeeTiers[i];
+        const min = parseFloat(t.min_km) || 0;
+        const max = t.max_km.trim() !== '' ? parseFloat(t.max_km) : null;
+        const fee = parseFloat(t.fee) || 0;
+        if (max !== null && max <= min) {
+          setMsg(`Distance tier ${i + 1}: max km must be greater than min km`);
+          setSavingDistTiers(false);
+          return;
+        }
+        await supabase.from('shop_distance_fee_tiers').insert({
+          shop_id: shop.id,
+          min_km: min,
+          max_km: max,
+          fee,
+          label: t.label.trim() || null,
+          sort_order: i,
+        });
+      }
+      setMsg('Distance fee tiers saved');
+    } catch (e: any) {
+      setMsg(e.message || 'Failed to save distance tiers');
+    } finally {
+      setSavingDistTiers(false);
     }
   };
 
@@ -1170,6 +1236,83 @@ export function ProfileTab({
           {feeTiers.length > 0 && (
             <TouchableOpacity style={[styles.saveBtn, { backgroundColor: A.blue, flex: 1, marginTop: 0 }]} onPress={saveTiers} disabled={savingTiers}>
               {savingTiers ? <ActivityIndicator size="small" color="#fff" /> : <Text style={[styles.saveBtnText, { color: '#fff' }]}>Save Tiers</Text>}
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
+
+      {/* Distance-Based Delivery Fee Tiers */}
+      <View style={styles.card}>
+        <View style={styles.cardHeader}>
+          <Navigation size={16} color={A.cyan} />
+          <Text style={styles.cardTitle}>Delivery Fee Tiers (by Distance)</Text>
+        </View>
+        <Text style={styles.whatsappDesc}>
+          Set delivery fees based on the distance from your shop to the customer's location. For example, charge $1 for customers within 2 km and $3 for 2–5 km. This is used alongside or instead of the order-cost tiers above. Leave empty to use the order-cost or flat fee.
+        </Text>
+
+        {distFeeTiers.length > 0 ? (
+          <View style={{ gap: 8, marginBottom: 12 }}>
+            {distFeeTiers.map((tier, idx) => (
+              <View key={idx} style={[styles.tierRow, { borderColor: A.inputBorder }]}>
+                <View style={styles.tierInputs}>
+                  <View style={styles.tierField}>
+                    <Text style={styles.tierLabel}>Min (km)</Text>
+                    <TextInput
+                      style={[styles.tierInput, { borderColor: A.inputBorder, color: A.text }]}
+                      value={tier.min_km}
+                      onChangeText={v => updateDistTier(idx, 'min_km', v)}
+                      placeholder="0"
+                      placeholderTextColor={A.textMuted}
+                      keyboardType="decimal-pad"
+                    />
+                  </View>
+                  <View style={styles.tierField}>
+                    <Text style={styles.tierLabel}>Max (km)</Text>
+                    <TextInput
+                      style={[styles.tierInput, { borderColor: A.inputBorder, color: A.text }]}
+                      value={tier.max_km}
+                      onChangeText={v => updateDistTier(idx, 'max_km', v)}
+                      placeholder="empty = above"
+                      placeholderTextColor={A.textMuted}
+                      keyboardType="decimal-pad"
+                    />
+                  </View>
+                  <View style={styles.tierField}>
+                    <Text style={styles.tierLabel}>Fee ($)</Text>
+                    <TextInput
+                      style={[styles.tierInput, { borderColor: A.inputBorder, color: A.text }]}
+                      value={tier.fee}
+                      onChangeText={v => updateDistTier(idx, 'fee', v)}
+                      placeholder="0.00"
+                      placeholderTextColor={A.textMuted}
+                      keyboardType="decimal-pad"
+                    />
+                  </View>
+                </View>
+                <TouchableOpacity onPress={() => removeDistTier(idx)}>
+                  <Trash2 size={15} color={A.red} />
+                </TouchableOpacity>
+              </View>
+            ))}
+          </View>
+        ) : (
+          <View style={[styles.warnBox, { borderColor: A.amber, marginBottom: 12 }]}>
+            <AlertTriangle size={14} color={A.amber} />
+            <Text style={[styles.warnText, { color: A.amber }]}>No distance tiers set — order-cost tiers or the flat fee will be used.</Text>
+          </View>
+        )}
+
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          <TouchableOpacity style={[styles.saveBtn, { backgroundColor: A.cyan, flex: 1, marginTop: 0 }]} onPress={addDistTier}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+              <Plus size={14} color="#000" />
+              <Text style={[styles.saveBtnText, { color: '#000' }]}>Add Distance Tier</Text>
+            </View>
+          </TouchableOpacity>
+          {distFeeTiers.length > 0 && (
+            <TouchableOpacity style={[styles.saveBtn, { backgroundColor: A.blue, flex: 1, marginTop: 0 }]} onPress={saveDistTiers} disabled={savingDistTiers}>
+              {savingDistTiers ? <ActivityIndicator size="small" color="#fff" /> : <Text style={[styles.saveBtnText, { color: '#fff' }]}>Save Tiers</Text>}
             </TouchableOpacity>
           )}
         </View>

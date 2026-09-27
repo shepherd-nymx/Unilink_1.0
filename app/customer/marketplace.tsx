@@ -18,7 +18,7 @@ import { loadUserData } from '@/lib/storage-service';
 import { A } from '@/lib/admin-theme';
 import { ArrowLeft, Store, Search, ShoppingCart, Plus, Minus, X, Package, CreditCard, CircleCheck as CheckCircle, CircleAlert as AlertCircle, Info, ChevronLeft, ChevronRight, MapPin, Lock, Award, Tag } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
-import { Shop, Product, CartItem, CartByShop, ThemePalette, computeShopOpen, DeliveryFeeTier, computeTierDeliveryFee, SHOP_CATEGORIES, Driver, formatPaymentMethod, getAcceptedMethods } from '@/components/marketplace/types';
+import { Shop, Product, CartItem, CartByShop, ThemePalette, computeShopOpen, DeliveryFeeTier, ShopDistanceFeeTier, computeTierDeliveryFee, computeDistanceDeliveryFee, haversineKm, SHOP_CATEGORIES, Driver, formatPaymentMethod, getAcceptedMethods } from '@/components/marketplace/types';
 import { ShopCard } from '@/components/marketplace/ShopCard';
 import { ProductCard } from '@/components/marketplace/ProductCard';
 import { ShopProfileModal } from '@/components/marketplace/ShopProfileModal';
@@ -54,6 +54,7 @@ export default function Marketplace() {
   const [customerUniversityName, setCustomerUniversityName] = useState<string | null>(null);
   const [shopServiceLocations, setShopServiceLocations] = useState<ServiceLocationMap>({});
   const [deliveryFeeTiers, setDeliveryFeeTiers] = useState<Record<string, DeliveryFeeTier[]>>({});
+  const [distanceFeeTiers, setDistanceFeeTiers] = useState<Record<string, ShopDistanceFeeTier[]>>({});
 
   const selectedShopData = selectedShopId ? shops.find(s => s.id === selectedShopId) || null : null;
   const [showCheckout, setShowCheckout] = useState(false);
@@ -195,6 +196,17 @@ export default function Marketplace() {
           tierMap[t.shop_id].push(t);
         });
         setDeliveryFeeTiers(tierMap);
+
+        const { data: distTierData } = await supabase
+          .from('shop_distance_fee_tiers')
+          .select('id, shop_id, min_km, max_km, fee, label, sort_order')
+          .in('shop_id', allShops.map(s => s.id));
+        const distTierMap: Record<string, ShopDistanceFeeTier[]> = {};
+        (distTierData || []).forEach((t: any) => {
+          if (!distTierMap[t.shop_id]) distTierMap[t.shop_id] = [];
+          distTierMap[t.shop_id].push(t);
+        });
+        setDistanceFeeTiers(distTierMap);
       }
 
       const { data: prodData, error: prodErr } = await supabase
@@ -419,7 +431,13 @@ export default function Marketplace() {
           const driver = drivers.find(d => d.id === selectedDriversByShop[shopCart.shopId]);
           shopDeliveryFee = driver?.distance_fee != null ? Number(driver.distance_fee) : computeTierDeliveryFee(shopCart.total, deliveryFeeTiers[shopCart.shopId] || [], Number(shop?.delivery_fee || 0));
         } else {
-          shopDeliveryFee = computeTierDeliveryFee(shopCart.total, deliveryFeeTiers[shopCart.shopId] || [], Number(shop?.delivery_fee || 0));
+          const distTiers = distanceFeeTiers[shopCart.shopId] || [];
+          if (distTiers.length > 0 && lat != null && lng != null && shop?.latitude != null && shop?.longitude != null) {
+            const dist = haversineKm(shop.latitude, shop.longitude, lat, lng);
+            shopDeliveryFee = computeDistanceDeliveryFee(dist, distTiers, computeTierDeliveryFee(shopCart.total, deliveryFeeTiers[shopCart.shopId] || [], Number(shop?.delivery_fee || 0)));
+          } else {
+            shopDeliveryFee = computeTierDeliveryFee(shopCart.total, deliveryFeeTiers[shopCart.shopId] || [], Number(shop?.delivery_fee || 0));
+          }
         }
         const orderTotal = shopCart.total + shopDeliveryFee + ecocashFeeAmount;
 
@@ -956,6 +974,7 @@ export default function Marketplace() {
           customerId={customerId}
           customerAddress={customerAddress}
           deliveryFeeTiers={deliveryFeeTiers}
+          distanceFeeTiers={distanceFeeTiers}
           driversByShop={driversByShop}
         />
       </Modal>
