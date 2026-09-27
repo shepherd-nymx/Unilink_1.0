@@ -1,11 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View, Text, TextInput, StyleSheet, ScrollView,
   TouchableOpacity, Platform, Image, Linking,
 } from 'react-native';
 import {
   Package, MapPin, Phone, User, FileText, DollarSign, ChevronRight,
-  ArrowRight, Truck, Users, Star, ChevronDown,
+  ArrowRight, Truck, Users, Star, ChevronDown, CircleAlert as AlertCircle, Check,
 } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import DeliveryLocationPicker from './DeliveryLocationPicker';
@@ -36,6 +36,7 @@ export default function PickupAndDeliverForm({
   onSubmit, submitting, error,
 }: Props) {
   const { colors, isDark } = useTheme();
+  const [genuineConfirmed, setGenuineConfirmed] = useState(false);
   const P = isDark ? '#00e5ff' : '#1A73E8';
   const CARD = isDark ? '#0d1b2e' : '#ffffff';
   const CARD_B = isDark ? 'rgba(0,229,255,0.15)' : '#dde8ff';
@@ -401,10 +402,30 @@ export default function PickupAndDeliverForm({
         </View>
       )}
 
+      <View style={{ marginHorizontal: 16, marginTop: 16, padding: 14, borderRadius: 14, borderWidth: 1, borderColor: isDark ? 'rgba(0,229,255,0.2)' : '#dde8ff', backgroundColor: isDark ? 'rgba(0,229,255,0.05)' : '#f0f5ff', gap: 10 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10 }}>
+          <AlertCircle size={16} color={P} />
+          <View style={{ flex: 1, gap: 3 }}>
+            <Text style={{ fontSize: 12, fontWeight: '700', color: TX }}>Please confirm this is a genuine order.</Text>
+            <Text style={{ fontSize: 11, fontWeight: '500', color: TX2, lineHeight: 16 }}>This is a real delivery request and may be sent to a messenger. Please do not place orders for testing purposes.</Text>
+          </View>
+        </View>
+        <TouchableOpacity
+          style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 }}
+          onPress={() => setGenuineConfirmed(!genuineConfirmed)}
+          activeOpacity={0.7}
+        >
+          <View style={{ width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: genuineConfirmed ? P : TX2, backgroundColor: genuineConfirmed ? P : 'transparent', justifyContent: 'center', alignItems: 'center' }}>
+            {genuineConfirmed && <Check size={12} color={isDark ? '#050D1A' : '#fff'} />}
+          </View>
+          <Text style={{ fontSize: 13, fontWeight: '600', color: TX, flex: 1 }}>I confirm this is a genuine order.</Text>
+        </TouchableOpacity>
+      </View>
+
       <TouchableOpacity
-        style={[s.submitBtn, submitting && { opacity: 0.6 }]}
+        style={[s.submitBtn, (submitting || !genuineConfirmed) && { opacity: 0.6 }]}
         onPress={onSubmit}
-        disabled={submitting}
+        disabled={submitting || !genuineConfirmed}
         activeOpacity={0.85}
       >
         <Package size={22} color="#fff" />

@@ -3,7 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, TextInput, StyleSheet, Activi
 import {
   X, Truck, CreditCard, CircleAlert as AlertCircle, Lock, ExternalLink, Zap,
   MessageCircle, Store, MapPin, Phone, Navigation, Package, CircleCheck as CheckCircle,
-  CircleAlert as AlertTriangle, FileText, ChevronRight, ChevronDown, ChevronUp, Crosshair, Home,
+  CircleAlert as AlertTriangle, FileText, ChevronRight, ChevronDown, ChevronUp, Crosshair, Home, Check,
 } from 'lucide-react-native';
 import { CartByShop, Shop, ThemePalette, formatPaymentMethod, getAcceptedMethods, computeShopOpen, formatOperatingHours, DeliveryFeeTier, ShopDistanceFeeTier, computeTierDeliveryFee, computeDistanceDeliveryFee, haversineKm, Driver } from './types';
 import * as Location from 'expo-location';
@@ -45,6 +45,7 @@ export function CheckoutModal({
   const [detectingLocation, setDetectingLocation] = useState(false);
   const [selectedDrivers, setSelectedDrivers] = useState<Record<string, string>>({});
   const [driverWhatsappConfirmed, setDriverWhatsappConfirmed] = useState<Record<string, boolean>>({});
+  const [genuineOrderConfirmed, setGenuineOrderConfirmed] = useState(false);
 
   useEffect(() => {
     if (visible) {
@@ -57,6 +58,7 @@ export function CheckoutModal({
       setEcocashPop('');
       setSelectedDrivers({});
       setDriverWhatsappConfirmed({});
+      setGenuineOrderConfirmed(false);
       setLocationMode(customerAddress?.formatted_address ? 'registered' : 'manual');
       if (customerAddress?.formatted_address) {
         setDeliveryLocation(customerAddress.formatted_address);
@@ -231,7 +233,7 @@ export function CheckoutModal({
     onPlaceOrder(deliveryLocation.trim(), confirmedLatitude, confirmedLongitude, paymentMethod, parseFloat(effectiveDeliveryFee) || 0, totalEcocashFee, isEcocash ? ecocashPop.trim() || null : null, hasCustomerAssignedShops ? selectedDrivers : undefined);
   };
 
-  const canPlace = !!deliveryLocation.trim() && locationConfirmed && !placingOrder && !anyBlocked && (!requiresWhatsapp || whatsappConfirmed) && !needsDriverAction;
+  const canPlace = !!deliveryLocation.trim() && locationConfirmed && !placingOrder && !anyBlocked && (!requiresWhatsapp || whatsappConfirmed) && !needsDriverAction && genuineOrderConfirmed;
   const isPaynow = paymentMethod === 'paynow';
   const numericDeliveryFee = parseFloat(effectiveDeliveryFee) || 0;
   const grandTotal = cartTotal + numericDeliveryFee + totalEcocashFee;
@@ -776,6 +778,31 @@ export function CheckoutModal({
           ) : null}
         </ScrollView>
 
+        <View style={[styles.genuineOrderBox, { backgroundColor: `${palette.primary}08`, borderColor: `${palette.primary}30` }]}>
+          <AlertCircle size={16} color={palette.primary} />
+          <View style={{ flex: 1, gap: 4 }}>
+            <Text style={{ fontSize: 12, fontWeight: '700', color: palette.textPrimary }}>
+              Please confirm this is a genuine order.
+            </Text>
+            <Text style={{ fontSize: 11, fontWeight: '500', color: palette.textSecondary, lineHeight: 16 }}>
+              This is a real delivery request and may be sent to a messenger. Please do not place orders for testing purposes.
+            </Text>
+          </View>
+        </View>
+
+        <TouchableOpacity
+          style={[styles.genuineCheckboxRow, { borderColor: genuineOrderConfirmed ? palette.primary : palette.inputBorder, backgroundColor: genuineOrderConfirmed ? `${palette.primary}10` : 'transparent' }]}
+          onPress={() => setGenuineOrderConfirmed(!genuineOrderConfirmed)}
+          activeOpacity={0.7}
+        >
+          <View style={[styles.genuineCheckbox, { borderColor: genuineOrderConfirmed ? palette.primary : palette.textSecondary, backgroundColor: genuineOrderConfirmed ? palette.primary : 'transparent' }]}>
+            {genuineOrderConfirmed && <Check size={12} color="#fff" />}
+          </View>
+          <Text style={{ fontSize: 13, fontWeight: '600', color: palette.textPrimary, flex: 1 }}>
+            I confirm this is a genuine order.
+          </Text>
+        </TouchableOpacity>
+
         <TouchableOpacity
           style={[styles.placeOrderBtn, { backgroundColor: canPlace ? (isPaynow ? '#1a73e8' : palette.primary) : (isDarkBorder(palette.inputBorder) ? '#2a3a5c' : '#cbd5e1'), opacity: placingOrder ? 0.6 : 1 }]}
           onPress={handlePlace}
@@ -815,6 +842,9 @@ const styles = StyleSheet.create({
   summary: { marginTop: 20, paddingVertical: 16, borderTopWidth: 1, borderBottomWidth: 1, gap: 8 },
   summaryRow: { flexDirection: 'row', justifyContent: 'space-between' },
   errorBox: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12, borderRadius: 10, borderWidth: 1 },
+  genuineOrderBox: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, padding: 14, borderRadius: 12, borderWidth: 1, marginTop: 16 },
+  genuineCheckboxRow: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14, borderRadius: 12, borderWidth: 1.5, marginTop: 10 },
+  genuineCheckbox: { width: 22, height: 22, borderRadius: 6, borderWidth: 2, justifyContent: 'center', alignItems: 'center' },
   placeOrderBtn: { borderRadius: 14, paddingVertical: 18, alignItems: 'center', justifyContent: 'center', marginTop: 16 },
   placeOrderBtnText: { color: '#fff', fontSize: 16, fontWeight: '800', letterSpacing: 0.3 },
   paynowInfoBox: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, padding: 12, borderRadius: 10, borderWidth: 1, marginTop: 12 },
