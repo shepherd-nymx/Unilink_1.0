@@ -915,17 +915,17 @@ export default function CustomerDashboard() {
       flexDirection: 'column',
       justifyContent: 'flex-start',
       paddingHorizontal: 20,
-      paddingTop: 48,
-      paddingBottom: 12,
-      backgroundColor: '#070f1c',
+      paddingTop: 52,
+      paddingBottom: 18,
+      backgroundColor: '#060e1a',
       borderBottomWidth: 1,
-      borderBottomColor: 'rgba(0,229,255,0.18)',
-      gap: 6,
+      borderBottomColor: 'rgba(0,229,255,0.14)',
+      gap: 14,
       shadowColor: '#00e5ff',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.08,
-      shadowRadius: 12,
-      elevation: 4,
+      shadowOffset: { width: 0, height: 3 },
+      shadowOpacity: 0.1,
+      shadowRadius: 18,
+      elevation: 5,
     },
     headerTopRow: {
       flexDirection: 'row',
@@ -1089,16 +1089,16 @@ export default function CustomerDashboard() {
       borderWidth: 1.5,
       borderColor: CARD,
     },
-    headerTitle: { fontSize: 20, fontWeight: '900', color: '#d0eaff', letterSpacing: 0.3, marginTop: 2 },
-    headerSubtitle: { fontSize: 11, color: '#00e5ff', marginTop: 2, fontWeight: '600', letterSpacing: 0.5, textTransform: 'uppercase' as any },
+    headerTitle: { fontSize: 26, fontWeight: '900', color: '#e8f6ff', letterSpacing: 0.2, marginTop: 8 },
+    headerSubtitle: { fontSize: 12, color: '#7dd8ea', marginTop: 3, fontWeight: '600', letterSpacing: 1.2, textTransform: 'uppercase' as any },
     welcomeBadge: {
-      flexDirection: 'row', alignItems: 'center', gap: 5,
+      flexDirection: 'row', alignItems: 'center', gap: 6,
       alignSelf: 'flex-start',
-      paddingHorizontal: 8, paddingVertical: 2,
-      borderRadius: 10,
-      backgroundColor: 'rgba(0,229,255,0.08)',
+      paddingHorizontal: 10, paddingVertical: 4,
+      borderRadius: 12,
+      backgroundColor: 'rgba(0,255,136,0.08)',
       borderWidth: 1,
-      borderColor: 'rgba(0,229,255,0.2)',
+      borderColor: 'rgba(0,255,136,0.25)',
     },
     welcomeBadgeDot: {
       width: 5, height: 5, borderRadius: 3,
@@ -1108,9 +1108,9 @@ export default function CustomerDashboard() {
       fontSize: 8, fontWeight: '800', color: '#00ff88', letterSpacing: 1,
     },
     tutorialBtn: {
-      flexDirection: 'row', alignItems: 'center', gap: 5,
-      paddingHorizontal: 12, paddingVertical: 6,
-      borderRadius: 18, borderWidth: 1, flexShrink: 0,
+      flexDirection: 'row', alignItems: 'center', gap: 6,
+      paddingHorizontal: 14, paddingVertical: 8,
+      borderRadius: 20, borderWidth: 1, flexShrink: 0,
       borderColor: 'rgba(0,229,255,0.35)',
       backgroundColor: 'rgba(0,229,255,0.08)',
       shadowColor: '#00e5ff',
@@ -1119,7 +1119,7 @@ export default function CustomerDashboard() {
       shadowRadius: 6,
       elevation: 2,
     },
-    tutorialBtnText: { fontSize: 10, fontWeight: '700', color: '#00e5ff', letterSpacing: 0.4 },
+    tutorialBtnText: { fontSize: 11, fontWeight: '700', color: '#00e5ff', letterSpacing: 0.4 },
     content: { flex: 1 },
     searchContainer: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 8 },
     searchInputWrapper: {
@@ -1593,8 +1593,7 @@ export default function CustomerDashboard() {
           <Text style={styles.headerSubtitle} numberOfLines={1} ellipsizeMode="tail">
             Select your groceries
           </Text>
-        </View>
-      </View>
+        </View>      </View>
 
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
