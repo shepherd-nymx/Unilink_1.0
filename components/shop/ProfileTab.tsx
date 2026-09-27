@@ -20,7 +20,7 @@ import {
   type OperatingHours,
   type DaySchedule,
 } from '@/lib/shop-types';
-import { Store, LogOut, MapPin, Navigation, Globe, Clock, CreditCard, DollarSign, BadgeCheck, TriangleAlert as AlertTriangle, X, Check, MessageCircle, Plus, Trash2, Ban, Search, Smartphone, Tag, ChevronDown, Camera, Image as ImageIcon } from 'lucide-react-native';
+import { Store, LogOut, MapPin, Navigation, Globe, Clock, CreditCard, DollarSign, BadgeCheck, TriangleAlert as AlertTriangle, X, Check, MessageCircle, Plus, Trash2, Ban, Search, Smartphone, Tag, ChevronDown, Camera, Image as ImageIcon, Truck } from 'lucide-react-native';
 import * as Location from 'expo-location';
 import * as ImagePicker from 'expo-image-picker';
 import { SHOP_CATEGORIES } from '@/components/marketplace/types';
@@ -77,6 +77,8 @@ export function ProfileTab({
   const [savingFees, setSavingFees] = useState(false);
   const [whatsappInput, setWhatsappInput] = useState(shop.whatsapp_number || '');
   const [savingWhatsapp, setSavingWhatsapp] = useState(false);
+  const [driverMode, setDriverMode] = useState<'shop_assigned' | 'customer_assigned'>(shop.driver_assignment_mode || 'shop_assigned');
+  const [savingDriverMode, setSavingDriverMode] = useState(false);
   const [msg, setMsg] = useState('');
 
   // Category
@@ -231,6 +233,20 @@ export function ProfileTab({
     if (error) { setMsg(error.message); return; }
     onShopUpdated({ ...shop, ecocash_name: ecocashName.trim() || null, ecocash_number: ecocashNumber.trim() || null });
     setMsg('EcoCash details saved');
+  };
+
+  const saveDriverMode = async (mode: 'shop_assigned' | 'customer_assigned') => {
+    setSavingDriverMode(true);
+    setMsg('');
+    const { error } = await supabase
+      .from('shops')
+      .update({ driver_assignment_mode: mode })
+      .eq('id', shop.id);
+    setSavingDriverMode(false);
+    if (error) { setMsg(error.message); return; }
+    setDriverMode(mode);
+    onShopUpdated({ ...shop, driver_assignment_mode: mode });
+    setMsg(mode === 'shop_assigned' ? 'You will assign drivers to orders.' : 'Customers will choose their own driver at checkout.');
   };
 
   const saveWhatsapp = async () => {
@@ -869,6 +885,46 @@ export function ProfileTab({
         <TouchableOpacity style={[styles.saveBtn, { backgroundColor: '#25D366' }]} onPress={saveWhatsapp} disabled={savingWhatsapp}>
           {savingWhatsapp ? <ActivityIndicator size="small" color="#fff" /> : <Text style={[styles.saveBtnText, { color: '#fff' }]}>Save WhatsApp Number</Text>}
         </TouchableOpacity>
+      </View>
+
+      {/* Driver Assignment Mode */}
+      <View style={styles.card}>
+        <View style={styles.cardHeader}>
+          <Truck size={16} color={A.cyan} />
+          <Text style={styles.cardTitle}>Driver Assignment</Text>
+        </View>
+        <Text style={styles.whatsappDesc}>
+          Choose who selects the driver for each order. When customers choose, they must message the driver on WhatsApp before placing the order. The driver then handles all tracking updates.
+        </Text>
+        <View style={{ gap: 10 }}>
+          <TouchableOpacity
+            style={[styles.payRow, { borderBottomWidth: 0, borderWidth: 1.5, borderColor: driverMode === 'shop_assigned' ? A.cyan : A.border, backgroundColor: driverMode === 'shop_assigned' ? A.cyanDim : 'transparent', borderRadius: 10, paddingVertical: 14 }]}
+            onPress={() => saveDriverMode('shop_assigned')}
+            disabled={savingDriverMode}
+          >
+            <View style={[styles.checkbox, { backgroundColor: driverMode === 'shop_assigned' ? A.cyan : 'transparent', borderColor: driverMode === 'shop_assigned' ? A.cyan : A.border }]}>
+              {driverMode === 'shop_assigned' && <Check size={10} color="#fff" />}
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.payLabel, { color: A.text, fontWeight: '700' }]}>Shop assigns driver</Text>
+              <Text style={{ fontSize: 11, color: A.textSub, marginTop: 2 }}>You pick a driver from your dashboard when the order is ready.</Text>
+            </View>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.payRow, { borderBottomWidth: 0, borderWidth: 1.5, borderColor: driverMode === 'customer_assigned' ? A.cyan : A.border, backgroundColor: driverMode === 'customer_assigned' ? A.cyanDim : 'transparent', borderRadius: 10, paddingVertical: 14 }]}
+            onPress={() => saveDriverMode('customer_assigned')}
+            disabled={savingDriverMode}
+          >
+            <View style={[styles.checkbox, { backgroundColor: driverMode === 'customer_assigned' ? A.cyan : 'transparent', borderColor: driverMode === 'customer_assigned' ? A.cyan : A.border }]}>
+              {driverMode === 'customer_assigned' && <Check size={10} color="#fff" />}
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.payLabel, { color: A.text, fontWeight: '700' }]}>Customer chooses driver</Text>
+              <Text style={{ fontSize: 11, color: A.textSub, marginTop: 2 }}>Customer picks a driver at checkout, sends them a WhatsApp message, then places the order. The driver marks all tracking events.</Text>
+            </View>
+            {savingDriverMode && <ActivityIndicator size="small" color={A.cyan} />}
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Service Locations — choose which customer locations can see this shop */}

@@ -24,6 +24,7 @@ export type Shop = {
   ecocash_number?: string | null;
   contact_phone?: string | null;
   category?: string | null;
+  driver_assignment_mode?: 'shop_assigned' | 'customer_assigned';
 };
 
 export const SHOP_CATEGORIES = [

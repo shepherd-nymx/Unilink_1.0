@@ -18,7 +18,7 @@ import { loadUserData } from '@/lib/storage-service';
 import { A } from '@/lib/admin-theme';
 import { ArrowLeft, Store, Search, ShoppingCart, Plus, Minus, X, Package, CreditCard, CircleCheck as CheckCircle, CircleAlert as AlertCircle, Info, ChevronLeft, ChevronRight, MapPin, Lock, Award, Tag } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
-import { Shop, Product, CartItem, CartByShop, ThemePalette, computeShopOpen, DeliveryFeeTier, computeTierDeliveryFee, SHOP_CATEGORIES } from '@/components/marketplace/types';
+import { Shop, Product, CartItem, CartByShop, ThemePalette, computeShopOpen, DeliveryFeeTier, computeTierDeliveryFee, SHOP_CATEGORIES, Driver, formatPaymentMethod, getAcceptedMethods } from '@/components/marketplace/types';
 import { ShopCard } from '@/components/marketplace/ShopCard';
 import { ProductCard } from '@/components/marketplace/ProductCard';
 import { ShopProfileModal } from '@/components/marketplace/ShopProfileModal';
@@ -59,6 +59,7 @@ export default function Marketplace() {
   const [showCheckout, setShowCheckout] = useState(false);
   const [placingOrder, setPlacingOrder] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState(false);
+  const [driversByShop, setDriversByShop] = useState<Record<string, Driver[]>>({});
 
   const palette: ThemePalette = {
     bg: isDark ? '#050b16' : '#f0f4f8',
@@ -163,7 +164,7 @@ export default function Marketplace() {
 
       const { data: shopData, error: shopErr } = await supabase
         .from('shops')
-        .select('id, name, logo_url, description, address, hours, slug, latitude, longitude, is_available, operating_hours, accepted_payment_methods, location_verified, completed_orders_count, location, ecocash_fee, delivery_fee, whatsapp_number, average_rating, total_ratings, premium_badge, ecocash_name, ecocash_number, contact_phone, category')
+        .select('id, name, logo_url, description, address, hours, slug, latitude, longitude, is_available, operating_hours, accepted_payment_methods, location_verified, completed_orders_count, location, ecocash_fee, delivery_fee, whatsapp_number, average_rating, total_ratings, premium_badge, ecocash_name, ecocash_number, contact_phone, category, driver_assignment_mode')
         .eq('status', 'active')
         .order('name');
       if (shopErr) throw shopErr;
@@ -260,6 +261,27 @@ export default function Marketplace() {
     : [];
 
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+
+  useEffect(() => {
+    if (!showCheckout) return;
+    const customerAssigned = cartByShop.filter(sc => {
+      const shop = shops.find(s => s.id === sc.shopId);
+      return shop?.driver_assignment_mode === 'customer_assigned';
+    });
+    if (customerAssigned.length === 0) return;
+    (async () => {
+      const map: Record<string, Driver[]> = {};
+      for (const sc of customerAssigned) {
+        try {
+          const { data, error } = await supabase.rpc('get_eligible_drivers', { p_university_id: null });
+          if (!error && data) {
+            map[sc.shopId] = data as Driver[];
+          }
+        } catch {}
+      }
+      setDriversByShop(map);
+    })();
+  }, [showCheckout, cartByShop, shops]);
   const cartTotal = cart.reduce((sum, item) => sum + Number(item.product.price) * item.quantity, 0);
 
   const shopServesCustomer = (shopId: string): boolean => {
@@ -329,7 +351,8 @@ export default function Marketplace() {
     paymentMethod: string,
     deliveryFee: number,
     ecocashFeeAmount: number,
-    ecocashPop: string | null
+    ecocashPop: string | null,
+    selectedDriversByShop?: Record<string, string>
   ) => {
     if (!customerId) {
       setError('Please login to place an order');
@@ -403,6 +426,7 @@ export default function Marketplace() {
             delivery_longitude: lng,
             payment_method: paymentMethod,
             status: 'pending',
+            messenger_id: shop?.driver_assignment_mode === 'customer_assigned' && selectedDriversByShop?.[shopCart.shopId] ? selectedDriversByShop[shopCart.shopId] : null,
             customer_email: customer?.email || null,
             customer_name: customer?.full_name || null,
             customer_phone: customer?.phone_number || null,
@@ -920,6 +944,7 @@ export default function Marketplace() {
           customerId={customerId}
           customerAddress={customerAddress}
           deliveryFeeTiers={deliveryFeeTiers}
+          driversByShop={driversByShop}
         />
       </Modal>
     </View>

@@ -5,7 +5,7 @@ import {
   MessageCircle, Store, MapPin, Phone, Navigation, Package, CircleCheck as CheckCircle,
   CircleAlert as AlertTriangle, FileText, ChevronRight, ChevronDown, ChevronUp, Crosshair, Home,
 } from 'lucide-react-native';
-import { CartByShop, Shop, ThemePalette, formatPaymentMethod, getAcceptedMethods, computeShopOpen, formatOperatingHours, DeliveryFeeTier, computeTierDeliveryFee } from './types';
+import { CartByShop, Shop, ThemePalette, formatPaymentMethod, getAcceptedMethods, computeShopOpen, formatOperatingHours, DeliveryFeeTier, computeTierDeliveryFee, Driver } from './types';
 import * as Location from 'expo-location';
 
 type Props = {
@@ -17,16 +17,17 @@ type Props = {
   placingOrder: boolean;
   error: string;
   onClose: () => void;
-  onPlaceOrder: (deliveryLocation: string, lat: number | null, lng: number | null, paymentMethod: string, deliveryFee: number, ecocashFeeAmount: number, ecocashPop: string | null) => void;
+  onPlaceOrder: (deliveryLocation: string, lat: number | null, lng: number | null, paymentMethod: string, deliveryFee: number, ecocashFeeAmount: number, ecocashPop: string | null, selectedDriversByShop?: Record<string, string>) => void;
   customerId?: string;
   customerAddress?: { formatted_address: string | null; latitude: number | null; longitude: number | null } | null;
   deliveryFeeTiers?: Record<string, DeliveryFeeTier[]>;
+  driversByShop?: Record<string, Driver[]>;
 };
 
 const ALL_PAYMENT_METHODS = ['pay_on_delivery', 'ecocash', 'paynow', 'card', 'bank_transfer'];
 
 export function CheckoutModal({
-  visible, palette, cartByShop, shops, cartTotal, placingOrder, error, onClose, onPlaceOrder, customerId, customerAddress, deliveryFeeTiers = {},
+  visible, palette, cartByShop, shops, cartTotal, placingOrder, error, onClose, onPlaceOrder, customerId, customerAddress, deliveryFeeTiers = {}, driversByShop = {},
 }: Props) {
   const [deliveryLocation, setDeliveryLocation] = useState('');
   const [confirmedLatitude, setConfirmedLatitude] = useState<number | null>(null);
@@ -41,6 +42,8 @@ export function CheckoutModal({
   const [ecocashPop, setEcocashPop] = useState('');
   const [locationMode, setLocationMode] = useState<'registered' | 'current' | 'manual'>('manual');
   const [detectingLocation, setDetectingLocation] = useState(false);
+  const [selectedDrivers, setSelectedDrivers] = useState<Record<string, string>>({});
+  const [driverWhatsappConfirmed, setDriverWhatsappConfirmed] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     if (visible) {
@@ -51,6 +54,8 @@ export function CheckoutModal({
       setShowOrderSummary(false);
       setExpandedShopId(null);
       setEcocashPop('');
+      setSelectedDrivers({});
+      setDriverWhatsappConfirmed({});
       setLocationMode(customerAddress?.formatted_address ? 'registered' : 'manual');
       if (customerAddress?.formatted_address) {
         setDeliveryLocation(customerAddress.formatted_address);
@@ -132,6 +137,16 @@ export function CheckoutModal({
 
   const effectiveDeliveryFee = shopHasOwnFee ? String(tierBasedDeliveryFee.toFixed(2)) : deliveryFee;
 
+  // Customer-assigned driver shops
+  const customerAssignedShops = cartByShop.filter(sc => {
+    const shop = shops.find(s => s.id === sc.shopId);
+    return shop?.driver_assignment_mode === 'customer_assigned';
+  });
+  const hasCustomerAssignedShops = customerAssignedShops.length > 0;
+  const allDriversSelected = customerAssignedShops.every(sc => !!selectedDrivers[sc.shopId]);
+  const allDriverWhatsappConfirmed = customerAssignedShops.every(sc => driverWhatsappConfirmed[sc.shopId]);
+  const needsDriverAction = hasCustomerAssignedShops && (!allDriversSelected || !allDriverWhatsappConfirmed);
+
   const detectMyLocation = async () => {
     setDetectingLocation(true);
     try {
@@ -192,10 +207,11 @@ export function CheckoutModal({
     if (!locationConfirmed) return;
     if (anyBlocked) return;
     if (requiresWhatsapp && !whatsappConfirmed) return;
-    onPlaceOrder(deliveryLocation.trim(), confirmedLatitude, confirmedLongitude, paymentMethod, parseFloat(effectiveDeliveryFee) || 0, totalEcocashFee, isEcocash ? ecocashPop.trim() || null : null);
+    if (needsDriverAction) return;
+    onPlaceOrder(deliveryLocation.trim(), confirmedLatitude, confirmedLongitude, paymentMethod, parseFloat(effectiveDeliveryFee) || 0, totalEcocashFee, isEcocash ? ecocashPop.trim() || null : null, hasCustomerAssignedShops ? selectedDrivers : undefined);
   };
 
-  const canPlace = !!deliveryLocation.trim() && locationConfirmed && !placingOrder && !anyBlocked && (!requiresWhatsapp || whatsappConfirmed);
+  const canPlace = !!deliveryLocation.trim() && locationConfirmed && !placingOrder && !anyBlocked && (!requiresWhatsapp || whatsappConfirmed) && !needsDriverAction;
   const isPaynow = paymentMethod === 'paynow';
   const numericDeliveryFee = parseFloat(effectiveDeliveryFee) || 0;
   const grandTotal = cartTotal + numericDeliveryFee + totalEcocashFee;
@@ -459,9 +475,89 @@ export function CheckoutModal({
           <View style={[styles.infoBox, { backgroundColor: `${palette.primary}10`, borderColor: `${palette.primary}30` }]}>
             <Truck size={16} color={palette.primary} />
             <Text style={[styles.infoText, { color: palette.textSecondary }]}>
-              The shop will assign a messenger to deliver your order. No need to select one yourself.
+              {hasCustomerAssignedShops
+                ? 'Some shops require you to choose a driver. Select a driver below and send them a WhatsApp message before placing your order.'
+                : 'The shop will assign a messenger to deliver your order. No need to select one yourself.'}
             </Text>
           </View>
+
+          {/* Driver selection for customer_assigned shops */}
+          {customerAssignedShops.map(sc => {
+            const shop = shops.find(s => s.id === sc.shopId);
+            const drivers = driversByShop[sc.shopId] || [];
+            const selectedDriverId = selectedDrivers[sc.shopId];
+            const selectedDriver = drivers.find(d => d.id === selectedDriverId);
+            const whatsappDone = driverWhatsappConfirmed[sc.shopId];
+
+            return (
+              <View key={sc.shopId} style={{ marginTop: 12, gap: 8 }}>
+                <Text style={[styles.label, { color: palette.textSecondary }]}>
+                  DRIVER FOR {shop?.name?.toUpperCase() || 'ORDER'} *
+                </Text>
+                {drivers.length === 0 ? (
+                  <View style={[styles.blockBox, { backgroundColor: `${palette.warning}15`, borderColor: palette.warning }]}>
+                    <AlertCircle size={14} color={palette.warning} />
+                    <Text style={[styles.blockText, { color: palette.warning }]}>No drivers available for {shop?.name || 'this shop'} right now. Please try again later.</Text>
+                  </View>
+                ) : (
+                  <>
+                    <ScrollView style={{ maxHeight: 200 }} nestedScrollEnabled>
+                      {drivers.map(d => {
+                        const isSelected = selectedDriverId === d.id;
+                        return (
+                          <TouchableOpacity
+                            key={d.id}
+                            style={[styles.driverPickRow, { backgroundColor: isSelected ? `${palette.primary}15` : palette.inputBg, borderColor: isSelected ? palette.primary : palette.inputBorder }]}
+                            onPress={() => {
+                              setSelectedDrivers(prev => ({ ...prev, [sc.shopId]: d.id }));
+                              setDriverWhatsappConfirmed(prev => ({ ...prev, [sc.shopId]: false }));
+                            }}
+                            activeOpacity={0.85}
+                          >
+                            <View style={[styles.driverPickRadio, { borderColor: isSelected ? palette.primary : palette.inputBorder, backgroundColor: isSelected ? palette.primary : 'transparent' }]}>
+                              {isSelected && <CheckCircle size={12} color="#fff" />}
+                            </View>
+                            <View style={{ flex: 1 }}>
+                              <Text style={[styles.driverPickName, { color: palette.textPrimary }]}>{d.full_name}</Text>
+                              <Text style={[styles.driverPickPhone, { color: palette.textSecondary }]}>{d.phone_number}</Text>
+                            </View>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </ScrollView>
+                    {selectedDriver && !whatsappDone && (
+                      <TouchableOpacity
+                        style={{
+                          flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+                          paddingVertical: 13, borderRadius: 12, backgroundColor: '#25D366',
+                        }}
+                        onPress={() => {
+                          const waNum = (selectedDriver.whatsapp_number || selectedDriver.phone_number || '').replace(/[^0-9]/g, '');
+                          if (!waNum) return;
+                          const msg = encodeURIComponent(
+                            `Hi ${selectedDriver.full_name}, I'd like to place an order from ${shop?.name || 'a shop'} on UniLink and have you deliver it. Are you available?`
+                          );
+                          Linking.openURL(`https://wa.me/${waNum}?text=${msg}`).then(() => {
+                            setDriverWhatsappConfirmed(prev => ({ ...prev, [sc.shopId]: true }));
+                          }).catch(() => {});
+                        }}
+                        activeOpacity={0.8}
+                      >
+                        <MessageCircle size={16} color="#fff" />
+                        <Text style={{ fontSize: 13, fontWeight: '800', color: '#fff' }}>Send WhatsApp to Driver (Required)</Text>
+                      </TouchableOpacity>
+                    )}
+                    {selectedDriver && whatsappDone && (
+                      <View style={[styles.locConfirmedBox, { backgroundColor: `${palette.success}10`, borderColor: `${palette.success}30` }]}>
+                        <CheckCircle size={16} color={palette.success} />
+                        <Text style={[styles.locConfirmedTitle, { color: palette.success }]}>WhatsApp sent to {selectedDriver.full_name}</Text>
+                      </View>
+                    )}
+                  </>
+                )}
+              </View>
+            );
+          })}
 
           {requiresWhatsapp && !anyBlocked ? (
             <View style={{ marginTop: 12, gap: 6 }}>
@@ -624,7 +720,7 @@ export function CheckoutModal({
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
               {isPaynow && <ExternalLink size={16} color="#fff" />}
               <Text style={styles.placeOrderBtnText}>
-                {anyUnavailable ? 'Shop Unavailable' : anyClosed ? 'Shop Closed — No Orders' : requiresWhatsapp && !whatsappConfirmed ? 'Send WhatsApp First' : !locationConfirmed ? 'Confirm Location First' : isPaynow ? `Pay ${grandTotal.toFixed(2)} via Paynow` : 'Place Order(s)'}
+                {anyUnavailable ? 'Shop Unavailable' : anyClosed ? 'Shop Closed — No Orders' : requiresWhatsapp && !whatsappConfirmed ? 'Send WhatsApp First' : needsDriverAction ? (!allDriversSelected ? 'Select a Driver First' : 'Send WhatsApp to Driver') : !locationConfirmed ? 'Confirm Location First' : isPaynow ? `Pay ${grandTotal.toFixed(2)} via Paynow` : 'Place Order(s)'}
               </Text>
             </View>
           )}
@@ -690,4 +786,8 @@ const styles = StyleSheet.create({
   locConfirmedAddr: { fontSize: 12, marginTop: 2 },
   locConfirmedGps: { fontSize: 10, marginTop: 2 },
   locModeBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 9, borderRadius: 10, borderWidth: 1.5 },
+  driverPickRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14, paddingVertical: 12, borderRadius: 10, borderWidth: 1.5, marginBottom: 6 },
+  driverPickRadio: { width: 20, height: 20, borderRadius: 10, borderWidth: 2, justifyContent: 'center', alignItems: 'center' },
+  driverPickName: { fontSize: 14, fontWeight: '600' },
+  driverPickPhone: { fontSize: 12, marginTop: 2 },
 });

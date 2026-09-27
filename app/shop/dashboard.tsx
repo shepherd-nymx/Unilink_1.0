@@ -864,6 +864,7 @@ export default function ShopDashboard() {
         drivers={availableDrivers}
         assigningDriver={assigningDriver}
         assignError={assignError}
+        driverAssignmentMode={shop?.driver_assignment_mode || 'shop_assigned'}
         onClose={() => { setShowOrderModal(false); setSelectedOrder(null); }}
         onUpdateStatus={updateOrderStatus}
         onAssignDriver={assignMessenger}

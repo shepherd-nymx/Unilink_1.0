@@ -86,6 +86,7 @@ export type ShopData = {
   commission_deadline?: string | null;
   category?: string | null;
   logo_url?: string | null;
+  driver_assignment_mode?: 'shop_assigned' | 'customer_assigned';
 };
 
 export const STATUS_FLOW = [
