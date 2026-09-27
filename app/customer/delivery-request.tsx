@@ -53,6 +53,7 @@ export default function DeliveryRequestPage() {
   const [showDriverSelector, setShowDriverSelector] = useState(false);
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [loadingDrivers, setLoadingDrivers] = useState(false);
+  const [customerUniversityId, setCustomerUniversityId] = useState<string | null>(null);
 
   // Submission
   const [successModal, setSuccessModal] = useState(false);
@@ -73,7 +74,16 @@ export default function DeliveryRequestPage() {
     if (!customerId) return;
     setLoadingDrivers(true);
     try {
-      const { data } = await supabase
+      // Fetch customer's university for location filtering
+      const { data: cust } = await supabase
+        .from('customers')
+        .select('university_id')
+        .eq('id', customerId)
+        .maybeSingle();
+      const uniId = (cust as any)?.university_id ?? null;
+      setCustomerUniversityId(uniId);
+
+      let query = supabase
         .from('drivers')
         .select(`
           id, full_name, phone_number, delivery_type, payment_methods,
@@ -87,6 +97,12 @@ export default function DeliveryRequestPage() {
         .eq('is_available', true)
         .eq('approval_status', 'approved')
         .order('average_rating', { ascending: false });
+
+      if (uniId) {
+        query = query.or(`university_id.eq.${uniId},active_university_id.eq.${uniId}`);
+      }
+
+      const { data } = await query;
 
       setDrivers(
         (data ?? []).map((d: any) => ({ ...d, location: d.address ?? '' }))

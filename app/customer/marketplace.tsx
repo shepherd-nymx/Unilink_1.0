@@ -55,6 +55,7 @@ export default function Marketplace() {
   const [shopServiceLocations, setShopServiceLocations] = useState<ServiceLocationMap>({});
   const [deliveryFeeTiers, setDeliveryFeeTiers] = useState<Record<string, DeliveryFeeTier[]>>({});
   const [distanceFeeTiers, setDistanceFeeTiers] = useState<Record<string, ShopDistanceFeeTier[]>>({});
+  const [shopDriverRegions, setShopDriverRegions] = useState<Record<string, string[]>>({});
 
   const selectedShopData = selectedShopId ? shops.find(s => s.id === selectedShopId) || null : null;
   const [showCheckout, setShowCheckout] = useState(false);
@@ -207,6 +208,17 @@ export default function Marketplace() {
           distTierMap[t.shop_id].push(t);
         });
         setDistanceFeeTiers(distTierMap);
+
+        const { data: regionData } = await supabase
+          .from('shop_driver_regions')
+          .select('shop_id, university_id')
+          .in('shop_id', allShops.map(s => s.id));
+        const regionMap: Record<string, string[]> = {};
+        (regionData || []).forEach((r: any) => {
+          if (!regionMap[r.shop_id]) regionMap[r.shop_id] = [];
+          regionMap[r.shop_id].push(r.university_id);
+        });
+        setShopDriverRegions(regionMap);
       }
 
       const { data: prodData, error: prodErr } = await supabase
@@ -281,21 +293,22 @@ export default function Marketplace() {
     });
     if (customerAssigned.length === 0) return;
     try {
-      const { data, error } = await supabase.rpc('get_nearby_drivers', {
-        p_customer_lat: customerAddress?.latitude ?? null,
-        p_customer_lng: customerAddress?.longitude ?? null,
-        p_university_id: customerUniversityId ?? null,
-      });
-      if (!error && data) {
-        const drivers = data as Driver[];
-        const map: Record<string, Driver[]> = {};
-        for (const sc of customerAssigned) {
-          map[sc.shopId] = drivers;
+      const map: Record<string, Driver[]> = {};
+      for (const sc of customerAssigned) {
+        const regionIds = shopDriverRegions[sc.shopId] || [];
+        const { data, error } = await supabase.rpc('get_nearby_drivers', {
+          p_customer_lat: customerAddress?.latitude ?? null,
+          p_customer_lng: customerAddress?.longitude ?? null,
+          p_university_id: customerUniversityId ?? null,
+          p_driver_region_ids: regionIds.length > 0 ? regionIds : null,
+        });
+        if (!error && data) {
+          map[sc.shopId] = data as Driver[];
         }
-        setDriversByShop(map);
       }
+      setDriversByShop(map);
     } catch {}
-  }, [cartByShop, shops, customerAddress, customerUniversityId]);
+  }, [cartByShop, shops, customerAddress, customerUniversityId, shopDriverRegions]);
 
   useEffect(() => {
     if (!showCheckout) return;
