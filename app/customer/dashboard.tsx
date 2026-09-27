@@ -1047,37 +1047,41 @@ export default function CustomerDashboard() {
     },
     bottomNav: {
       flexDirection: 'row',
-      borderTopWidth: 2,
-      borderTopColor: isDark ? 'rgba(56,189,248,0.16)' : 'rgba(26,115,232,0.15)',
-      paddingBottom: Platform.OS === 'ios' ? 20 : 12,
-      paddingTop: 12,
-      backgroundColor: isDark ? 'rgba(5,13,26,0.95)' : 'rgba(255,255,255,0.98)',
-      shadowColor: P,
-      shadowOffset: { width: 0, height: -4 },
-      shadowOpacity: isDark ? 0.15 : 0.08,
-      shadowRadius: 12,
-      elevation: 8,
+      borderTopWidth: 0.5,
+      borderTopColor: 'rgba(148,163,184,0.25)',
+      paddingBottom: Platform.OS === 'ios' ? 20 : 10,
+      paddingTop: 10,
+      backgroundColor: isDark ? '#0a1220' : '#ffffff',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: -6 },
+      shadowOpacity: isDark ? 0.5 : 0.08,
+      shadowRadius: 16,
+      elevation: 16,
     },
     bottomNavItem: {
       flex: 1,
       alignItems: 'center',
       justifyContent: 'center',
-      gap: 6,
-      paddingVertical: 8,
+      gap: 5,
+      paddingVertical: 4,
     },
     bottomNavIconWrap: {
-      width: 48,
-      height: 44,
-      borderRadius: 14,
+      width: 52,
+      height: 34,
+      borderRadius: 12,
       justifyContent: 'center',
       alignItems: 'center',
       position: 'relative',
-      backgroundColor: isDark ? 'rgba(56,189,248,0.06)' : 'rgba(26,115,232,0.04)',
+      backgroundColor: 'transparent',
+      borderWidth: 0,
+    },
+    bottomNavIconWrapActive: {
+      backgroundColor: isDark ? 'rgba(0,229,255,0.14)' : '#E8F1FF',
     },
     bottomNavLabel: {
-      fontSize: 12,
+      fontSize: 11,
       fontWeight: '700',
-      letterSpacing: 0.3,
+      letterSpacing: 0.2,
     },
     bottomNavDot: {
       position: 'absolute',
@@ -2105,10 +2109,7 @@ export default function CustomerDashboard() {
           onPress={() => router.push({ pathname: '/customer/profile', params: { customerId, customerName } })}
           activeOpacity={0.6}
         >
-          <View style={[
-            styles.bottomNavIconWrap,
-            { backgroundColor: isDark ? 'rgba(56,189,248,0.1)' : 'rgba(26,115,232,0.08)' }
-          ]}>
+          <View style={styles.bottomNavIconWrap}>
             <User size={24} color={P} strokeWidth={2} />
           </View>
           <Text style={[styles.bottomNavLabel, { color: P }]}>Profile</Text>
@@ -2119,14 +2120,7 @@ export default function CustomerDashboard() {
           onPress={() => router.push({ pathname: '/customer/chat', params: { customerId, customerName } })}
           activeOpacity={0.6}
         >
-          <View style={[
-            styles.bottomNavIconWrap,
-            {
-              backgroundColor: unreadMessageCount > 0
-                ? 'rgba(239,68,68,0.1)'
-                : isDark ? 'rgba(56,189,248,0.1)' : 'rgba(26,115,232,0.08)'
-            }
-          ]}>
+          <View style={styles.bottomNavIconWrap}>
             <AnimatedChatIcon
               unreadCount={unreadMessageCount}
               iconColor={unreadMessageCount > 0 ? '#EF4444' : P}
@@ -2145,14 +2139,7 @@ export default function CustomerDashboard() {
           onPress={() => router.push({ pathname: '/customer/orders', params: { customerId } })}
           activeOpacity={0.6}
         >
-          <View style={[
-            styles.bottomNavIconWrap,
-            {
-              backgroundColor: notificationDot || shopOrderUpdatesCount > 0
-                ? (notificationDot === 'yellow' || shopOrderUpdatesCount > 0 ? 'rgba(245,158,11,0.1)' : 'rgba(16,185,129,0.1)')
-                : isDark ? 'rgba(56,189,248,0.1)' : 'rgba(26,115,232,0.08)'
-            }
-          ]}>
+          <View style={styles.bottomNavIconWrap}>
             <History
               size={24}
               color={notificationDot || shopOrderUpdatesCount > 0 ? (notificationDot === 'yellow' ? WARN : SUCCESS) : P}
@@ -2180,10 +2167,7 @@ export default function CustomerDashboard() {
           onPress={() => router.push('/support' as any)}
           activeOpacity={0.6}
         >
-          <View style={[
-            styles.bottomNavIconWrap,
-            { backgroundColor: isDark ? 'rgba(56,189,248,0.1)' : 'rgba(26,115,232,0.08)' }
-          ]}>
+          <View style={styles.bottomNavIconWrap}>
             <HelpCircle size={24} color={P} strokeWidth={2} />
           </View>
           <Text style={[styles.bottomNavLabel, { color: P }]}>Support</Text>
