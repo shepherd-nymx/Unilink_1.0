@@ -17,6 +17,7 @@ type Stats = {
   customers: number | null; activeShops: number | null; activeDrivers: number | null;
   eligibleDrivers: number | null; ordersToday: number | null; expiredSubs: number | null;
   totalCommissionOwed: number | null; overdueShops: number | null;
+  shopOrderRevenue: number | null; totalShopOrders: number | null;
 };
 
 export default function AdminDashboard() {
@@ -28,6 +29,7 @@ export default function AdminDashboard() {
     customers: null, activeShops: null, activeDrivers: null,
     eligibleDrivers: null, ordersToday: null, expiredSubs: null,
     totalCommissionOwed: null, overdueShops: null,
+    shopOrderRevenue: null, totalShopOrders: null,
   });
   const [statsLoading, setStatsLoading] = useState(true);
   const [incompleteShops, setIncompleteShops] = useState<number | null>(null);
@@ -52,7 +54,7 @@ export default function AdminDashboard() {
       const [
         customersRes, activeShopsRes, activeDriversRes, eligibleDriversRes,
         ordersTodayRes, expiredSubsRes, incompleteShopsRes, expiredDriversRes,
-        commissionRes,
+        commissionRes, shopOrderRevRes, totalShopOrdersRes,
       ] = await Promise.all([
         supabase.from('customers').select('*', { count: 'exact', head: true }),
         supabase.from('shops').select('*', { count: 'exact', head: true }).eq('status', 'active'),
@@ -66,6 +68,8 @@ export default function AdminDashboard() {
           .or('location_verified.is.null,location_verified.eq.false'),
         supabase.from('drivers').select('*', { count: 'exact', head: true }).eq('subscription_status', 'expired'),
         supabase.from('shops').select('commission_deadline, commission_paid').eq('status', 'active'),
+        supabase.from('shop_orders').select('total_amount, delivery_fee, ecocash_fee_amount'),
+        supabase.from('shop_orders').select('*', { count: 'exact', head: true }),
       ]);
 
       const now = new Date().toISOString();
@@ -75,11 +79,16 @@ export default function AdminDashboard() {
         Number(s.commission_paid) === 0
       ).length;
 
+      const shopRev = (shopOrderRevRes.data || []).reduce((sum: number, o: any) => {
+        return sum + Number(o.total_amount || 0) + Number(o.delivery_fee || 0) + Number(o.ecocash_fee_amount || 0);
+      }, 0);
+
       setStats({
         customers: customersRes.count ?? 0, activeShops: activeShopsRes.count ?? 0,
         activeDrivers: activeDriversRes.count ?? 0, eligibleDrivers: eligibleDriversRes.count ?? 0,
         ordersToday: ordersTodayRes.count ?? 0, expiredSubs: expiredSubsRes.count ?? 0,
         totalCommissionOwed: null, overdueShops: overdueCount,
+        shopOrderRevenue: shopRev, totalShopOrders: totalShopOrdersRes.count ?? 0,
       });
       setIncompleteShops(incompleteShopsRes.count ?? 0);
       setExpiredDrivers(expiredDriversRes.count ?? 0);
@@ -95,6 +104,8 @@ export default function AdminDashboard() {
     { label: 'Active Drivers', value: stats.activeDrivers, icon: Truck, color: A.blue, dimColor: A.blueDim },
     { label: 'Eligible Drivers', value: stats.eligibleDrivers, icon: UserCog, color: A.amber, dimColor: A.amberDim },
     { label: 'Orders Today', value: stats.ordersToday, icon: Package, color: A.orange, dimColor: A.orangeDim },
+    { label: 'Total Shop Orders', value: stats.totalShopOrders, icon: ShoppingBag, color: A.cyan, dimColor: A.cyanDim },
+    { label: 'Shop Revenue', value: stats.shopOrderRevenue !== null ? `${stats.shopOrderRevenue.toFixed(0)}` as unknown as number : null, icon: DollarSign, color: A.green, dimColor: A.greenDim },
     { label: 'Commission Overdue', value: stats.overdueShops, icon: DollarSign, color: A.red, dimColor: A.redDim },
   ];
 
