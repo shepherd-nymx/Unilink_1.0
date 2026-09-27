@@ -184,6 +184,7 @@ export default function ShopDashboard() {
 
     setShop(shopData as ShopData);
     setCommissionPaid(Number(shopData.commission_paid) || 0);
+    if ((shopData as any).commission_percentage != null) setCommissionRate(Number((shopData as any).commission_percentage));
     await Promise.all([loadOrders(shopId), loadProducts(shopId)]);
   };
 
@@ -216,11 +217,10 @@ export default function ShopDashboard() {
   const loadSettings = async () => {
     const { data } = await supabase
       .from('shop_settings')
-      .select('registration_fee, commission_rate, payment_ecocash_number, payment_ecocash_name')
+      .select('registration_fee, payment_ecocash_number, payment_ecocash_name')
       .maybeSingle();
     if (data) {
       setRegistrationFee(Number(data.registration_fee));
-      if (data.commission_rate != null) setCommissionRate(Number(data.commission_rate));
       setEcocashNumber(data.payment_ecocash_number || null);
       setEcocashName(data.payment_ecocash_name || null);
     }

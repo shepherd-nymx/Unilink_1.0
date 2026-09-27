@@ -72,10 +72,14 @@ export function ProfileTab({
   const [ecocashFee, setEcocashFee] = useState(shop.ecocash_fee != null ? String(shop.ecocash_fee) : '0');
   const [ecocashName, setEcocashName] = useState(shop.ecocash_name || '');
   const [ecocashNumber, setEcocashNumber] = useState(shop.ecocash_number || '');
+  const [ecocashCc, setEcocashCc] = useState('+263');
+  const [ecocashNum, setEcocashNum] = useState('');
   const [savingEcocash, setSavingEcocash] = useState(false);
   const [deliveryFee, setDeliveryFee] = useState(shop.delivery_fee != null ? String(shop.delivery_fee) : '0');
   const [savingFees, setSavingFees] = useState(false);
   const [whatsappInput, setWhatsappInput] = useState(shop.whatsapp_number || '');
+  const [whatsappCc, setWhatsappCc] = useState('+263');
+  const [whatsappNum, setWhatsappNum] = useState('');
   const [savingWhatsapp, setSavingWhatsapp] = useState(false);
   const [driverMode, setDriverMode] = useState<'shop_assigned' | 'customer_assigned'>(shop.driver_assignment_mode || 'shop_assigned');
   const [savingDriverMode, setSavingDriverMode] = useState(false);
@@ -90,6 +94,8 @@ export function ProfileTab({
   const [editName, setEditName] = useState(shop.name);
   const [editDescription, setEditDescription] = useState(shop.description || '');
   const [editPhone, setEditPhone] = useState(shop.contact_phone);
+  const [phoneCc, setPhoneCc] = useState('+263');
+  const [phoneNum, setPhoneNum] = useState('');
   const [savingInfo, setSavingInfo] = useState(false);
   const [logoUploading, setLogoUploading] = useState(false);
 
@@ -230,12 +236,12 @@ export function ProfileTab({
       .from('shops')
       .update({
         ecocash_name: ecocashName.trim() || null,
-        ecocash_number: ecocashNumber.trim() || null,
+        ecocash_number: (ecocashCc.trim() + ecocashNum.trim().replace(/[^0-9]/g, '')) || null,
       })
       .eq('id', shop.id);
     setSavingEcocash(false);
     if (error) { setMsg(error.message); return; }
-    onShopUpdated({ ...shop, ecocash_name: ecocashName.trim() || null, ecocash_number: ecocashNumber.trim() || null });
+    onShopUpdated({ ...shop, ecocash_name: ecocashName.trim() || null, ecocash_number: (ecocashCc.trim() + ecocashNum.trim().replace(/[^0-9]/g, '')) || null });
     setMsg('EcoCash details saved');
   };
 
@@ -256,7 +262,7 @@ export function ProfileTab({
   const saveWhatsapp = async () => {
     setSavingWhatsapp(true);
     setMsg('');
-    const cleaned = whatsappInput.trim().replace(/[^0-9+]/g, '');
+    const cleaned = (whatsappCc.trim() + whatsappNum.trim().replace(/[^0-9]/g, '')).replace(/[^0-9+]/g, '');
     const { error } = await supabase
       .from('shops')
       .update({ whatsapp_number: cleaned || null })
@@ -321,7 +327,7 @@ export function ProfileTab({
     const updates = {
       name: editName.trim() || shop.name,
       description: editDescription.trim() || null,
-      contact_phone: editPhone.trim() || shop.contact_phone,
+      contact_phone: (phoneCc.trim() + phoneNum.trim().replace(/[^0-9]/g, '')) || shop.contact_phone,
     };
     const { error } = await supabase.from('shops').update(updates).eq('id', shop.id);
     setSavingInfo(false);
@@ -331,6 +337,18 @@ export function ProfileTab({
   };
 
   useEffect(() => {
+    const parseCcNum = (raw: string): { cc: string; num: string } => {
+      if (!raw) return { cc: '+263', num: '' };
+      const m = raw.replace(/\s/g, '').match(/^(\+\d{1,4})(\d+)$/);
+      if (m) return { cc: m[1], num: m[2] };
+      return { cc: '+263', num: raw.replace(/[^0-9]/g, '') };
+    };
+    const wp = parseCcNum(shop.whatsapp_number || '');
+    setWhatsappCc(wp.cc); setWhatsappNum(wp.num);
+    const ph = parseCcNum(shop.contact_phone || '');
+    setPhoneCc(ph.cc); setPhoneNum(ph.num);
+    const ec = parseCcNum(shop.ecocash_number || '');
+    setEcocashCc(ec.cc); setEcocashNum(ec.num);
     loadServiceLocations();
     loadAvailableLocations();
     loadBlacklist();
@@ -658,14 +676,24 @@ export function ProfileTab({
         </View>
         <View style={styles.fieldGroup}>
           <Text style={styles.label}>Contact Phone</Text>
-          <TextInput
-            style={styles.feeInput}
-            value={editPhone}
-            onChangeText={setEditPhone}
-            placeholder="e.g. +263771234567"
-            placeholderTextColor={A.textMuted}
-            keyboardType="phone-pad"
-          />
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <TextInput
+              style={[styles.feeInput, { flex: 0.3 }]}
+              value={phoneCc}
+              onChangeText={setPhoneCc}
+              placeholder="+263"
+              placeholderTextColor={A.textMuted}
+              keyboardType="phone-pad"
+            />
+            <TextInput
+              style={[styles.feeInput, { flex: 1 }]}
+              value={phoneNum}
+              onChangeText={setPhoneNum}
+              placeholder="771234567"
+              placeholderTextColor={A.textMuted}
+              keyboardType="number-pad"
+            />
+          </View>
         </View>
         <View style={styles.row}>
           <Text style={styles.label}>Email (not editable)</Text>
@@ -878,14 +906,24 @@ export function ProfileTab({
         </View>
         <View style={styles.fieldGroup}>
           <Text style={styles.label}>EcoCash Phone Number</Text>
-          <TextInput
-            style={styles.feeInput}
-            value={ecocashNumber}
-            onChangeText={setEcocashNumber}
-            placeholder="e.g. +263771234567"
-            placeholderTextColor={A.textMuted}
-            keyboardType="phone-pad"
-          />
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <TextInput
+              style={[styles.feeInput, { flex: 0.3 }]}
+              value={ecocashCc}
+              onChangeText={setEcocashCc}
+              placeholder="+263"
+              placeholderTextColor={A.textMuted}
+              keyboardType="phone-pad"
+            />
+            <TextInput
+              style={[styles.feeInput, { flex: 1 }]}
+              value={ecocashNum}
+              onChangeText={setEcocashNum}
+              placeholder="771234567"
+              placeholderTextColor={A.textMuted}
+              keyboardType="number-pad"
+            />
+          </View>
         </View>
         <TouchableOpacity style={[styles.saveBtn, { backgroundColor: A.amber }]} onPress={saveEcocashDetails} disabled={savingEcocash}>
           {savingEcocash ? <ActivityIndicator size="small" color="#000" /> : <Text style={[styles.saveBtnText, { color: '#000' }]}>Save EcoCash Details</Text>}
@@ -938,15 +976,25 @@ export function ProfileTab({
         </Text>
         <View style={styles.fieldGroup}>
           <Text style={styles.label}>WhatsApp Number</Text>
-          <TextInput
-            style={styles.feeInput}
-            value={whatsappInput}
-            onChangeText={setWhatsappInput}
-            placeholder="e.g. +263771234567"
-            placeholderTextColor={A.textMuted}
-            keyboardType="phone-pad"
-          />
-          <Text style={styles.feeHint}>Include country code. Leave empty to disable WhatsApp order confirmation.</Text>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <TextInput
+              style={[styles.feeInput, { flex: 0.3 }]}
+              value={whatsappCc}
+              onChangeText={setWhatsappCc}
+              placeholder="+263"
+              placeholderTextColor={A.textMuted}
+              keyboardType="phone-pad"
+            />
+            <TextInput
+              style={[styles.feeInput, { flex: 1 }]}
+              value={whatsappNum}
+              onChangeText={setWhatsappNum}
+              placeholder="771234567"
+              placeholderTextColor={A.textMuted}
+              keyboardType="number-pad"
+            />
+          </View>
+          <Text style={styles.feeHint}>Country code + number. Leave empty to disable WhatsApp order confirmation.</Text>
         </View>
         <TouchableOpacity style={[styles.saveBtn, { backgroundColor: '#25D366' }]} onPress={saveWhatsapp} disabled={savingWhatsapp}>
           {savingWhatsapp ? <ActivityIndicator size="small" color="#fff" /> : <Text style={[styles.saveBtnText, { color: '#fff' }]}>Save WhatsApp Number</Text>}

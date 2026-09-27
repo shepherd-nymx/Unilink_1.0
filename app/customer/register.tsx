@@ -45,6 +45,7 @@ export default function CustomerRegister() {
 
   const [fullName, setFullName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [phoneCc, setPhoneCc] = useState('+263');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -229,7 +230,7 @@ export default function CustomerRegister() {
         .from('customers')
         .insert({
           full_name: fullName,
-          phone_number: phoneNumber,
+          phone_number: (phoneCc.trim() + phoneNumber.trim().replace(/[^0-9]/g, '')),
           email: emailTrim,
           username,
           password_hash: passwordHash,
@@ -345,7 +346,8 @@ export default function CustomerRegister() {
               {[
                 { field: 'fullName', label: 'FULL NAME', placeholder: 'Enter your full name', value: fullName, setter: setFullName, icon: <User size={16} color={isFocused('fullName') ? primary : placeholderColor} />, required: true, caps: 'words' as any },
                 { field: 'username', label: 'USERNAME', placeholder: 'Choose a username', value: username, setter: setUsername, icon: <User size={16} color={isFocused('username') ? primary : placeholderColor} />, required: true, caps: 'none' as any },
-                { field: 'phone', label: 'PHONE NUMBER', placeholder: '+263...', value: phoneNumber, setter: setPhoneNumber, icon: <Phone size={16} color={isFocused('phone') ? primary : placeholderColor} />, required: true, keyboard: 'phone-pad' as any },
+                { field: 'phoneCc', label: 'COUNTRY CODE', placeholder: '+263', value: phoneCc, setter: setPhoneCc, icon: <Phone size={16} color={isFocused('phoneCc') ? primary : placeholderColor} />, required: true, keyboard: 'phone-pad' as any },
+                { field: 'phone', label: 'PHONE NUMBER', placeholder: '771234567', value: phoneNumber, setter: setPhoneNumber, icon: <Phone size={16} color={isFocused('phone') ? primary : placeholderColor} />, required: true, keyboard: 'number-pad' as any },
                 { field: 'email', label: 'EMAIL', placeholder: 'your@email.com', value: email, setter: setEmail, icon: <Mail size={16} color={isFocused('email') ? primary : placeholderColor} />, required: true, caps: 'none' as any, keyboard: 'email-address' as any },
                 { field: 'password', label: 'PASSWORD', placeholder: 'At least 6 characters', value: password, setter: setPassword, icon: <Lock size={16} color={isFocused('password') ? primary : placeholderColor} />, required: true, secure: true },
                 { field: 'confirmPassword', label: 'CONFIRM PASSWORD', placeholder: 'Re-enter password', value: confirmPassword, setter: setConfirmPassword, icon: <Lock size={16} color={isFocused('confirmPassword') ? primary : placeholderColor} />, required: true, secure: true },

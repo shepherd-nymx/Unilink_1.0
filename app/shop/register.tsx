@@ -47,6 +47,7 @@ export default function ShopRegister() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [shopName, setShopName] = useState('');
   const [contactPhone, setContactPhone] = useState('');
+  const [contactPhoneCc, setContactPhoneCc] = useState('+263');
   const [description, setDescription] = useState('');
   const [address, setAddress] = useState('');
   const [hours, setHours] = useState('');
@@ -274,7 +275,7 @@ export default function ShopRegister() {
           category,
           latitude: latitude.trim() ? parseFloat(latitude) : null,
           longitude: longitude.trim() ? parseFloat(longitude) : null,
-          contact_phone: contactPhone,
+          contact_phone: contactPhoneCc.trim() + contactPhone.trim().replace(/[^0-9]/g, ''),
           contact_email: emailTrim,
           hours: hours || null,
           status: 'pending_approval',
@@ -595,18 +596,32 @@ export default function ShopRegister() {
               <Text style={[styles.label, { color: textSecondary }]}>
                 CONTACT PHONE <Text style={{ color: errorColor }}>*</Text>
               </Text>
-              <View style={[styles.inputWrapper, { backgroundColor: inputBg, borderColor: focused === 'phone' ? primary : inputBorder }]}>
-                <View style={styles.inputIcon}><Phone size={16} color={focused === 'phone' ? primary : placeholderColor} /></View>
-                <TextInput
-                  style={[styles.input, { color: textPrimary }]}
-                  value={contactPhone}
-                  onChangeText={setContactPhone}
-                  placeholder="+263..."
-                  placeholderTextColor={placeholderColor}
-                  keyboardType="phone-pad"
-                  onFocus={() => setFocused('phone')}
-                  onBlur={() => setFocused(null)}
-                />
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                <View style={[styles.inputWrapper, { flex: 0.3, backgroundColor: inputBg, borderColor: focused === 'phoneCc' ? primary : inputBorder }]}>
+                  <TextInput
+                    style={[styles.input, { color: textPrimary }]}
+                    value={contactPhoneCc}
+                    onChangeText={setContactPhoneCc}
+                    placeholder="+263"
+                    placeholderTextColor={placeholderColor}
+                    keyboardType="phone-pad"
+                    onFocus={() => setFocused('phoneCc')}
+                    onBlur={() => setFocused(null)}
+                  />
+                </View>
+                <View style={[styles.inputWrapper, { flex: 1, backgroundColor: inputBg, borderColor: focused === 'phone' ? primary : inputBorder }]}>
+                  <View style={styles.inputIcon}><Phone size={16} color={focused === 'phone' ? primary : placeholderColor} /></View>
+                  <TextInput
+                    style={[styles.input, { color: textPrimary }]}
+                    value={contactPhone}
+                    onChangeText={setContactPhone}
+                    placeholder="771234567"
+                    placeholderTextColor={placeholderColor}
+                    keyboardType="number-pad"
+                    onFocus={() => setFocused('phone')}
+                    onBlur={() => setFocused(null)}
+                  />
+                </View>
               </View>
             </View>
 

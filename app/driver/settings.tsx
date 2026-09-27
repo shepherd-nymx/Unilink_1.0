@@ -107,6 +107,7 @@ export default function DriverSettings() {
   const [isAvailable, setIsAvailable] = useState(false);
   const [deliveryTypes, setDeliveryTypes] = useState<string[]>(['walking']);
   const [paymentMethods, setPaymentMethods] = useState<string[]>(['pay_on_delivery']);
+  const [whatsappCountryCode, setWhatsappCountryCode] = useState('+263');
   const [whatsappNumber, setWhatsappNumber] = useState('');
   const [notificationEmail, setNotificationEmail] = useState('');
   const [homeLatitude, setHomeLatitude] = useState('');
@@ -222,7 +223,12 @@ export default function DriverSettings() {
       setIsAvailable(data.is_available);
       setDeliveryTypes(data.delivery_type || ['walking']);
       setPaymentMethods(data.payment_methods || ['pay_on_delivery']);
-      setWhatsappNumber(data.whatsapp_number || '');
+      const rawWp = data.whatsapp_number || '';
+      if (rawWp.startsWith('+')) {
+        const match = rawWp.match(/^(\+\d{1,4})(.*)$/);
+        if (match) { setWhatsappCountryCode(match[1]); setWhatsappNumber(match[2].replace(/\D/g, '')); }
+        else { setWhatsappNumber(rawWp.replace(/[^0-9]/g, '')); }
+      } else { setWhatsappNumber(rawWp.replace(/[^0-9]/g, '')); }
       setNotificationEmail(data.notification_email || data.email || '');
       setHomeLatitude(data.home_latitude != null ? String(data.home_latitude) : '');
       setHomeLongitude(data.home_longitude != null ? String(data.home_longitude) : '');
@@ -263,7 +269,7 @@ export default function DriverSettings() {
         fee_up_to_200: parseFloat(feeUpTo200), fee_up_to_300: parseFloat(feeUpTo300),
         fee_up_to_400: parseFloat(feeUpTo400), fee_up_to_500: parseFloat(feeUpTo500),
         is_available: isAvailable, delivery_type: deliveryTypes, payment_methods: paymentMethods,
-        whatsapp_number: whatsappNumber.trim() || null,
+        whatsapp_number: (whatsappCountryCode.trim() + whatsappNumber.trim()) || null,
         notification_email: notificationEmail.trim() || null,
         home_latitude: homeLatitude.trim() ? parseFloat(homeLatitude) : null,
         home_longitude: homeLongitude.trim() ? parseFloat(homeLongitude) : null,
@@ -603,17 +609,31 @@ export default function DriverSettings() {
         <View style={ss.section}>
           <Text style={ss.sectionTitle}>WhatsApp Number</Text>
           <Text style={ss.sectionDesc}>Customers will use this to notify you when an order is placed</Text>
-          <View style={ss.inputWrap}>
-            <MessageCircle size={14} color={TEXT2} />
-            <TextInput
-              style={ss.inputInline}
-              value={whatsappNumber}
-              onChangeText={setWhatsappNumber}
-              placeholder="e.g. +263771234567"
-              placeholderTextColor={TEXT3}
-              keyboardType="phone-pad"
-              autoCorrect={false}
-            />
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <View style={[ss.inputWrap, { flex: 0.35 }]}>
+              <Text style={{ fontSize: 13, fontWeight: '700', color: TEXT2 }}>Code</Text>
+              <TextInput
+                style={[ss.inputInline, { fontSize: 13 }]}
+                value={whatsappCountryCode}
+                onChangeText={setWhatsappCountryCode}
+                placeholder="+263"
+                placeholderTextColor={TEXT3}
+                keyboardType="phone-pad"
+                autoCorrect={false}
+              />
+            </View>
+            <View style={[ss.inputWrap, { flex: 1 }]}>
+              <MessageCircle size={14} color={TEXT2} />
+              <TextInput
+                style={ss.inputInline}
+                value={whatsappNumber}
+                onChangeText={setWhatsappNumber}
+                placeholder="771234567"
+                placeholderTextColor={TEXT3}
+                keyboardType="number-pad"
+                autoCorrect={false}
+              />
+            </View>
           </View>
         </View>
 

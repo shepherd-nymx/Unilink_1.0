@@ -82,10 +82,10 @@ export default function AdminShops() {
   const [registrationFee, setRegistrationFee] = useState('10.00');
   const [savingFee, setSavingFee] = useState(false);
   const [feeSaved, setFeeSaved] = useState(false);
-  const [commissionRate, setCommissionRate] = useState('5');
-  const [savingCommission, setSavingCommission] = useState(false);
-  const [commissionSaved, setCommissionSaved] = useState(false);
-  const [commissionData, setCommissionData] = useState<{ shopId: string; shopName: string; confirmedRevenue: number; commissionOwed: number; commissionPaid: number; deadline: string | null }[]>([]);
+  const [commissionData, setCommissionData] = useState<{ shopId: string; shopName: string; confirmedRevenue: number; commissionPercentage: number; commissionOwed: number; commissionPaid: number; deadline: string | null }[]>([]);
+  const [editingRate, setEditingRate] = useState<string | null>(null);
+  const [rateInput, setRateInput] = useState('');
+  const [savingRate, setSavingRate] = useState(false);
   const [deadlineShop, setDeadlineShop] = useState<string | null>(null);
   const [deadlineDate, setDeadlineDate] = useState('');
   const [savingDeadline, setSavingDeadline] = useState(false);
@@ -142,7 +142,6 @@ export default function AdminShops() {
         .maybeSingle();
       if (settings) {
         setRegistrationFee(Number(settings.registration_fee).toFixed(2));
-        if (settings.commission_rate != null) setCommissionRate(String(settings.commission_rate));
         if (settings.payment_ecocash_number) setEcocashNumber(settings.payment_ecocash_number);
         if (settings.payment_ecocash_name) setEcocashName(settings.payment_ecocash_name);
       }
@@ -153,7 +152,7 @@ export default function AdminShops() {
     }
   };
 
-  const loadCommissionData = async (activeShops: Shop[], rate: number) => {
+  const loadCommissionData = async (activeShops: Shop[]) => {
     if (activeShops.length === 0) { setCommissionData([]); return; }
     const shopIds = activeShops.map(s => s.id);
     const { data: orderData } = await supabase
@@ -165,39 +164,35 @@ export default function AdminShops() {
     (orderData || []).forEach((o: any) => {
       revenueByShop[o.shop_id] = (revenueByShop[o.shop_id] || 0) + Number(o.total_amount);
     });
-    const rows = activeShops.map(s => ({
-      shopId: s.id,
-      shopName: s.name,
-      confirmedRevenue: revenueByShop[s.id] || 0,
-      commissionOwed: (revenueByShop[s.id] || 0) * (rate / 100),
-      commissionPaid: Number((s as any).commission_paid) || 0,
-      deadline: (s as any).commission_deadline || null,
-    }));
+    const rows = activeShops.map(s => {
+      const pct = Number((s as any).commission_percentage) || 5;
+      return {
+        shopId: s.id,
+        shopName: s.name,
+        confirmedRevenue: revenueByShop[s.id] || 0,
+        commissionPercentage: pct,
+        commissionOwed: (revenueByShop[s.id] || 0) * (pct / 100),
+        commissionPaid: Number((s as any).commission_paid) || 0,
+        deadline: (s as any).commission_deadline || null,
+      };
+    });
     setCommissionData(rows.sort((a, b) => b.commissionOwed - a.commissionOwed));
   };
 
   useEffect(() => {
     if (activeTab === 'commission' && shops.length > 0) {
-      loadCommissionData(shops.filter(s => s.status === 'active'), parseFloat(commissionRate) || 5);
+      loadCommissionData(shops.filter(s => s.status === 'active'));
     }
   }, [activeTab, shops]);
 
-  const saveCommissionRate = async () => {
-    setSavingCommission(true);
-    const rate = parseFloat(commissionRate) || 5;
-    const { data: settings } = await supabase
-      .from('shop_settings')
-      .select('id')
-      .maybeSingle();
-    if (settings) {
-      await supabase.from('shop_settings').update({ commission_rate: rate }).eq('id', settings.id);
-    } else {
-      await supabase.from('shop_settings').insert({ commission_rate: rate });
-    }
-    setSavingCommission(false);
-    setCommissionSaved(true);
-    setTimeout(() => setCommissionSaved(false), 2000);
-    loadCommissionData(shops.filter(s => s.status === 'active'), rate);
+  const saveShopRate = async (shopId: string) => {
+    setSavingRate(true);
+    const rate = parseFloat(rateInput) || 5;
+    await supabase.from('shops').update({ commission_percentage: rate }).eq('id', shopId);
+    setSavingRate(false);
+    setEditingRate(null);
+    setRateInput('');
+    loadData();
   };
 
   const saveDeadline = async (shopId: string) => {
@@ -525,31 +520,6 @@ export default function AdminShops() {
 
           {activeTab === 'commission' && (
             <View style={{ gap: 14 }}>
-              <View style={[styles.settingsCard, { borderColor: `${A.amber}40` }]}>
-                <Text style={styles.settingsTitle}>Platform Commission Rate</Text>
-                <Text style={styles.settingsDesc}>Percentage of each shop's confirmed-order revenue owed to UniLink Delivery.</Text>
-                <View style={styles.feeInputRow}>
-                  <DollarSign size={20} color={A.amber} />
-                  <TextInput
-                    style={styles.feeInput}
-                    value={commissionRate}
-                    onChangeText={setCommissionRate}
-                    keyboardType="decimal-pad"
-                    placeholderTextColor={A.textMuted}
-                  />
-                  <Text style={{ fontSize: 16, fontWeight: '700', color: A.textSub }}>%</Text>
-                </View>
-                <TouchableOpacity
-                  style={[styles.saveFeeBtn, { opacity: savingCommission ? 0.6 : 1 }]}
-                  onPress={saveCommissionRate}
-                  disabled={savingCommission}
-                >
-                  {savingCommission ? <ActivityIndicator size="small" color="#000" /> : (
-                    <Text style={styles.saveFeeBtnText}>{commissionSaved ? 'Saved!' : 'Save Rate'}</Text>
-                  )}
-                </TouchableOpacity>
-              </View>
-
               <View style={[styles.settingsCard, { borderColor: `${A.green}40` }]}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 }}>
                   <Smartphone size={18} color={A.green} />
@@ -612,7 +582,7 @@ export default function AdminShops() {
                               <Text style={{ fontSize: 14, fontWeight: '700', color: A.text }}>${row.confirmedRevenue.toFixed(2)}</Text>
                             </View>
                             <View>
-                              <Text style={{ fontSize: 10, color: A.textSub, fontWeight: '600' }}>OWED ({(parseFloat(commissionRate) || 5).toFixed(0)}%)</Text>
+                              <Text style={{ fontSize: 10, color: A.textSub, fontWeight: '600' }}>OWED ({row.commissionPercentage.toFixed(0)}%)</Text>
                               <Text style={{ fontSize: 14, fontWeight: '800', color: A.amber }}>${row.commissionOwed.toFixed(2)}</Text>
                             </View>
                             <View>
@@ -730,6 +700,48 @@ export default function AdminShops() {
                             </TouchableOpacity>
                           )}
                         </View>
+                      )}
+                      {editingRate === row.shopId ? (
+                        <View style={{ marginTop: 10, gap: 8 }}>
+                          <Text style={{ fontSize: 11, color: A.textSub }}>Set commission % for {row.shopName}:</Text>
+                          <View style={styles.feeInputRow}>
+                            <DollarSign size={18} color={A.amber} />
+                            <TextInput
+                              style={styles.feeInput}
+                              value={rateInput}
+                              onChangeText={setRateInput}
+                              placeholder="5"
+                              placeholderTextColor={A.textMuted}
+                              keyboardType="decimal-pad"
+                            />
+                            <Text style={{ fontSize: 16, fontWeight: '700', color: A.textSub }}>%</Text>
+                          </View>
+                          <View style={{ flexDirection: 'row', gap: 8 }}>
+                            <TouchableOpacity
+                              style={[styles.actionBtn, { flex: 1, justifyContent: 'center', backgroundColor: A.card, borderColor: A.border }]}
+                              onPress={() => { setEditingRate(null); setRateInput(''); }}
+                            >
+                              <Text style={{ color: A.textSub, fontSize: 12 }}>Cancel</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                              style={[styles.actionBtn, { flex: 1, justifyContent: 'center', backgroundColor: A.amberDim || A.amber + '20', borderColor: A.amber }]}
+                              onPress={() => saveShopRate(row.shopId)}
+                              disabled={savingRate || !rateInput.trim()}
+                            >
+                              {savingRate ? <ActivityIndicator size="small" color={A.amber} /> : (
+                                <Text style={{ color: A.amber, fontSize: 12, fontWeight: '600' }}>Save Rate</Text>
+                              )}
+                            </TouchableOpacity>
+                          </View>
+                        </View>
+                      ) : (
+                        <TouchableOpacity
+                          style={[styles.actionBtn, { backgroundColor: A.amberDim || A.amber + '20', borderColor: A.amber, marginTop: 8 }]}
+                          onPress={() => { setEditingRate(row.shopId); setRateInput(String(row.commissionPercentage)); }}
+                        >
+                          <DollarSign size={12} color={A.amber} />
+                          <Text style={[styles.actionBtnText, { color: A.amber }]}>Edit Rate ({row.commissionPercentage.toFixed(0)}%)</Text>
+                        </TouchableOpacity>
                       )}
                     </View>
                   );
