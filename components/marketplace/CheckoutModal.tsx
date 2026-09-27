@@ -476,7 +476,7 @@ export function CheckoutModal({
             <Truck size={16} color={palette.primary} />
             <Text style={[styles.infoText, { color: palette.textSecondary }]}>
               {hasCustomerAssignedShops
-                ? 'Some shops require you to choose a driver. Select a driver below and send them a WhatsApp message before placing your order.'
+                ? 'Some shops require you to choose a messenger. Available messengers are sorted by distance from your location — pick the closest one or choose any other. You must send them a WhatsApp message before placing your order.'
                 : 'The shop will assign a messenger to deliver your order. No need to select one yourself.'}
             </Text>
           </View>
@@ -497,13 +497,35 @@ export function CheckoutModal({
                 {drivers.length === 0 ? (
                   <View style={[styles.blockBox, { backgroundColor: `${palette.warning}15`, borderColor: palette.warning }]}>
                     <AlertCircle size={14} color={palette.warning} />
-                    <Text style={[styles.blockText, { color: palette.warning }]}>No drivers available for {shop?.name || 'this shop'} right now. Please try again later.</Text>
+                    <Text style={[styles.blockText, { color: palette.warning }]}>No online messengers with GPS location are available right now. Please try again later.</Text>
                   </View>
                 ) : (
                   <>
-                    <ScrollView style={{ maxHeight: 200 }} nestedScrollEnabled>
-                      {drivers.map(d => {
+                    {drivers[0]?.distance_km != null && (
+                      <TouchableOpacity
+                        style={{
+                          flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+                          paddingVertical: 11, borderRadius: 10, borderWidth: 1.5,
+                          borderColor: palette.primary, backgroundColor: `${palette.primary}10`,
+                          marginBottom: 8,
+                        }}
+                        onPress={() => {
+                          const closest = drivers[0];
+                          setSelectedDrivers(prev => ({ ...prev, [sc.shopId]: closest.id }));
+                          setDriverWhatsappConfirmed(prev => ({ ...prev, [sc.shopId]: false }));
+                        }}
+                        activeOpacity={0.85}
+                      >
+                        <Navigation size={14} color={palette.primary} />
+                        <Text style={{ fontSize: 12, fontWeight: '800', color: palette.primary }}>
+                          Pick Closest to Me ({drivers[0].full_name.split(' ')[0]} — {drivers[0].distance_km != null ? `${drivers[0].distance_km.toFixed(1)} km` : 'unknown'})
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                    <ScrollView style={{ maxHeight: 240 }} nestedScrollEnabled>
+                      {drivers.map((d, idx) => {
                         const isSelected = selectedDriverId === d.id;
+                        const isClosest = idx === 0 && d.distance_km != null;
                         return (
                           <TouchableOpacity
                             key={d.id}
@@ -518,9 +540,30 @@ export function CheckoutModal({
                               {isSelected && <CheckCircle size={12} color="#fff" />}
                             </View>
                             <View style={{ flex: 1 }}>
-                              <Text style={[styles.driverPickName, { color: palette.textPrimary }]}>{d.full_name}</Text>
+                              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                                <Text style={[styles.driverPickName, { color: palette.textPrimary }]}>{d.full_name}</Text>
+                                {isClosest && (
+                                  <View style={{ paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, backgroundColor: `${palette.success}20` }}>
+                                    <Text style={{ fontSize: 9, fontWeight: '700', color: palette.success }}>NEAREST</Text>
+                                  </View>
+                                )}
+                              </View>
                               <Text style={[styles.driverPickPhone, { color: palette.textSecondary }]}>{d.phone_number}</Text>
+                              {d.home_address && (
+                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 3 }}>
+                                  <MapPin size={10} color={palette.textSecondary} />
+                                  <Text style={{ fontSize: 10, color: palette.textSecondary }} numberOfLines={1}>{d.home_address}</Text>
+                                </View>
+                              )}
                             </View>
+                            {d.distance_km != null && (
+                              <View style={{ alignItems: 'flex-end' }}>
+                                <Text style={{ fontSize: 13, fontWeight: '800', color: isClosest ? palette.success : palette.primary }}>
+                                  {d.distance_km < 1 ? `${Math.round(d.distance_km * 1000)}m` : `${d.distance_km.toFixed(1)}km`}
+                                </Text>
+                                <Text style={{ fontSize: 9, color: palette.textSecondary }}>away</Text>
+                              </View>
+                            )}
                           </TouchableOpacity>
                         );
                       })}

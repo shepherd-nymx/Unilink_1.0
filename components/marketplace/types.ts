@@ -103,6 +103,12 @@ export type Driver = {
   rating?: number | null;
   vehicle_type?: string | null;
   completed_deliveries?: number | null;
+  profile_picture_url?: string | null;
+  is_available?: boolean | null;
+  home_latitude?: number | null;
+  home_longitude?: number | null;
+  home_address?: string | null;
+  distance_km?: number | null;
 };
 
 export type ThemePalette = {

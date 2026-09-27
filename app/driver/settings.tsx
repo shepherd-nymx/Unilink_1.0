@@ -109,6 +109,10 @@ export default function DriverSettings() {
   const [paymentMethods, setPaymentMethods] = useState<string[]>(['pay_on_delivery']);
   const [whatsappNumber, setWhatsappNumber] = useState('');
   const [notificationEmail, setNotificationEmail] = useState('');
+  const [homeLatitude, setHomeLatitude] = useState('');
+  const [homeLongitude, setHomeLongitude] = useState('');
+  const [homeAddress, setHomeAddress] = useState('');
+  const [detectingGps, setDetectingGps] = useState(false);
   const [profilePictureUrl, setProfilePictureUrl] = useState('');
   const [uploadingImage, setUploadingImage] = useState(false);
   const [availabilityStartTime, setAvailabilityStartTime] = useState('');
@@ -216,6 +220,9 @@ export default function DriverSettings() {
       setPaymentMethods(data.payment_methods || ['pay_on_delivery']);
       setWhatsappNumber(data.whatsapp_number || '');
       setNotificationEmail(data.notification_email || data.email || '');
+      setHomeLatitude(data.home_latitude != null ? String(data.home_latitude) : '');
+      setHomeLongitude(data.home_longitude != null ? String(data.home_longitude) : '');
+      setHomeAddress(data.home_address || '');
       setProfilePictureUrl(data.profile_picture_url || '');
       setUniversityName((data.universities as any)?.name || '');
       setDefaultUniversityId(data.university_id || null);
@@ -243,6 +250,9 @@ export default function DriverSettings() {
         is_available: isAvailable, delivery_type: deliveryTypes, payment_methods: paymentMethods,
         whatsapp_number: whatsappNumber.trim() || null,
         notification_email: notificationEmail.trim() || null,
+        home_latitude: homeLatitude.trim() ? parseFloat(homeLatitude) : null,
+        home_longitude: homeLongitude.trim() ? parseFloat(homeLongitude) : null,
+        home_address: homeAddress.trim() || null,
         profile_picture_url: profilePictureUrl.trim() || null,
         availability_start_time: availabilityStartTime.trim() || null,
         availability_end_time: availabilityEndTime.trim() || null,
@@ -427,6 +437,82 @@ export default function DriverSettings() {
               );
             })}
           </View>
+        </View>
+
+        <View style={ss.section}>
+          <Text style={ss.sectionTitle}>Your GPS Location</Text>
+          <Text style={ss.sectionDesc}>Customers use this to find the messenger closest to them. Set your typical base location (e.g. your dorm, campus spot).</Text>
+          <View style={ss.inputWrap}>
+            <MapPin size={14} color={TEXT2} />
+            <TextInput
+              style={ss.inputInline}
+              value={homeAddress}
+              onChangeText={setHomeAddress}
+              placeholder="e.g. Near UZ Maths Department"
+              placeholderTextColor={TEXT3}
+            />
+          </View>
+          <View style={{ flexDirection: 'row', gap: 8, marginTop: 10 }}>
+            <View style={{ flex: 1 }}>
+              <Text style={ss.fieldLabel}>Latitude</Text>
+              <View style={ss.inputWrap}>
+                <TextInput
+                  style={ss.inputInline}
+                  value={homeLatitude}
+                  onChangeText={setHomeLatitude}
+                  placeholder="-17.7852"
+                  placeholderTextColor={TEXT3}
+                  keyboardType="decimal-pad"
+                />
+              </View>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={ss.fieldLabel}>Longitude</Text>
+              <View style={ss.inputWrap}>
+                <TextInput
+                  style={ss.inputInline}
+                  value={homeLongitude}
+                  onChangeText={setHomeLongitude}
+                  placeholder="31.0522"
+                  placeholderTextColor={TEXT3}
+                  keyboardType="decimal-pad"
+                />
+              </View>
+            </View>
+          </View>
+          <TouchableOpacity
+            style={[ss.toggleBtn, { marginTop: 10, alignSelf: 'flex-start' }]}
+            onPress={async () => {
+              if (Platform.OS === 'web') {
+                setError('GPS detection is not available on web. Please enter coordinates manually.');
+                return;
+              }
+              setDetectingGps(true);
+              setError('');
+              try {
+                const Location = await import('expo-location');
+                const { status } = await Location.requestForegroundPermissionsAsync();
+                if (status !== 'granted') {
+                  setError('Location permission denied. Please enter coordinates manually.');
+                  return;
+                }
+                const pos = await Location.getCurrentPositionAsync({});
+                setHomeLatitude(String(pos.coords.latitude.toFixed(6)));
+                setHomeLongitude(String(pos.coords.longitude.toFixed(6)));
+                setSuccessMessage('GPS location detected');
+                setTimeout(() => setSuccessMessage(''), 3000);
+              } catch (err: any) {
+                setError(err.message || 'Failed to detect GPS location');
+              } finally {
+                setDetectingGps(false);
+              }
+            }}
+            disabled={detectingGps}
+            activeOpacity={0.85}
+          >
+            {detectingGps ? <ActivityIndicator size="small" color={CYAN} /> : <Navigation2 size={14} color={CYAN} />}
+            <Text style={[ss.toggleBtnText, { color: CYAN }]}>{detectingGps ? 'Detecting...' : 'Use My Current GPS'}</Text>
+          </TouchableOpacity>
         </View>
 
         <View style={ss.section}>

@@ -270,18 +270,23 @@ export default function Marketplace() {
     });
     if (customerAssigned.length === 0) return;
     (async () => {
-      const map: Record<string, Driver[]> = {};
-      for (const sc of customerAssigned) {
-        try {
-          const { data, error } = await supabase.rpc('get_eligible_drivers', { p_university_id: null });
-          if (!error && data) {
-            map[sc.shopId] = data as Driver[];
+      try {
+        const { data, error } = await supabase.rpc('get_nearby_drivers', {
+          p_customer_lat: customerAddress?.latitude ?? null,
+          p_customer_lng: customerAddress?.longitude ?? null,
+          p_university_id: customerUniversityId ?? null,
+        });
+        if (!error && data) {
+          const drivers = data as Driver[];
+          const map: Record<string, Driver[]> = {};
+          for (const sc of customerAssigned) {
+            map[sc.shopId] = drivers;
           }
-        } catch {}
-      }
-      setDriversByShop(map);
+          setDriversByShop(map);
+        }
+      } catch {}
     })();
-  }, [showCheckout, cartByShop, shops]);
+  }, [showCheckout, cartByShop, shops, customerAddress, customerUniversityId]);
   const cartTotal = cart.reduce((sum, item) => sum + Number(item.product.price) * item.quantity, 0);
 
   const shopServesCustomer = (shopId: string): boolean => {
