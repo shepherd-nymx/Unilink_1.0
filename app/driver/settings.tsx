@@ -113,6 +113,10 @@ export default function DriverSettings() {
   const [homeLongitude, setHomeLongitude] = useState('');
   const [homeAddress, setHomeAddress] = useState('');
   const [detectingGps, setDetectingGps] = useState(false);
+  const [distanceTiers, setDistanceTiers] = useState<{ id?: string; min_km: string; max_km: string; fee: string; label: string }[]>([
+    { min_km: '0', max_km: '2', fee: '1.50', label: 'Short hop' },
+    { min_km: '2', max_km: '5', fee: '3.00', label: 'Medium' },
+  ]);
   const [profilePictureUrl, setProfilePictureUrl] = useState('');
   const [uploadingImage, setUploadingImage] = useState(false);
   const [availabilityStartTime, setAvailabilityStartTime] = useState('');
@@ -223,6 +227,17 @@ export default function DriverSettings() {
       setHomeLatitude(data.home_latitude != null ? String(data.home_latitude) : '');
       setHomeLongitude(data.home_longitude != null ? String(data.home_longitude) : '');
       setHomeAddress(data.home_address || '');
+      const { data: tiers } = await supabase
+        .from('driver_distance_fee_tiers')
+        .select('id, min_km, max_km, fee, label, sort_order')
+        .eq('driver_id', driverId as string)
+        .order('sort_order', { ascending: true });
+      if (tiers && tiers.length > 0) {
+        setDistanceTiers(tiers.map((t: any) => ({
+          id: t.id, min_km: String(t.min_km), max_km: t.max_km != null ? String(t.max_km) : '',
+          fee: String(t.fee), label: t.label || '',
+        })));
+      }
       setProfilePictureUrl(data.profile_picture_url || '');
       setUniversityName((data.universities as any)?.name || '');
       setDefaultUniversityId(data.university_id || null);
@@ -259,6 +274,23 @@ export default function DriverSettings() {
         availability_days: availabilityDays,
       }).eq('id', driverId as string);
       if (dbError) throw dbError;
+
+      await supabase.from('driver_distance_fee_tiers').delete().eq('driver_id', driverId as string);
+      const tiersToInsert = distanceTiers
+        .filter(t => t.fee.trim() && t.min_km.trim())
+        .map((t, i) => ({
+          driver_id: driverId as string,
+          min_km: parseFloat(t.min_km),
+          max_km: t.max_km.trim() ? parseFloat(t.max_km) : null,
+          fee: parseFloat(t.fee),
+          label: t.label.trim() || null,
+          sort_order: i,
+        }));
+      if (tiersToInsert.length > 0) {
+        const { error: tierErr } = await supabase.from('driver_distance_fee_tiers').insert(tiersToInsert);
+        if (tierErr) throw tierErr;
+      }
+
       setSuccessMessage('Settings saved successfully');
       setTimeout(() => setSuccessMessage(''), 3000);
     } catch (err: any) { setError(err.message || 'Failed to save settings'); }
@@ -268,6 +300,10 @@ export default function DriverSettings() {
   const toggleType = (t: string) => setDeliveryTypes(prev => prev.includes(t) ? prev.filter(x => x !== t) : [...prev, t]);
   const togglePayment = (m: string) => setPaymentMethods(prev => prev.includes(m) ? prev.filter(x => x !== m) : [...prev, m]);
   const toggleDay = (d: string) => setAvailabilityDays(prev => prev.includes(d) ? prev.filter(x => x !== d) : [...prev, d]);
+  const updateTier = (idx: number, field: 'min_km' | 'max_km' | 'fee' | 'label', val: string) =>
+    setDistanceTiers(prev => prev.map((t, i) => i === idx ? { ...t, [field]: val } : t));
+  const addTier = () => setDistanceTiers(prev => [...prev, { min_km: '', max_km: '', fee: '', label: '' }]);
+  const removeTier = (idx: number) => setDistanceTiers(prev => prev.filter((_, i) => i !== idx));
 
   const headerBorder = headerGlow.interpolate({ inputRange: [0, 1], outputRange: ['rgba(0,229,255,0.06)', 'rgba(0,229,255,0.25)'] });
 
@@ -512,6 +548,55 @@ export default function DriverSettings() {
           >
             {detectingGps ? <ActivityIndicator size="small" color={CYAN} /> : <Navigation2 size={14} color={CYAN} />}
             <Text style={[ss.toggleBtnText, { color: CYAN }]}>{detectingGps ? 'Detecting...' : 'Use My Current GPS'}</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={ss.section}>
+          <Text style={ss.sectionTitle}>Distance-Based Delivery Fees</Text>
+          <Text style={ss.sectionDesc}>Set the fee you charge based on how far the customer is from your base location. Customers see this when choosing you.</Text>
+          {distanceTiers.map((tier, idx) => (
+            <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+              <View style={{ flex: 0.8 }}>
+                <Text style={ss.fieldLabel}>Min km</Text>
+                <TextInput
+                  style={[ss.input, { paddingHorizontal: 8, paddingVertical: 8, fontSize: 13 }]}
+                  value={tier.min_km}
+                  onChangeText={v => updateTier(idx, 'min_km', v)}
+                  placeholder="0"
+                  placeholderTextColor={TEXT3}
+                  keyboardType="decimal-pad"
+                />
+              </View>
+              <Text style={{ color: TEXT2, fontSize: 16, marginTop: 18 }}>–</Text>
+              <View style={{ flex: 0.8 }}>
+                <Text style={ss.fieldLabel}>Max km</Text>
+                <TextInput
+                  style={[ss.input, { paddingHorizontal: 8, paddingVertical: 8, fontSize: 13 }]}
+                  value={tier.max_km}
+                  onChangeText={v => updateTier(idx, 'max_km', v)}
+                  placeholder="∞"
+                  placeholderTextColor={TEXT3}
+                  keyboardType="decimal-pad"
+                />
+              </View>
+              <View style={{ flex: 0.7 }}>
+                <Text style={ss.fieldLabel}>Fee $</Text>
+                <TextInput
+                  style={[ss.input, { paddingHorizontal: 8, paddingVertical: 8, fontSize: 13 }]}
+                  value={tier.fee}
+                  onChangeText={v => updateTier(idx, 'fee', v)}
+                  placeholder="2.00"
+                  placeholderTextColor={TEXT3}
+                  keyboardType="decimal-pad"
+                />
+              </View>
+              <TouchableOpacity onPress={() => removeTier(idx)} style={{ marginTop: 18, paddingHorizontal: 4 }}>
+                <Text style={{ color: '#ff5555', fontSize: 20, fontWeight: '700' }}>×</Text>
+              </TouchableOpacity>
+            </View>
+          ))}
+          <TouchableOpacity style={ss.photoBtn} onPress={addTier}>
+            <Text style={ss.photoBtnText}>+ Add Distance Tier</Text>
           </TouchableOpacity>
         </View>
 

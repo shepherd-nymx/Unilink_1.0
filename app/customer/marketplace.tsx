@@ -413,7 +413,14 @@ export default function Marketplace() {
           price: Number(item.product.price),
           qty: item.quantity,
         }));
-        const shopDeliveryFee = computeTierDeliveryFee(shopCart.total, deliveryFeeTiers[shopCart.shopId] || [], Number(shop?.delivery_fee || 0));
+        let shopDeliveryFee: number;
+        if (shop?.driver_assignment_mode === 'customer_assigned' && selectedDriversByShop?.[shopCart.shopId]) {
+          const drivers = driversByShop[shopCart.shopId] || [];
+          const driver = drivers.find(d => d.id === selectedDriversByShop[shopCart.shopId]);
+          shopDeliveryFee = driver?.distance_fee != null ? Number(driver.distance_fee) : computeTierDeliveryFee(shopCart.total, deliveryFeeTiers[shopCart.shopId] || [], Number(shop?.delivery_fee || 0));
+        } else {
+          shopDeliveryFee = computeTierDeliveryFee(shopCart.total, deliveryFeeTiers[shopCart.shopId] || [], Number(shop?.delivery_fee || 0));
+        }
         const orderTotal = shopCart.total + shopDeliveryFee + ecocashFeeAmount;
 
         const { data: order, error: orderErr } = await supabase

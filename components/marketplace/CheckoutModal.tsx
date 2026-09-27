@@ -112,14 +112,25 @@ export function CheckoutModal({
     : 0;
 
   // Compute tier-based delivery fee: sum per-shop fees based on each shop's cart total
+  // For customer-assigned shops with a selected driver, use the driver's distance_fee instead
   const tierBasedDeliveryFee = cartByShop.reduce((sum, sc) => {
     const shop = shops.find(s => s.id === sc.shopId);
+    if (shop?.driver_assignment_mode === 'customer_assigned' && selectedDrivers[sc.shopId]) {
+      const drivers = driversByShop[sc.shopId] || [];
+      const driver = drivers.find(d => d.id === selectedDrivers[sc.shopId]);
+      if (driver?.distance_fee != null) return sum + Number(driver.distance_fee);
+    }
     const fallback = shop?.delivery_fee != null ? Number(shop.delivery_fee) : parseFloat(deliveryFee) || 0;
     return sum + computeTierDeliveryFee(sc.total, deliveryFeeTiers[sc.shopId] || [], fallback);
   }, 0);
 
   const shopHasOwnFee = cartByShop.some(sc => {
     const shop = shops.find(s => s.id === sc.shopId);
+    if (shop?.driver_assignment_mode === 'customer_assigned' && selectedDrivers[sc.shopId]) {
+      const drivers = driversByShop[sc.shopId] || [];
+      const driver = drivers.find(d => d.id === selectedDrivers[sc.shopId]);
+      if (driver?.distance_fee != null) return true;
+    }
     return shop?.delivery_fee != null || (deliveryFeeTiers[sc.shopId] && deliveryFeeTiers[sc.shopId].length > 0);
   });
 
@@ -562,6 +573,11 @@ export function CheckoutModal({
                                   {d.distance_km < 1 ? `${Math.round(d.distance_km * 1000)}m` : `${d.distance_km.toFixed(1)}km`}
                                 </Text>
                                 <Text style={{ fontSize: 9, color: palette.textSecondary }}>away</Text>
+                                {d.distance_fee != null && (
+                                  <Text style={{ fontSize: 12, fontWeight: '700', color: palette.warning, marginTop: 2 }}>
+                                    ${Number(d.distance_fee).toFixed(2)} fee
+                                  </Text>
+                                )}
                               </View>
                             )}
                           </TouchableOpacity>
@@ -638,7 +654,7 @@ export function CheckoutModal({
           {shopHasOwnFee ? (
             <View style={[styles.input, { backgroundColor: palette.inputBg, borderColor: palette.inputBorder, flexDirection: 'row', alignItems: 'center' }]}>
               <Text style={{ color: palette.textPrimary, fontSize: 15, flex: 1 }}>${tierBasedDeliveryFee.toFixed(2)}</Text>
-              <Text style={{ color: palette.textSecondary, fontSize: 11 }}>Based on order total</Text>
+              <Text style={{ color: palette.textSecondary, fontSize: 11 }}>{hasCustomerAssignedShops && allDriversSelected ? "Messenger's distance fee" : 'Based on order total'}</Text>
             </View>
           ) : (
             <TextInput

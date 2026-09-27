@@ -109,6 +109,7 @@ export type Driver = {
   home_longitude?: number | null;
   home_address?: string | null;
   distance_km?: number | null;
+  distance_fee?: number | null;
 };
 
 export type ThemePalette = {
