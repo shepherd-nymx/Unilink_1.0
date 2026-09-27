@@ -1,3 +1,11 @@
 {
-  "template": "bolt-expo"
+  "template": "bolt-expo",
+  "skills": {},
+  "systemSkills": {
+    "browser-testing": true,
+    "seo-geo": true,
+    "skill-creator": true,
+    "web-design-guidelines": false,
+    "writing-guidelines": false
+  }
 }
