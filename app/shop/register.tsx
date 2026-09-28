@@ -126,17 +126,35 @@ export default function ShopRegister() {
     setLocating(true);
     setError('');
     try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        setError('Location permission denied. Enter coordinates manually.');
-        setLocating(false);
-        return;
+      let lat: number;
+      let lng: number;
+
+      if (Platform.OS === 'web') {
+        if (!navigator.geolocation) {
+          setError('Your browser does not support GPS detection. Enter coordinates manually.');
+          return;
+        }
+        const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
+        });
+        lat = pos.coords.latitude;
+        lng = pos.coords.longitude;
+      } else {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') {
+          setError('Location permission denied. Enter coordinates manually.');
+          setLocating(false);
+          return;
+        }
+        const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+        lat = pos.coords.latitude;
+        lng = pos.coords.longitude;
       }
-      const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-      setLatitude(pos.coords.latitude.toFixed(6));
-      setLongitude(pos.coords.longitude.toFixed(6));
+
+      setLatitude(lat.toFixed(6));
+      setLongitude(lng.toFixed(6));
     } catch (e: any) {
-      setError(e.message || 'Could not detect location. Enter coordinates manually.');
+      setError(e?.message || 'Could not detect location. Enter coordinates manually.');
     } finally {
       setLocating(false);
     }

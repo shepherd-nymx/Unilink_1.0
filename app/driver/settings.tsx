@@ -525,26 +525,46 @@ export default function DriverSettings() {
           <TouchableOpacity
             style={[ss.toggleBtn, { marginTop: 10, alignSelf: 'flex-start' }]}
             onPress={async () => {
-              if (Platform.OS === 'web') {
-                setError('GPS detection is not available on web. Please enter coordinates manually.');
-                return;
-              }
               setDetectingGps(true);
               setError('');
               try {
-                const Location = await import('expo-location');
-                const { status } = await Location.requestForegroundPermissionsAsync();
-                if (status !== 'granted') {
-                  setError('Location permission denied. Please enter coordinates manually.');
-                  return;
+                let lat: number;
+                let lng: number;
+
+                if (Platform.OS === 'web') {
+                  if (!navigator.geolocation) {
+                    setError('Geolocation is not supported by your browser. Please enter coordinates manually.');
+                    return;
+                  }
+                  const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
+                    navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
+                  });
+                  lat = pos.coords.latitude;
+                  lng = pos.coords.longitude;
+                } else {
+                  const Location = await import('expo-location');
+                  const { status } = await Location.requestForegroundPermissionsAsync();
+                  if (status !== 'granted') {
+                    setError('Location permission denied. Please enter coordinates manually.');
+                    return;
+                  }
+                  const pos = await Location.getCurrentPositionAsync({});
+                  lat = pos.coords.latitude;
+                  lng = pos.coords.longitude;
                 }
-                const pos = await Location.getCurrentPositionAsync({});
-                setHomeLatitude(String(pos.coords.latitude.toFixed(6)));
-                setHomeLongitude(String(pos.coords.longitude.toFixed(6)));
-                setSuccessMessage('GPS location detected');
+
+                setHomeLatitude(String(lat.toFixed(6)));
+                setHomeLongitude(String(lng.toFixed(6)));
+
+                await supabase
+                  .from('drivers')
+                  .update({ home_latitude: lat, home_longitude: lng })
+                  .eq('id', driverId as string);
+
+                setSuccessMessage('GPS location saved to your profile');
                 setTimeout(() => setSuccessMessage(''), 3000);
               } catch (err: any) {
-                setError(err.message || 'Failed to detect GPS location');
+                setError(err?.message || 'Failed to detect GPS location');
               } finally {
                 setDetectingGps(false);
               }
