@@ -498,7 +498,7 @@ export function CheckoutModal({
             <Truck size={16} color={palette.primary} />
             <Text style={[styles.infoText, { color: palette.textSecondary }]}>
               {hasCustomerAssignedShops
-                ? 'Some shops require you to choose a messenger. Available messengers are sorted by distance from your location — pick the closest one or choose any other. You must send them a WhatsApp message before placing your order.'
+                ? 'Some shops require you to choose a messenger. Available messengers for your location are shown below — choose any one. You must send them a WhatsApp message before placing your order.'
                 : 'The shop will assign a messenger to deliver your order. No need to select one yourself.'}
             </Text>
           </View>
@@ -523,31 +523,9 @@ export function CheckoutModal({
                   </View>
                 ) : (
                   <>
-                    {drivers[0]?.distance_km != null && (
-                      <TouchableOpacity
-                        style={{
-                          flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-                          paddingVertical: 11, borderRadius: 10, borderWidth: 1.5,
-                          borderColor: palette.primary, backgroundColor: `${palette.primary}10`,
-                          marginBottom: 8,
-                        }}
-                        onPress={() => {
-                          const closest = drivers[0];
-                          setSelectedDrivers(prev => ({ ...prev, [sc.shopId]: closest.id }));
-                          setDriverWhatsappConfirmed(prev => ({ ...prev, [sc.shopId]: false }));
-                        }}
-                        activeOpacity={0.85}
-                      >
-                        <Navigation size={14} color={palette.primary} />
-                        <Text style={{ fontSize: 12, fontWeight: '800', color: palette.primary }}>
-                          Pick Closest to Me ({drivers[0].full_name.split(' ')[0]} — {drivers[0].distance_km != null ? `${drivers[0].distance_km.toFixed(1)} km` : 'unknown'})
-                        </Text>
-                      </TouchableOpacity>
-                    )}
                     <ScrollView style={{ maxHeight: 240 }} nestedScrollEnabled>
-                      {drivers.map((d, idx) => {
+                      {drivers.map((d) => {
                         const isSelected = selectedDriverId === d.id;
-                        const isClosest = idx === 0 && d.distance_km != null;
                         return (
                           <TouchableOpacity
                             key={d.id}
@@ -564,11 +542,6 @@ export function CheckoutModal({
                             <View style={{ flex: 1 }}>
                               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                                 <Text style={[styles.driverPickName, { color: palette.textPrimary }]}>{d.full_name}</Text>
-                                {isClosest && (
-                                  <View style={{ paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, backgroundColor: `${palette.success}20` }}>
-                                    <Text style={{ fontSize: 9, fontWeight: '700', color: palette.success }}>NEAREST</Text>
-                                  </View>
-                                )}
                               </View>
                               <Text style={[styles.driverPickPhone, { color: palette.textSecondary }]}>{d.phone_number}</Text>
                               {d.home_address && (
@@ -578,17 +551,11 @@ export function CheckoutModal({
                                 </View>
                               )}
                             </View>
-                            {d.distance_km != null && (
+                            {d.distance_fee != null && (
                               <View style={{ alignItems: 'flex-end' }}>
-                                <Text style={{ fontSize: 13, fontWeight: '800', color: isClosest ? palette.success : palette.primary }}>
-                                  {d.distance_km < 1 ? `${Math.round(d.distance_km * 1000)}m` : `${d.distance_km.toFixed(1)}km`}
+                                <Text style={{ fontSize: 12, fontWeight: '700', color: palette.warning }}>
+                                  ${Number(d.distance_fee).toFixed(2)} fee
                                 </Text>
-                                <Text style={{ fontSize: 9, color: palette.textSecondary }}>away</Text>
-                                {d.distance_fee != null && (
-                                  <Text style={{ fontSize: 12, fontWeight: '700', color: palette.warning, marginTop: 2 }}>
-                                    ${Number(d.distance_fee).toFixed(2)} fee
-                                  </Text>
-                                )}
                               </View>
                             )}
                           </TouchableOpacity>
