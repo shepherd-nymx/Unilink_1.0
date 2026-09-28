@@ -519,7 +519,7 @@ export function CheckoutModal({
                 {drivers.length === 0 ? (
                   <View style={[styles.blockBox, { backgroundColor: `${palette.warning}15`, borderColor: palette.warning }]}>
                     <AlertCircle size={14} color={palette.warning} />
-                    <Text style={[styles.blockText, { color: palette.warning }]}>No online messengers with GPS location are available right now. Please try again later.</Text>
+                    <Text style={[styles.blockText, { color: palette.warning }]}>No online messengers are available for this order's delivery area right now. Please try again later.</Text>
                   </View>
                 ) : (
                   <>

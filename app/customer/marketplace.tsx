@@ -296,15 +296,78 @@ export default function Marketplace() {
       const map: Record<string, Driver[]> = {};
       for (const sc of customerAssigned) {
         const regionIds = shopDriverRegions[sc.shopId] || [];
-        const { data, error } = await supabase.rpc('get_nearby_drivers', {
-          p_customer_lat: customerAddress?.latitude ?? null,
-          p_customer_lng: customerAddress?.longitude ?? null,
-          p_university_id: customerUniversityId ?? null,
-          p_driver_region_ids: regionIds.length > 0 ? regionIds : null,
-        });
-        if (!error && data) {
-          map[sc.shopId] = data as Driver[];
+        let driversList: Driver[] = [];
+
+        try {
+          const { data, error } = await supabase.rpc('get_nearby_drivers', {
+            p_customer_lat: customerAddress?.latitude ?? null,
+            p_customer_lng: customerAddress?.longitude ?? null,
+            p_university_id: customerUniversityId ?? null,
+            p_driver_region_ids: regionIds.length > 0 ? regionIds : null,
+          });
+          if (!error && data) {
+            driversList = data as Driver[];
+          }
+        } catch {}
+
+        if (driversList.length === 0) {
+          let fallbackQuery = supabase
+            .from('drivers')
+            .select('id, full_name, phone_number, whatsapp_number, average_rating, vehicle_type, profile_picture_url, is_available, home_latitude, home_longitude, home_address')
+            .eq('approval_status', 'approved')
+            .eq('is_available', true);
+
+          if (regionIds.length > 0) {
+            fallbackQuery = fallbackQuery.or(
+              regionIds.map(id => `university_id.eq.${id},active_university_id.eq.${id}`).join(',')
+            );
+          } else if (customerUniversityId) {
+            fallbackQuery = fallbackQuery.or(
+              `university_id.eq.${customerUniversityId},active_university_id.eq.${customerUniversityId}`
+            );
+          }
+
+          const { data: fallbackData } = await fallbackQuery.order('average_rating', { ascending: false });
+
+          driversList = (fallbackData || []).map((d: any) => ({
+            ...d,
+            distance_km:
+              customerAddress?.latitude != null && customerAddress?.longitude != null &&
+              d.home_latitude != null && d.home_longitude != null
+                ? haversineKm(d.home_latitude, d.home_longitude, customerAddress.latitude, customerAddress.longitude)
+                : null,
+            completed_deliveries: null,
+          })) as Driver[];
+
+          const ids = driversList.map(d => d.id);
+          if (ids.length > 0) {
+            const { data: tierData } = await supabase
+              .from('driver_distance_fee_tiers')
+              .select('driver_id, min_km, max_km, fee, sort_order')
+              .in('driver_id', ids);
+            const tierMap: Record<string, any[]> = {};
+            (tierData || []).forEach((t: any) => {
+              if (!tierMap[t.driver_id]) tierMap[t.driver_id] = [];
+              tierMap[t.driver_id].push(t);
+            });
+            driversList = driversList.map(d => ({
+              ...d,
+              distance_fee: computeDistanceDeliveryFee(d.distance_km ?? null, tierMap[d.id] || [], null as any) ?? null,
+            }));
+          }
         }
+
+        if (driversList.length === 0 && (regionIds.length > 0 || customerUniversityId)) {
+          const { data: anyDrivers } = await supabase
+            .from('drivers')
+            .select('id, full_name, phone_number, whatsapp_number, average_rating, vehicle_type, profile_picture_url, is_available, home_latitude, home_longitude, home_address')
+            .eq('approval_status', 'approved')
+            .eq('is_available', true)
+            .order('average_rating', { ascending: false });
+          driversList = (anyDrivers || []) as Driver[];
+        }
+
+        map[sc.shopId] = driversList;
       }
       setDriversByShop(map);
     } catch {}
