@@ -293,11 +293,6 @@ export default function Marketplace() {
     });
     if (customerAssigned.length === 0) return;
     try {
-      const { data: tokenData } = await supabase
-        .from('active_driver_tokens')
-        .select('user_id');
-      const activeIds = (tokenData || []).map((t: any) => t.user_id);
-
       const map: Record<string, Driver[]> = {};
       for (const sc of customerAssigned) {
         const regionIds = shopDriverRegions[sc.shopId] || [];
@@ -310,12 +305,12 @@ export default function Marketplace() {
           .select('id, full_name, phone_number, whatsapp_number, average_rating, vehicle_type, profile_picture_url, is_available, home_latitude, home_longitude, home_address')
           .eq('approval_status', 'approved')
           .eq('is_available', true)
-          .in('id', activeIds.length > 0 ? activeIds : ['00000000-0000-0000-0000-000000000000'])
+          .gt('key_expires_at', new Date().toISOString())
           .order('average_rating', { ascending: false });
 
         if (locationIds.length > 0) {
           query = query.or(
-            locationIds.map(id => `university_id.eq.${id},active_university_id.eq.${id}`).join(',')
+            locationIds.map(id => `active_university_id.eq.${id},and(active_university_id.is.null,university_id.eq.${id})`).join(',')
           );
         }
 
