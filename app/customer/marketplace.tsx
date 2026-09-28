@@ -294,6 +294,7 @@ export default function Marketplace() {
     if (customerAssigned.length === 0) return;
     try {
       const map: Record<string, Driver[]> = {};
+      let activeDriverIds: string[] | null = null;
       for (const sc of customerAssigned) {
         const regionIds = shopDriverRegions[sc.shopId] || [];
         let driversList: Driver[] = [];
@@ -310,12 +311,22 @@ export default function Marketplace() {
           }
         } catch {}
 
+        if (activeDriverIds === null) {
+          const { data: tokenData } = await supabase
+            .from('active_driver_tokens')
+            .select('user_id');
+          activeDriverIds = (tokenData || []).map((t: any) => t.user_id);
+        }
+        const activeIds = activeDriverIds;
+        const idFilter = (q: any) => activeIds.length > 0 ? q.in('id', activeIds) : q.in('id', ['00000000-0000-0000-0000-000000000000']);
+
         if (driversList.length === 0) {
           let fallbackQuery = supabase
             .from('drivers')
             .select('id, full_name, phone_number, whatsapp_number, average_rating, vehicle_type, profile_picture_url, is_available, home_latitude, home_longitude, home_address')
             .eq('approval_status', 'approved')
             .eq('is_available', true);
+          fallbackQuery = idFilter(fallbackQuery);
 
           if (regionIds.length > 0) {
             fallbackQuery = fallbackQuery.or(
@@ -358,12 +369,14 @@ export default function Marketplace() {
         }
 
         if (driversList.length === 0 && (regionIds.length > 0 || customerUniversityId)) {
-          const { data: anyDrivers } = await supabase
+          let anyQuery = supabase
             .from('drivers')
             .select('id, full_name, phone_number, whatsapp_number, average_rating, vehicle_type, profile_picture_url, is_available, home_latitude, home_longitude, home_address')
             .eq('approval_status', 'approved')
             .eq('is_available', true)
             .order('average_rating', { ascending: false });
+          anyQuery = idFilter(anyQuery);
+          const { data: anyDrivers } = await anyQuery;
           driversList = (anyDrivers || []) as Driver[];
         }
 
