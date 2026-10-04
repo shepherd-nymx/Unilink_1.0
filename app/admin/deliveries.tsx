@@ -54,34 +54,12 @@ type DeclinedDelivery = {
   };
 };
 
-type ShopOrder = {
-  id: string;
-  shop_id: string;
-  total_amount: number;
-  delivery_fee: number;
-  ecocash_fee_amount: number | null;
-  delivery_location: string | null;
-  payment_method: string | null;
-  status: string;
-  customer_name: string | null;
-  customer_phone: string | null;
-  order_note: string | null;
-  products: any[];
-  created_at: string;
-  confirmed_at: string | null;
-  picked_up_at: string | null;
-  delivered_at: string | null;
-  shops: { name: string } | { name: string }[] | null;
-  drivers: { full_name: string; phone_number: string }[] | null;
-};
-
 export default function ViewDeliveries() {
   const router = useRouter();
   const [deliveries, setDeliveries] = useState<Delivery[]>([]);
   const [declinedDeliveries, setDeclinedDeliveries] = useState<DeclinedDelivery[]>([]);
   const [deliveryRequests, setDeliveryRequests] = useState<DeliveryRequestRow[]>([]);
-  const [shopOrders, setShopOrders] = useState<ShopOrder[]>([]);
-  const [activeTab, setActiveTab] = useState<'active' | 'declined' | 'requests' | 'shop'>('active');
+  const [activeTab, setActiveTab] = useState<'active' | 'declined' | 'requests'>('active');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [connState, setConnState] = useState<'connecting' | 'connected' | 'disconnected' | 'error'>('connecting');
@@ -93,7 +71,6 @@ export default function ViewDeliveries() {
     loadDeliveries();
     loadDeclinedDeliveries();
     loadDeliveryRequests();
-    loadShopOrders();
     Animated.parallel([
       Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
       Animated.timing(slideAnim, { toValue: 0, duration: 400, useNativeDriver: true }),
@@ -104,10 +81,9 @@ export default function ViewDeliveries() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'deliveries' }, () => loadDeliveries())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'declined_deliveries' }, () => loadDeclinedDeliveries())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'delivery_requests' }, () => loadDeliveryRequests())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'shop_orders' }, () => loadShopOrders())
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') setConnState('connected');
-        else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') { setConnState('error'); setTimeout(() => { loadDeliveries(); loadDeclinedDeliveries(); loadDeliveryRequests(); loadShopOrders(); }, 2000); }
+        else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') { setConnState('error'); setTimeout(() => { loadDeliveries(); loadDeclinedDeliveries(); loadDeliveryRequests(); }, 2000); }
         else if (status === 'CLOSED') setConnState('disconnected');
       });
 
@@ -178,37 +154,6 @@ export default function ViewDeliveries() {
         .order('created_at', { ascending: false });
       setDeliveryRequests((data as DeliveryRequestRow[]) ?? []);
     } catch {}
-  };
-
-  const loadShopOrders = async () => {
-    try {
-      const { data } = await supabase
-        .from('shop_orders')
-        .select(`
-          id, shop_id, total_amount, delivery_fee, ecocash_fee_amount,
-          delivery_location, payment_method, status,
-          customer_name, customer_phone, order_note,
-          products, created_at, confirmed_at, picked_up_at, delivered_at,
-          shops!shop_orders_shop_id_fkey(name),
-          drivers(full_name, phone_number)
-        `)
-        .order('created_at', { ascending: false })
-        .limit(100);
-      setShopOrders((data as unknown as ShopOrder[]) ?? []);
-    } catch {}
-  };
-
-  const getShopOrderStatusMeta = (status: string) => {
-    switch (status) {
-      case 'pending': return { color: A.amber, dim: A.amberDim, label: 'Pending' };
-      case 'confirmed': return { color: A.blue, dim: A.blueDim, label: 'Confirmed' };
-      case 'picked_up': return { color: A.cyan, dim: A.cyanDim, label: 'Picked Up' };
-      case 'out_for_delivery': return { color: A.cyan, dim: A.cyanDim, label: 'Out for Delivery' };
-      case 'delivered': return { color: A.green, dim: A.greenDim, label: 'Delivered' };
-      case 'cancelled': return { color: A.red, dim: A.redDim, label: 'Cancelled' };
-      case 'declined': return { color: A.red, dim: A.redDim, label: 'Declined' };
-      default: return { color: A.textSub, dim: A.surface, label: status };
-    }
   };
 
   const getStatusColor = (status: string) => {
@@ -332,14 +277,6 @@ export default function ViewDeliveries() {
             Requests <Text style={{ fontSize: 11 }}>({deliveryRequests.length})</Text>
           </Text>
         </TouchableOpacity>
-        <TouchableOpacity
-          style={{ flex: 1, paddingVertical: 14, alignItems: 'center', borderBottomWidth: 2, borderBottomColor: activeTab === 'shop' ? '#10b981' : 'transparent' }}
-          onPress={() => setActiveTab('shop')}
-        >
-          <Text style={{ fontSize: 13, fontWeight: '600', color: activeTab === 'shop' ? '#10b981' : A.textSub }}>
-            Shop <Text style={{ fontSize: 11 }}>({shopOrders.length})</Text>
-          </Text>
-        </TouchableOpacity>
       </View>
 
       <ScrollView style={{ flex: 1 }}>
@@ -348,8 +285,7 @@ export default function ViewDeliveries() {
           <Text style={{ fontSize: 10, fontWeight: '700', letterSpacing: 2, color: A.textMuted }}>
             {activeTab === 'active' ? `ACTIVE DELIVERIES — ${deliveries.length}` :
              activeTab === 'declined' ? `DECLINED DELIVERIES — ${declinedDeliveries.length}` :
-             activeTab === 'requests' ? `DELIVERY REQUESTS — ${deliveryRequests.length}` :
-             `SHOP ORDERS — ${shopOrders.length}`}
+             `DELIVERY REQUESTS — ${deliveryRequests.length}`}
           </Text>
         </View>
 
@@ -716,109 +652,6 @@ export default function ViewDeliveries() {
                   </View>
                 </View>
               ))}
-            </Animated.View>
-          )
-        ) : activeTab === 'shop' ? (
-          shopOrders.length === 0 ? (
-            <View style={{ padding: 40, alignItems: 'center' }}>
-              <ShoppingBag size={40} color={A.textMuted} />
-              <Text style={{ fontSize: 15, color: A.textSub, marginTop: 12 }}>No shop orders yet</Text>
-            </View>
-          ) : (
-            <Animated.View style={{ padding: 16, paddingTop: 0, gap: 14, opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
-              {shopOrders.map(order => {
-                const meta = getShopOrderStatusMeta(order.status);
-                const shopName = Array.isArray(order.shops) ? order.shops[0]?.name : order.shops?.name || 'Unknown';
-                const items = Array.isArray(order.products) ? order.products : [];
-                const itemCount = items.reduce((sum: number, it: any) => sum + (it.qty || it.quantity || 1), 0);
-                const deliveryFee = Number(order.delivery_fee || 0);
-                const ecocashFee = Number(order.ecocash_fee_amount || 0);
-                const grandTotal = Number(order.total_amount) + deliveryFee + ecocashFee;
-                return (
-                  <View key={order.id} style={{ backgroundColor: A.card, borderRadius: 14, borderWidth: 1, borderColor: A.border, overflow: 'hidden' }}>
-                    <View style={{ flexDirection: 'row' }}>
-                      <View style={{ width: 3, backgroundColor: meta.color }} />
-                      <View style={{ flex: 1, padding: 14 }}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 10 }}>
-                          <View style={{ width: 40, height: 40, borderRadius: 10, backgroundColor: meta.color + '18', justifyContent: 'center', alignItems: 'center' }}>
-                            <ShoppingBag size={20} color={meta.color} />
-                          </View>
-                          <View style={{ flex: 1 }}>
-                            <Text style={{ fontSize: 14, fontWeight: '700', color: A.text }}>Shop Order #{order.id.slice(0, 8)}</Text>
-                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 3 }}>
-                              <View style={{ backgroundColor: meta.color + '20', borderRadius: 20, paddingHorizontal: 8, paddingVertical: 2, borderWidth: 1, borderColor: meta.color }}>
-                                <Text style={{ fontSize: 10, fontWeight: '700', color: meta.color, letterSpacing: 1 }}>{meta.label.toUpperCase()}</Text>
-                              </View>
-                            </View>
-                          </View>
-                          <Text style={{ fontSize: 20, fontWeight: '800', color: A.green }}>${grandTotal.toFixed(2)}</Text>
-                        </View>
-                        <View style={{ height: 1, backgroundColor: A.border, marginBottom: 10 }} />
-                        <View style={{ gap: 6 }}>
-                          <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                            <Text style={{ fontSize: 12, color: A.textSub }}>Shop</Text>
-                            <Text style={{ fontSize: 13, fontWeight: '600', color: A.text }} numberOfLines={1}>{shopName}</Text>
-                          </View>
-                          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-                              <User size={12} color={A.textMuted} />
-                              <Text style={{ fontSize: 12, color: A.textSub }}>Customer</Text>
-                            </View>
-                            <Text style={{ fontSize: 13, fontWeight: '600', color: A.text }}>{order.customer_name || '—'}</Text>
-                          </View>
-                          {order.drivers && (
-                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-                                <Truck size={12} color={A.textMuted} />
-                                <Text style={{ fontSize: 12, color: A.textSub }}>Driver</Text>
-                              </View>
-                              <Text style={{ fontSize: 13, fontWeight: '600', color: A.text }}>{(order.drivers as any)?.[0]?.full_name}</Text>
-                            </View>
-                          )}
-                          <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                            <Text style={{ fontSize: 12, color: A.textSub }}>Items</Text>
-                            <Text style={{ fontSize: 13, fontWeight: '600', color: A.text }}>{itemCount} item{itemCount !== 1 ? 's' : ''}</Text>
-                          </View>
-                          <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                            <Text style={{ fontSize: 12, color: A.textSub }}>Payment</Text>
-                            <Text style={{ fontSize: 13, fontWeight: '600', color: A.text }}>{(order.payment_method || '—').replace(/_/g, ' ')}</Text>
-                          </View>
-                          {deliveryFee > 0 && (
-                            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                              <Text style={{ fontSize: 12, color: A.textSub }}>Delivery Fee</Text>
-                              <Text style={{ fontSize: 13, fontWeight: '600', color: A.cyan }}>${deliveryFee.toFixed(2)}</Text>
-                            </View>
-                          )}
-                          {order.delivery_location && (
-                            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                              <Text style={{ fontSize: 12, color: A.textSub }}>Delivery To</Text>
-                              <Text style={{ fontSize: 12, fontWeight: '600', color: A.text, maxWidth: '60%', textAlign: 'right' }} numberOfLines={1}>{order.delivery_location}</Text>
-                            </View>
-                          )}
-                          <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                            <Text style={{ fontSize: 12, color: A.textSub }}>Date</Text>
-                            <Text style={{ fontSize: 12, color: A.textSub }}>{new Date(order.created_at).toLocaleString()}</Text>
-                          </View>
-                        </View>
-                        {items.length > 0 && (
-                          <View style={{ marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: A.border }}>
-                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 6 }}>
-                              <ShoppingBag size={12} color={A.textMuted} />
-                              <Text style={{ fontSize: 10, fontWeight: '700', letterSpacing: 1, color: A.textMuted }}>ORDER ITEMS</Text>
-                            </View>
-                            {items.map((item: any, index: number) => (
-                              <View key={index} style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 3 }}>
-                                <Text style={{ fontSize: 13, color: A.textSub }}>{item.name} x{item.qty || item.quantity}</Text>
-                                <Text style={{ fontSize: 13, fontWeight: '600', color: A.text }}>${Number(item.price * (item.qty || item.quantity)).toFixed(2)}</Text>
-                              </View>
-                            ))}
-                          </View>
-                        )}
-                      </View>
-                    </View>
-                  </View>
-                );
-              })}
             </Animated.View>
           )
         ) : null}

@@ -37,7 +37,6 @@ export default function DriverRegister() {
 
   const [fullName, setFullName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
-  const [phoneCc, setPhoneCc] = useState('+263');
   const [email, setEmail] = useState('');
   const [address, setAddress] = useState('');
   const [nationalId, setNationalId] = useState('');
@@ -152,7 +151,7 @@ export default function DriverRegister() {
       const { data: existingDriver } = await supabase
         .from('drivers')
         .select('id, approval_status')
-        .eq('phone_number', phoneCc.trim() + phoneNumber.trim().replace(/[^0-9]/g, ''))
+        .eq('phone_number', phoneNumber)
         .maybeSingle();
 
       if (existingDriver) {
@@ -223,7 +222,7 @@ export default function DriverRegister() {
 
       const { error: insertError } = await supabase.from('drivers').insert({
         full_name: fullName,
-        phone_number: phoneCc.trim() + phoneNumber.trim().replace(/[^0-9]/g, ''),
+        phone_number: phoneNumber,
         email: emailTrim,
         address: address,
         national_id: nationalId,
@@ -336,25 +335,12 @@ export default function DriverRegister() {
 
             <InputField
               icon={<Phone size={16} color={TEXT_MUTED} />}
-              label="Country Code"
-              required
-              value={phoneCc}
-              onChangeText={setPhoneCc}
-              placeholder="+263"
-              keyboardType="phone-pad"
-              fieldName="phoneCc"
-              focusedField={focusedField}
-              setFocusedField={setFocusedField}
-            />
-
-            <InputField
-              icon={<Phone size={16} color={TEXT_MUTED} />}
               label="Phone Number"
               required
               value={phoneNumber}
               onChangeText={setPhoneNumber}
-              placeholder="771234567"
-              keyboardType="number-pad"
+              placeholder="+263..."
+              keyboardType="phone-pad"
               fieldName="phone"
               focusedField={focusedField}
               setFocusedField={setFocusedField}

@@ -53,7 +53,6 @@ export default function DeliveryRequestPage() {
   const [showDriverSelector, setShowDriverSelector] = useState(false);
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [loadingDrivers, setLoadingDrivers] = useState(false);
-  const [customerUniversityId, setCustomerUniversityId] = useState<string | null>(null);
 
   // Submission
   const [successModal, setSuccessModal] = useState(false);
@@ -74,14 +73,12 @@ export default function DeliveryRequestPage() {
     if (!customerId) return;
     setLoadingDrivers(true);
     try {
-      // Fetch customer's university for location filtering
+      // Get customer's university for filtering
       const { data: cust } = await supabase
         .from('customers')
         .select('university_id')
         .eq('id', customerId)
         .maybeSingle();
-      const uniId = (cust as any)?.university_id ?? null;
-      setCustomerUniversityId(uniId);
 
       let query = supabase
         .from('drivers')
@@ -98,12 +95,13 @@ export default function DeliveryRequestPage() {
         .eq('approval_status', 'approved')
         .order('average_rating', { ascending: false });
 
-      if (uniId) {
-        query = query.or(`university_id.eq.${uniId},active_university_id.eq.${uniId}`);
+      if (cust?.university_id) {
+        query = query.or(
+          `university_id.eq.${cust.university_id},active_university_id.eq.${cust.university_id}`
+        );
       }
 
       const { data } = await query;
-
       setDrivers(
         (data ?? []).map((d: any) => ({ ...d, location: d.address ?? '' }))
       );
@@ -114,18 +112,6 @@ export default function DeliveryRequestPage() {
   // Load drivers as soon as a service is chosen
   useEffect(() => {
     if (selectedService) loadDrivers();
-  }, [selectedService, loadDrivers]);
-
-  // Realtime: refresh driver list when drivers change availability/status
-  useEffect(() => {
-    if (!selectedService) return;
-    const channel = supabase
-      .channel('drivers-availability')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'drivers' }, () => {
-        loadDrivers();
-      })
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
   }, [selectedService, loadDrivers]);
 
   const handleSelectDirect = (driver: Driver) => {

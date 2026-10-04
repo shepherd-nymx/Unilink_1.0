@@ -35,7 +35,6 @@ import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
 import { TermsAndConditions } from '@/components/TermsAndConditions';
 import { SHOP_CATEGORIES } from '@/components/marketplace/types';
-import { MapPin as MapPinIcon, Navigation as NavIcon } from 'lucide-react-native';
 
 export default function ShopRegister() {
   const router = useRouter();
@@ -48,7 +47,6 @@ export default function ShopRegister() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [shopName, setShopName] = useState('');
   const [contactPhone, setContactPhone] = useState('');
-  const [contactPhoneCc, setContactPhoneCc] = useState('+263');
   const [description, setDescription] = useState('');
   const [address, setAddress] = useState('');
   const [hours, setHours] = useState('');
@@ -60,9 +58,6 @@ export default function ShopRegister() {
   const [locating, setLocating] = useState(false);
   const [areas, setAreas] = useState<{ id: string; name: string; city: string | null }[]>([]);
   const [showAreaPicker, setShowAreaPicker] = useState(false);
-  const [universities, setUniversities] = useState<{ id: string; name: string }[]>([]);
-  const [selectedDriverRegions, setSelectedDriverRegions] = useState<string[]>([]);
-  const [showRegionPicker, setShowRegionPicker] = useState(false);
   const [logoUri, setLogoUri] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -79,7 +74,6 @@ export default function ShopRegister() {
       Animated.timing(slideAnim, { toValue: 0, duration: 400, useNativeDriver: true }),
     ]).start();
     loadAreas();
-    loadUniversities();
   }, []);
 
   const loadAreas = async () => {
@@ -92,20 +86,6 @@ export default function ShopRegister() {
       setAreas(data || []);
     } catch (err) {
       console.error('Failed to load areas:', err);
-    }
-  };
-
-  const loadUniversities = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('universities')
-        .select('id, name')
-        .eq('is_active', true)
-        .order('name', { ascending: true });
-      if (error) throw error;
-      setUniversities(data || []);
-    } catch (err) {
-      console.error('Failed to load universities:', err);
     }
   };
 
@@ -126,35 +106,17 @@ export default function ShopRegister() {
     setLocating(true);
     setError('');
     try {
-      let lat: number;
-      let lng: number;
-
-      if (Platform.OS === 'web') {
-        if (!navigator.geolocation) {
-          setError('Your browser does not support GPS detection. Enter coordinates manually.');
-          return;
-        }
-        const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
-          navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
-        });
-        lat = pos.coords.latitude;
-        lng = pos.coords.longitude;
-      } else {
-        const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== 'granted') {
-          setError('Location permission denied. Enter coordinates manually.');
-          setLocating(false);
-          return;
-        }
-        const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-        lat = pos.coords.latitude;
-        lng = pos.coords.longitude;
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        setError('Location permission denied. Enter coordinates manually.');
+        setLocating(false);
+        return;
       }
-
-      setLatitude(lat.toFixed(6));
-      setLongitude(lng.toFixed(6));
+      const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      setLatitude(pos.coords.latitude.toFixed(6));
+      setLongitude(pos.coords.longitude.toFixed(6));
     } catch (e: any) {
-      setError(e?.message || 'Could not detect location. Enter coordinates manually.');
+      setError(e.message || 'Could not detect location. Enter coordinates manually.');
     } finally {
       setLocating(false);
     }
@@ -210,10 +172,6 @@ export default function ShopRegister() {
     setError('');
     if (!shopName || !email.trim() || !password || !contactPhone || !address || !area || !category) {
       setError('Please fill in all required fields including area and category');
-      return;
-    }
-    if (selectedDriverRegions.length === 0) {
-      setError('Please select at least one driver service region');
       return;
     }
     const emailTrim = email.trim().toLowerCase();
@@ -316,7 +274,7 @@ export default function ShopRegister() {
           category,
           latitude: latitude.trim() ? parseFloat(latitude) : null,
           longitude: longitude.trim() ? parseFloat(longitude) : null,
-          contact_phone: contactPhoneCc.trim() + contactPhone.trim().replace(/[^0-9]/g, ''),
+          contact_phone: contactPhone,
           contact_email: emailTrim,
           hours: hours || null,
           status: 'pending_approval',
@@ -329,17 +287,6 @@ export default function ShopRegister() {
 
       if (shopError) throw shopError;
       if (!shop) throw new Error('Failed to create shop record');
-
-      // Step 4b: Save driver service regions
-      if (selectedDriverRegions.length > 0) {
-        try {
-          await supabase.from('shop_driver_regions').insert(
-            selectedDriverRegions.map(uid => ({ shop_id: shop.id, university_id: uid }))
-          );
-        } catch (regionErr: any) {
-          // Non-fatal — shop is created, regions can be added later
-        }
-      }
 
       // Step 5: Log terms acceptance (non-fatal)
       try {
@@ -581,70 +528,6 @@ export default function ShopRegister() {
               )}
             </View>
 
-            {/* Driver service regions multi-select */}
-            <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: textSecondary }]}>
-                DRIVER SERVICE REGIONS <Text style={{ color: errorColor }}>*</Text>
-              </Text>
-              <Text style={{ fontSize: 11, color: placeholderColor, marginBottom: 6 }}>
-                Select which university campuses / locations drivers should come from to serve your shop
-              </Text>
-              <TouchableOpacity
-                style={[styles.inputWrapper, { backgroundColor: inputBg, borderColor: focused === 'regions' ? primary : inputBorder, minHeight: 48 + (selectedDriverRegions.length > 0 ? 8 : 0) }]}
-                onPress={() => { setShowRegionPicker(!showRegionPicker); setFocused('regions'); }}
-              >
-                <View style={styles.inputIcon}><MapPin size={16} color={focused === 'regions' ? primary : placeholderColor} /></View>
-                <View style={{ flex: 1, flexDirection: 'row', flexWrap: 'wrap', gap: 4, paddingVertical: 6 }}>
-                  {selectedDriverRegions.length === 0 ? (
-                    <Text style={{ color: placeholderColor, fontSize: 15, paddingVertical: 6 }}>
-                      Select driver service regions
-                    </Text>
-                  ) : (
-                    selectedDriverRegions.map(rid => {
-                      const uni = universities.find(u => u.id === rid);
-                      return (
-                        <View key={rid} style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: `${primary}15`, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 }}>
-                          <Text style={{ color: primary, fontSize: 12, fontWeight: '600' }}>{uni?.name || rid}</Text>
-                          <TouchableOpacity onPress={() => setSelectedDriverRegions(prev => prev.filter(id => id !== rid))}>
-                            <Text style={{ color: primary, fontSize: 14, fontWeight: '700' }}>×</Text>
-                          </TouchableOpacity>
-                        </View>
-                      );
-                    })
-                  )}
-                </View>
-                <ChevronDown size={16} color={placeholderColor} style={{ marginRight: 4 }} />
-              </TouchableOpacity>
-
-              {showRegionPicker && (
-                <View style={[styles.areaPickerBox, { backgroundColor: inputBg, borderColor: inputBorder }]}>
-                  {universities.length === 0 ? (
-                    <Text style={{ color: placeholderColor, fontSize: 13, padding: 12 }}>No regions available</Text>
-                  ) : (
-                    <ScrollView style={{ maxHeight: 200 }} nestedScrollEnabled>
-                      {universities.map(u => {
-                        const isSelected = selectedDriverRegions.includes(u.id);
-                        return (
-                          <TouchableOpacity
-                            key={u.id}
-                            style={[styles.areaPickerItem, { borderBottomColor: inputBorder }]}
-                            onPress={() => {
-                              setSelectedDriverRegions(prev =>
-                                isSelected ? prev.filter(id => id !== u.id) : [...prev, u.id]
-                              );
-                            }}
-                          >
-                            <Text style={{ color: textPrimary, fontSize: 14, flex: 1 }}>{u.name}</Text>
-                            {isSelected && <Check size={16} color={primary} />}
-                          </TouchableOpacity>
-                        );
-                      })}
-                    </ScrollView>
-                  )}
-                </View>
-              )}
-            </View>
-
             <View style={styles.inputGroup}>
               <Text style={[styles.label, { color: textSecondary }]}>
                 SHOP GPS COORDINATES
@@ -712,32 +595,18 @@ export default function ShopRegister() {
               <Text style={[styles.label, { color: textSecondary }]}>
                 CONTACT PHONE <Text style={{ color: errorColor }}>*</Text>
               </Text>
-              <View style={{ flexDirection: 'row', gap: 8, width: '100%' }}>
-                <View style={[styles.inputWrapper, { width: 92, flexShrink: 1, backgroundColor: inputBg, borderColor: focused === 'phoneCc' ? primary : inputBorder }]}>
-                  <TextInput
-                    style={[styles.input, { color: textPrimary }]}
-                    value={contactPhoneCc}
-                    onChangeText={setContactPhoneCc}
-                    placeholder="+263"
-                    placeholderTextColor={placeholderColor}
-                    keyboardType="phone-pad"
-                    onFocus={() => setFocused('phoneCc')}
-                    onBlur={() => setFocused(null)}
-                  />
-                </View>
-                <View style={[styles.inputWrapper, { flex: 1, minWidth: 0, backgroundColor: inputBg, borderColor: focused === 'phone' ? primary : inputBorder }]}>
-                  <View style={styles.inputIcon}><Phone size={16} color={focused === 'phone' ? primary : placeholderColor} /></View>
-                  <TextInput
-                    style={[styles.input, { color: textPrimary }]}
-                    value={contactPhone}
-                    onChangeText={setContactPhone}
-                    placeholder="771234567"
-                    placeholderTextColor={placeholderColor}
-                    keyboardType="number-pad"
-                    onFocus={() => setFocused('phone')}
-                    onBlur={() => setFocused(null)}
-                  />
-                </View>
+              <View style={[styles.inputWrapper, { backgroundColor: inputBg, borderColor: focused === 'phone' ? primary : inputBorder }]}>
+                <View style={styles.inputIcon}><Phone size={16} color={focused === 'phone' ? primary : placeholderColor} /></View>
+                <TextInput
+                  style={[styles.input, { color: textPrimary }]}
+                  value={contactPhone}
+                  onChangeText={setContactPhone}
+                  placeholder="+263..."
+                  placeholderTextColor={placeholderColor}
+                  keyboardType="phone-pad"
+                  onFocus={() => setFocused('phone')}
+                  onBlur={() => setFocused(null)}
+                />
               </View>
             </View>
 

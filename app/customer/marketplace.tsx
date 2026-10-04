@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -18,7 +18,7 @@ import { loadUserData } from '@/lib/storage-service';
 import { A } from '@/lib/admin-theme';
 import { ArrowLeft, Store, Search, ShoppingCart, Plus, Minus, X, Package, CreditCard, CircleCheck as CheckCircle, CircleAlert as AlertCircle, Info, ChevronLeft, ChevronRight, MapPin, Lock, Award, Tag } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
-import { Shop, Product, CartItem, CartByShop, ThemePalette, computeShopOpen, DeliveryFeeTier, ShopDistanceFeeTier, computeTierDeliveryFee, computeDistanceDeliveryFee, haversineKm, SHOP_CATEGORIES, Driver, formatPaymentMethod, getAcceptedMethods } from '@/components/marketplace/types';
+import { Shop, Product, CartItem, CartByShop, ThemePalette, computeShopOpen, DeliveryFeeTier, computeTierDeliveryFee, SHOP_CATEGORIES } from '@/components/marketplace/types';
 import { ShopCard } from '@/components/marketplace/ShopCard';
 import { ProductCard } from '@/components/marketplace/ProductCard';
 import { ShopProfileModal } from '@/components/marketplace/ShopProfileModal';
@@ -54,14 +54,11 @@ export default function Marketplace() {
   const [customerUniversityName, setCustomerUniversityName] = useState<string | null>(null);
   const [shopServiceLocations, setShopServiceLocations] = useState<ServiceLocationMap>({});
   const [deliveryFeeTiers, setDeliveryFeeTiers] = useState<Record<string, DeliveryFeeTier[]>>({});
-  const [distanceFeeTiers, setDistanceFeeTiers] = useState<Record<string, ShopDistanceFeeTier[]>>({});
-  const [shopDriverRegions, setShopDriverRegions] = useState<Record<string, string[]>>({});
 
   const selectedShopData = selectedShopId ? shops.find(s => s.id === selectedShopId) || null : null;
   const [showCheckout, setShowCheckout] = useState(false);
   const [placingOrder, setPlacingOrder] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState(false);
-  const [driversByShop, setDriversByShop] = useState<Record<string, Driver[]>>({});
 
   const palette: ThemePalette = {
     bg: isDark ? '#050b16' : '#f0f4f8',
@@ -166,7 +163,7 @@ export default function Marketplace() {
 
       const { data: shopData, error: shopErr } = await supabase
         .from('shops')
-        .select('id, name, logo_url, description, address, hours, slug, latitude, longitude, is_available, operating_hours, accepted_payment_methods, location_verified, completed_orders_count, location, ecocash_fee, delivery_fee, whatsapp_number, average_rating, total_ratings, premium_badge, ecocash_name, ecocash_number, contact_phone, category, driver_assignment_mode')
+        .select('id, name, logo_url, description, address, hours, slug, latitude, longitude, is_available, operating_hours, accepted_payment_methods, location_verified, completed_orders_count, location, ecocash_fee, delivery_fee, whatsapp_number, average_rating, total_ratings, premium_badge, ecocash_name, ecocash_number, contact_phone, category')
         .eq('status', 'active')
         .order('name');
       if (shopErr) throw shopErr;
@@ -197,28 +194,6 @@ export default function Marketplace() {
           tierMap[t.shop_id].push(t);
         });
         setDeliveryFeeTiers(tierMap);
-
-        const { data: distTierData } = await supabase
-          .from('shop_distance_fee_tiers')
-          .select('id, shop_id, min_km, max_km, fee, label, sort_order')
-          .in('shop_id', allShops.map(s => s.id));
-        const distTierMap: Record<string, ShopDistanceFeeTier[]> = {};
-        (distTierData || []).forEach((t: any) => {
-          if (!distTierMap[t.shop_id]) distTierMap[t.shop_id] = [];
-          distTierMap[t.shop_id].push(t);
-        });
-        setDistanceFeeTiers(distTierMap);
-
-        const { data: regionData } = await supabase
-          .from('shop_driver_regions')
-          .select('shop_id, university_id')
-          .in('shop_id', allShops.map(s => s.id));
-        const regionMap: Record<string, string[]> = {};
-        (regionData || []).forEach((r: any) => {
-          if (!regionMap[r.shop_id]) regionMap[r.shop_id] = [];
-          regionMap[r.shop_id].push(r.university_id);
-        });
-        setShopDriverRegions(regionMap);
       }
 
       const { data: prodData, error: prodErr } = await supabase
@@ -285,85 +260,6 @@ export default function Marketplace() {
     : [];
 
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
-
-  const fetchNearbyDrivers = useCallback(async () => {
-    const customerAssigned = cartByShop.filter(sc => {
-      const shop = shops.find(s => s.id === sc.shopId);
-      return shop?.driver_assignment_mode === 'customer_assigned';
-    });
-    if (customerAssigned.length === 0) return;
-    try {
-      const map: Record<string, Driver[]> = {};
-      for (const sc of customerAssigned) {
-        const regionIds = shopDriverRegions[sc.shopId] || [];
-        const locationIds = regionIds.length > 0
-          ? regionIds
-          : (customerUniversityId ? [customerUniversityId] : []);
-
-        let query = supabase
-          .from('drivers')
-          .select('id, full_name, phone_number, whatsapp_number, average_rating, vehicle_type, profile_picture_url, is_available, home_latitude, home_longitude, home_address')
-          .eq('approval_status', 'approved')
-          .eq('is_available', true)
-          .gt('key_expires_at', new Date().toISOString())
-          .order('average_rating', { ascending: false });
-
-        if (locationIds.length > 0) {
-          query = query.or(
-            locationIds.map(id => `active_university_id.eq.${id},and(active_university_id.is.null,university_id.eq.${id})`).join(',')
-          );
-        }
-
-        const { data } = await query;
-        let driversList = (data || []).map((d: any) => ({
-          ...d,
-          distance_km:
-            customerAddress?.latitude != null && customerAddress?.longitude != null &&
-            d.home_latitude != null && d.home_longitude != null
-              ? haversineKm(d.home_latitude, d.home_longitude, customerAddress.latitude, customerAddress.longitude)
-              : null,
-          completed_deliveries: null,
-        })) as Driver[];
-
-        const ids = driversList.map(d => d.id);
-        if (ids.length > 0) {
-          const { data: tierData } = await supabase
-            .from('driver_distance_fee_tiers')
-            .select('driver_id, min_km, max_km, fee, sort_order')
-            .in('driver_id', ids);
-          const tierMap: Record<string, any[]> = {};
-          (tierData || []).forEach((t: any) => {
-            if (!tierMap[t.driver_id]) tierMap[t.driver_id] = [];
-            tierMap[t.driver_id].push(t);
-          });
-          driversList = driversList.map(d => ({
-            ...d,
-            distance_fee: computeDistanceDeliveryFee(d.distance_km ?? null, tierMap[d.id] || [], null as any) ?? null,
-          }));
-        }
-
-        map[sc.shopId] = driversList;
-      }
-      setDriversByShop(map);
-    } catch {}
-  }, [cartByShop, shops, customerAddress, customerUniversityId, shopDriverRegions]);
-
-  useEffect(() => {
-    if (!showCheckout) return;
-    fetchNearbyDrivers();
-  }, [showCheckout, fetchNearbyDrivers]);
-
-  // Realtime: refresh driver list when drivers change availability/status
-  useEffect(() => {
-    if (!showCheckout) return;
-    const channel = supabase
-      .channel('marketplace-drivers-availability')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'drivers' }, () => {
-        fetchNearbyDrivers();
-      })
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [showCheckout, fetchNearbyDrivers]);
   const cartTotal = cart.reduce((sum, item) => sum + Number(item.product.price) * item.quantity, 0);
 
   const shopServesCustomer = (shopId: string): boolean => {
@@ -433,8 +329,7 @@ export default function Marketplace() {
     paymentMethod: string,
     deliveryFee: number,
     ecocashFeeAmount: number,
-    ecocashPop: string | null,
-    selectedDriversByShop?: Record<string, string>
+    ecocashPop: string | null
   ) => {
     if (!customerId) {
       setError('Please login to place an order');
@@ -490,20 +385,7 @@ export default function Marketplace() {
           price: Number(item.product.price),
           qty: item.quantity,
         }));
-        let shopDeliveryFee: number;
-        if (shop?.driver_assignment_mode === 'customer_assigned' && selectedDriversByShop?.[shopCart.shopId]) {
-          const drivers = driversByShop[shopCart.shopId] || [];
-          const driver = drivers.find(d => d.id === selectedDriversByShop[shopCart.shopId]);
-          shopDeliveryFee = driver?.distance_fee != null ? Number(driver.distance_fee) : computeTierDeliveryFee(shopCart.total, deliveryFeeTiers[shopCart.shopId] || [], Number(shop?.delivery_fee || 0));
-        } else {
-          const distTiers = distanceFeeTiers[shopCart.shopId] || [];
-          if (distTiers.length > 0 && lat != null && lng != null && shop?.latitude != null && shop?.longitude != null) {
-            const dist = haversineKm(shop.latitude, shop.longitude, lat, lng);
-            shopDeliveryFee = computeDistanceDeliveryFee(dist, distTiers, computeTierDeliveryFee(shopCart.total, deliveryFeeTiers[shopCart.shopId] || [], Number(shop?.delivery_fee || 0)));
-          } else {
-            shopDeliveryFee = computeTierDeliveryFee(shopCart.total, deliveryFeeTiers[shopCart.shopId] || [], Number(shop?.delivery_fee || 0));
-          }
-        }
+        const shopDeliveryFee = computeTierDeliveryFee(shopCart.total, deliveryFeeTiers[shopCart.shopId] || [], Number(shop?.delivery_fee || 0));
         const orderTotal = shopCart.total + shopDeliveryFee + ecocashFeeAmount;
 
         const { data: order, error: orderErr } = await supabase
@@ -521,7 +403,6 @@ export default function Marketplace() {
             delivery_longitude: lng,
             payment_method: paymentMethod,
             status: 'pending',
-            messenger_id: shop?.driver_assignment_mode === 'customer_assigned' && selectedDriversByShop?.[shopCart.shopId] ? selectedDriversByShop[shopCart.shopId] : null,
             customer_email: customer?.email || null,
             customer_name: customer?.full_name || null,
             customer_phone: customer?.phone_number || null,
@@ -1039,8 +920,6 @@ export default function Marketplace() {
           customerId={customerId}
           customerAddress={customerAddress}
           deliveryFeeTiers={deliveryFeeTiers}
-          distanceFeeTiers={distanceFeeTiers}
-          driversByShop={driversByShop}
         />
       </Modal>
     </View>

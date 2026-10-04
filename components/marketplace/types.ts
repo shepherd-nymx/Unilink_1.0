@@ -24,7 +24,6 @@ export type Shop = {
   ecocash_number?: string | null;
   contact_phone?: string | null;
   category?: string | null;
-  driver_assignment_mode?: 'shop_assigned' | 'customer_assigned';
 };
 
 export const SHOP_CATEGORIES = [
@@ -50,16 +49,6 @@ export type DeliveryFeeTier = {
   sort_order: number;
 };
 
-export type ShopDistanceFeeTier = {
-  id: string;
-  shop_id: string;
-  min_km: number;
-  max_km: number | null;
-  fee: number;
-  label: string | null;
-  sort_order: number;
-};
-
 export function computeTierDeliveryFee(
   cartTotal: number,
   tiers: DeliveryFeeTier[],
@@ -79,39 +68,6 @@ export function computeTierDeliveryFee(
     return Number(last.fee);
   }
   return fallbackFee;
-}
-
-export function computeDistanceDeliveryFee(
-  distanceKm: number | null,
-  tiers: ShopDistanceFeeTier[],
-  fallbackFee: number
-): number {
-  if (!tiers || tiers.length === 0 || distanceKm == null) return fallbackFee;
-  const sorted = [...tiers].sort((a, b) => a.min_km - b.min_km);
-  for (const tier of sorted) {
-    const min = Number(tier.min_km);
-    const max = tier.max_km != null ? Number(tier.max_km) : Infinity;
-    if (distanceKm >= min && distanceKm < max) {
-      return Number(tier.fee);
-    }
-  }
-  const last = sorted[sorted.length - 1];
-  if (last && last.max_km == null && distanceKm >= Number(last.min_km)) {
-    return Number(last.fee);
-  }
-  return fallbackFee;
-}
-
-export function haversineKm(
-  lat1: number, lng1: number, lat2: number, lng2: number
-): number {
-  const R = 6371;
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLng = (lng2 - lng1) * Math.PI / 180;
-  const a = Math.sin(dLat / 2) ** 2 +
-    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-    Math.sin(dLng / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
 export type Product = {
@@ -146,13 +102,6 @@ export type Driver = {
   rating?: number | null;
   vehicle_type?: string | null;
   completed_deliveries?: number | null;
-  profile_picture_url?: string | null;
-  is_available?: boolean | null;
-  home_latitude?: number | null;
-  home_longitude?: number | null;
-  home_address?: string | null;
-  distance_km?: number | null;
-  distance_fee?: number | null;
 };
 
 export type ThemePalette = {

@@ -40,7 +40,6 @@ export function OrderDetailModal({
   drivers,
   assigningDriver,
   assignError,
-  driverAssignmentMode = 'shop_assigned',
   onClose,
   onUpdateStatus,
   onAssignDriver,
@@ -51,7 +50,6 @@ export function OrderDetailModal({
   drivers: Driver[];
   assigningDriver: boolean;
   assignError: string;
-  driverAssignmentMode?: 'shop_assigned' | 'customer_assigned';
   onClose: () => void;
   onUpdateStatus: (order: ShopOrder, status: string) => void;
   onAssignDriver: (driverId: string) => void;
@@ -217,7 +215,7 @@ export function OrderDetailModal({
                 <Text style={styles.actionBtnText}>Mark Ready</Text>
               </TouchableOpacity>
             )}
-            {order.status === 'ready' && driverAssignmentMode === 'shop_assigned' && (
+            {order.status === 'ready' && (
               <View style={{ width: '100%' }}>
                 <Text style={styles.assignLabel}>Assign a Messenger (Required):</Text>
                 {assignError ? (
@@ -318,15 +316,6 @@ export function OrderDetailModal({
                   </ScrollView>
                 )}
               </View>
-            )}
-            {order.status === 'ready' && driverAssignmentMode === 'customer_assigned' && (
-              <TouchableOpacity
-                style={[styles.actionBtn, { backgroundColor: A.cyan }]}
-                onPress={() => onUpdateStatus(order, 'assigned')}
-              >
-                <Truck size={16} color="#fff" />
-                <Text style={styles.actionBtnText}>Send to Driver</Text>
-              </TouchableOpacity>
             )}
             {order.status === 'picked_up' && (
               <TouchableOpacity

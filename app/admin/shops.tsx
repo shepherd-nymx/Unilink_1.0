@@ -15,7 +15,7 @@ import {
 import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { A } from '@/lib/admin-theme';
-import { ArrowLeft, Store, CircleCheck as CheckCircle, Circle as XCircle, DollarSign, Clock, Ban, Eye, X, CircleAlert as AlertCircle, ShoppingBag, Settings, MapPin, Calendar, Smartphone, Award, Truck, Navigation } from 'lucide-react-native';
+import { ArrowLeft, Store, CircleCheck as CheckCircle, Circle as XCircle, DollarSign, Clock, Ban, Eye, X, CircleAlert as AlertCircle, ShoppingBag, Settings, MapPin, Calendar, Smartphone, Award } from 'lucide-react-native';
 import { SkeletonList } from '@/components/Skeleton';
 import { ConnectionBadge } from '@/components/ConnectionBadge';
 
@@ -42,28 +42,10 @@ type ShopOrder = {
   id: string;
   shop_id: string;
   total_amount: number;
-  delivery_fee: number;
-  ecocash_fee_amount: number | null;
-  delivery_location: string | null;
-  payment_method: string | null;
   status: string;
   customer_name: string | null;
-  customer_phone: string | null;
-  customer_email: string | null;
-  order_note: string | null;
-  products: any[];
   created_at: string;
-  confirmed_at: string | null;
-  picked_up_at: string | null;
-  delivered_at: string | null;
   shops: { name: string } | { name: string }[] | null;
-  drivers: { full_name: string; phone_number: string }[] | null;
-};
-
-const extractDriver = (d: any): { full_name: string; phone_number: string } | null => {
-  if (!d) return null;
-  if (Array.isArray(d)) return d[0] ?? null;
-  return d;
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -84,34 +66,11 @@ const STATUS_COLORS: Record<string, string> = {
   rejected: A.red,
 };
 
-const getOrderStatusMeta = (status: string): { label: string; color: string } => {
-  switch (status) {
-    case 'pending':
-      return { label: 'Pending', color: A.amber };
-    case 'confirmed':
-      return { label: 'Confirmed', color: A.blue };
-    case 'picked_up':
-      return { label: 'Picked Up', color: A.cyan };
-    case 'out_for_delivery':
-      return { label: 'Out for Delivery', color: A.cyan };
-    case 'delivered':
-      return { label: 'Delivered', color: A.green };
-    case 'cancelled':
-      return { label: 'Cancelled', color: A.red };
-    case 'declined':
-      return { label: 'Declined', color: A.red };
-    default:
-      return { label: status, color: A.textSub };
-  }
-};
-
 export default function AdminShops() {
   const router = useRouter();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const [shops, setShops] = useState<Shop[]>([]);
   const [orders, setOrders] = useState<ShopOrder[]>([]);
-  const [selectedOrder, setSelectedOrder] = useState<ShopOrder | null>(null);
-  const [showOrderModal, setShowOrderModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<'shops' | 'orders' | 'settings' | 'commission'>('shops');
@@ -123,10 +82,10 @@ export default function AdminShops() {
   const [registrationFee, setRegistrationFee] = useState('10.00');
   const [savingFee, setSavingFee] = useState(false);
   const [feeSaved, setFeeSaved] = useState(false);
-  const [commissionData, setCommissionData] = useState<{ shopId: string; shopName: string; confirmedRevenue: number; commissionPercentage: number; commissionOwed: number; commissionPaid: number; deadline: string | null }[]>([]);
-  const [editingRate, setEditingRate] = useState<string | null>(null);
-  const [rateInput, setRateInput] = useState('');
-  const [savingRate, setSavingRate] = useState(false);
+  const [commissionRate, setCommissionRate] = useState('5');
+  const [savingCommission, setSavingCommission] = useState(false);
+  const [commissionSaved, setCommissionSaved] = useState(false);
+  const [commissionData, setCommissionData] = useState<{ shopId: string; shopName: string; confirmedRevenue: number; commissionOwed: number; commissionPaid: number; deadline: string | null }[]>([]);
   const [deadlineShop, setDeadlineShop] = useState<string | null>(null);
   const [deadlineDate, setDeadlineDate] = useState('');
   const [savingDeadline, setSavingDeadline] = useState(false);
@@ -172,17 +131,10 @@ export default function AdminShops() {
 
       const { data: orderData } = await supabase
         .from('shop_orders')
-        .select(`
-          id, shop_id, total_amount, delivery_fee, ecocash_fee_amount,
-          delivery_location, payment_method, status,
-          customer_name, customer_phone, customer_email, order_note,
-          products, created_at, confirmed_at, picked_up_at, delivered_at,
-          shops!shop_orders_shop_id_fkey(name),
-          drivers(full_name, phone_number)
-        `)
+        .select('id, shop_id, total_amount, status, customer_name, created_at, shops!shop_orders_shop_id_fkey(name)')
         .order('created_at', { ascending: false })
         .limit(50);
-      setOrders((orderData as unknown as ShopOrder[]) || []);
+      setOrders(orderData || []);
 
       const { data: settings } = await supabase
         .from('shop_settings')
@@ -190,6 +142,7 @@ export default function AdminShops() {
         .maybeSingle();
       if (settings) {
         setRegistrationFee(Number(settings.registration_fee).toFixed(2));
+        if (settings.commission_rate != null) setCommissionRate(String(settings.commission_rate));
         if (settings.payment_ecocash_number) setEcocashNumber(settings.payment_ecocash_number);
         if (settings.payment_ecocash_name) setEcocashName(settings.payment_ecocash_name);
       }
@@ -200,7 +153,7 @@ export default function AdminShops() {
     }
   };
 
-  const loadCommissionData = async (activeShops: Shop[]) => {
+  const loadCommissionData = async (activeShops: Shop[], rate: number) => {
     if (activeShops.length === 0) { setCommissionData([]); return; }
     const shopIds = activeShops.map(s => s.id);
     const { data: orderData } = await supabase
@@ -212,35 +165,39 @@ export default function AdminShops() {
     (orderData || []).forEach((o: any) => {
       revenueByShop[o.shop_id] = (revenueByShop[o.shop_id] || 0) + Number(o.total_amount);
     });
-    const rows = activeShops.map(s => {
-      const pct = Number((s as any).commission_percentage) || 5;
-      return {
-        shopId: s.id,
-        shopName: s.name,
-        confirmedRevenue: revenueByShop[s.id] || 0,
-        commissionPercentage: pct,
-        commissionOwed: (revenueByShop[s.id] || 0) * (pct / 100),
-        commissionPaid: Number((s as any).commission_paid) || 0,
-        deadline: (s as any).commission_deadline || null,
-      };
-    });
+    const rows = activeShops.map(s => ({
+      shopId: s.id,
+      shopName: s.name,
+      confirmedRevenue: revenueByShop[s.id] || 0,
+      commissionOwed: (revenueByShop[s.id] || 0) * (rate / 100),
+      commissionPaid: Number((s as any).commission_paid) || 0,
+      deadline: (s as any).commission_deadline || null,
+    }));
     setCommissionData(rows.sort((a, b) => b.commissionOwed - a.commissionOwed));
   };
 
   useEffect(() => {
     if (activeTab === 'commission' && shops.length > 0) {
-      loadCommissionData(shops.filter(s => s.status === 'active'));
+      loadCommissionData(shops.filter(s => s.status === 'active'), parseFloat(commissionRate) || 5);
     }
   }, [activeTab, shops]);
 
-  const saveShopRate = async (shopId: string) => {
-    setSavingRate(true);
-    const rate = parseFloat(rateInput) || 5;
-    await supabase.from('shops').update({ commission_percentage: rate }).eq('id', shopId);
-    setSavingRate(false);
-    setEditingRate(null);
-    setRateInput('');
-    loadData();
+  const saveCommissionRate = async () => {
+    setSavingCommission(true);
+    const rate = parseFloat(commissionRate) || 5;
+    const { data: settings } = await supabase
+      .from('shop_settings')
+      .select('id')
+      .maybeSingle();
+    if (settings) {
+      await supabase.from('shop_settings').update({ commission_rate: rate }).eq('id', settings.id);
+    } else {
+      await supabase.from('shop_settings').insert({ commission_rate: rate });
+    }
+    setSavingCommission(false);
+    setCommissionSaved(true);
+    setTimeout(() => setCommissionSaved(false), 2000);
+    loadCommissionData(shops.filter(s => s.status === 'active'), rate);
   };
 
   const saveDeadline = async (shopId: string) => {
@@ -537,92 +494,62 @@ export default function AdminShops() {
           )}
 
           {activeTab === 'orders' && (
-            <View style={{ gap: 12 }}>
+            <View style={{ gap: 10 }}>
               {orders.length === 0 ? (
                 <View style={styles.emptyState}>
                   <ShoppingBag size={40} color={A.textMuted} />
                   <Text style={styles.emptyText}>No shop orders yet</Text>
                 </View>
               ) : (
-                orders.map(order => {
-                  const shopName = Array.isArray(order.shops) ? order.shops[0]?.name : order.shops?.name || 'Unknown';
-                  const oStatus = order.status || 'pending';
-                  const statusMeta = getOrderStatusMeta(oStatus);
-                  const items = Array.isArray(order.products) ? order.products : [];
-                  const itemCount = items.reduce((sum: number, it: any) => sum + (it.qty || it.quantity || 1), 0);
-                  const deliveryFee = Number(order.delivery_fee || 0);
-                  const ecocashFee = Number(order.ecocash_fee_amount || 0);
-                  const grandTotal = Number(order.total_amount) + deliveryFee + ecocashFee;
-                  return (
-                    <TouchableOpacity
-                      key={order.id}
-                      style={[styles.shopCard, { borderColor: statusMeta.color + '40' }]}
-                      onPress={() => { setSelectedOrder(order); setShowOrderModal(true); }}
-                      activeOpacity={0.7}
-                    >
-                      <View style={{ flexDirection: 'row' }}>
-                        <View style={{ width: 3, backgroundColor: statusMeta.color }} />
-                        <View style={{ flex: 1, padding: 14 }}>
-                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-                            <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: statusMeta.color + '18', justifyContent: 'center', alignItems: 'center' }}>
-                              <ShoppingBag size={18} color={statusMeta.color} />
-                            </View>
-                            <View style={{ flex: 1 }}>
-                              <Text style={{ fontSize: 13, fontWeight: '700', color: A.text }}>#{order.id.slice(0, 8)}</Text>
-                              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 3 }}>
-                                <View style={{ backgroundColor: statusMeta.color + '20', borderRadius: 20, paddingHorizontal: 7, paddingVertical: 2, borderWidth: 1, borderColor: statusMeta.color }}>
-                                  <Text style={{ fontSize: 9, fontWeight: '700', color: statusMeta.color, letterSpacing: 1 }}>{statusMeta.label.toUpperCase()}</Text>
-                                </View>
-                              </View>
-                            </View>
-                            <Text style={{ fontSize: 17, fontWeight: '800', color: A.green }}>${grandTotal.toFixed(2)}</Text>
-                          </View>
-                          <View style={{ height: 1, backgroundColor: A.border, marginBottom: 8 }} />
-                          <View style={{ gap: 4 }}>
-                            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                              <Text style={{ fontSize: 11, color: A.textSub }}>Shop</Text>
-                              <Text style={{ fontSize: 12, fontWeight: '600', color: A.text }} numberOfLines={1}>{shopName}</Text>
-                            </View>
-                            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                              <Text style={{ fontSize: 11, color: A.textSub }}>Customer</Text>
-                              <Text style={{ fontSize: 12, fontWeight: '600', color: A.text }}>{order.customer_name || '—'}</Text>
-                            </View>
-                            {order.drivers && (
-                              <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                                <Text style={{ fontSize: 11, color: A.textSub }}>Driver</Text>
-                                <Text style={{ fontSize: 12, fontWeight: '600', color: A.text }}>{(order.drivers as any)?.[0]?.full_name}</Text>
-                              </View>
-                            )}
-                            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                              <Text style={{ fontSize: 11, color: A.textSub }}>Items</Text>
-                              <Text style={{ fontSize: 12, fontWeight: '600', color: A.text }}>{itemCount} item{itemCount !== 1 ? 's' : ''}</Text>
-                            </View>
-                            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                              <Text style={{ fontSize: 11, color: A.textSub }}>Payment</Text>
-                              <Text style={{ fontSize: 12, fontWeight: '600', color: A.text }}>{(order.payment_method || '—').replace(/_/g, ' ')}</Text>
-                            </View>
-                            {deliveryFee > 0 && (
-                              <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                                <Text style={{ fontSize: 11, color: A.textSub }}>Delivery Fee</Text>
-                                <Text style={{ fontSize: 12, fontWeight: '600', color: A.cyan }}>${deliveryFee.toFixed(2)}</Text>
-                              </View>
-                            )}
-                            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                              <Text style={{ fontSize: 11, color: A.textSub }}>Date</Text>
-                              <Text style={{ fontSize: 11, color: A.textMuted }}>{new Date(order.created_at).toLocaleString()}</Text>
-                            </View>
-                          </View>
-                        </View>
+                orders.map(order => (
+                  <View key={order.id} style={styles.orderCard}>
+                    <View style={styles.orderHeader}>
+                      <Text style={styles.orderId}>#{order.id.slice(0, 8)}</Text>
+                      <View style={[styles.statusBadge, { backgroundColor: `${A.cyan}20`, borderColor: A.cyan }]}>
+                        <Text style={[styles.statusText, { color: A.cyan }]}>{order.status}</Text>
                       </View>
-                    </TouchableOpacity>
-                  );
-                })
+                    </View>
+                    <Text style={styles.orderShop} numberOfLines={1}>{Array.isArray(order.shops) ? order.shops[0]?.name : order.shops?.name || 'Unknown'}</Text>
+                    <Text style={styles.orderCustomer}>{order.customer_name || 'Customer'}</Text>
+                    <View style={styles.orderFooter}>
+                      <Text style={styles.orderTotal}>${Number(order.total_amount).toFixed(2)}</Text>
+                      <Text style={styles.orderTime}>
+                        {new Date(order.created_at).toLocaleDateString()}
+                      </Text>
+                    </View>
+                  </View>
+                ))
               )}
             </View>
           )}
 
           {activeTab === 'commission' && (
             <View style={{ gap: 14 }}>
+              <View style={[styles.settingsCard, { borderColor: `${A.amber}40` }]}>
+                <Text style={styles.settingsTitle}>Platform Commission Rate</Text>
+                <Text style={styles.settingsDesc}>Percentage of each shop's confirmed-order revenue owed to UniLink Delivery.</Text>
+                <View style={styles.feeInputRow}>
+                  <DollarSign size={20} color={A.amber} />
+                  <TextInput
+                    style={styles.feeInput}
+                    value={commissionRate}
+                    onChangeText={setCommissionRate}
+                    keyboardType="decimal-pad"
+                    placeholderTextColor={A.textMuted}
+                  />
+                  <Text style={{ fontSize: 16, fontWeight: '700', color: A.textSub }}>%</Text>
+                </View>
+                <TouchableOpacity
+                  style={[styles.saveFeeBtn, { opacity: savingCommission ? 0.6 : 1 }]}
+                  onPress={saveCommissionRate}
+                  disabled={savingCommission}
+                >
+                  {savingCommission ? <ActivityIndicator size="small" color="#000" /> : (
+                    <Text style={styles.saveFeeBtnText}>{commissionSaved ? 'Saved!' : 'Save Rate'}</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+
               <View style={[styles.settingsCard, { borderColor: `${A.green}40` }]}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 }}>
                   <Smartphone size={18} color={A.green} />
@@ -685,7 +612,7 @@ export default function AdminShops() {
                               <Text style={{ fontSize: 14, fontWeight: '700', color: A.text }}>${row.confirmedRevenue.toFixed(2)}</Text>
                             </View>
                             <View>
-                              <Text style={{ fontSize: 10, color: A.textSub, fontWeight: '600' }}>OWED ({row.commissionPercentage.toFixed(0)}%)</Text>
+                              <Text style={{ fontSize: 10, color: A.textSub, fontWeight: '600' }}>OWED ({(parseFloat(commissionRate) || 5).toFixed(0)}%)</Text>
                               <Text style={{ fontSize: 14, fontWeight: '800', color: A.amber }}>${row.commissionOwed.toFixed(2)}</Text>
                             </View>
                             <View>
@@ -803,48 +730,6 @@ export default function AdminShops() {
                             </TouchableOpacity>
                           )}
                         </View>
-                      )}
-                      {editingRate === row.shopId ? (
-                        <View style={{ marginTop: 10, gap: 8 }}>
-                          <Text style={{ fontSize: 11, color: A.textSub }}>Set commission % for {row.shopName}:</Text>
-                          <View style={styles.feeInputRow}>
-                            <DollarSign size={18} color={A.amber} />
-                            <TextInput
-                              style={styles.feeInput}
-                              value={rateInput}
-                              onChangeText={setRateInput}
-                              placeholder="5"
-                              placeholderTextColor={A.textMuted}
-                              keyboardType="decimal-pad"
-                            />
-                            <Text style={{ fontSize: 16, fontWeight: '700', color: A.textSub }}>%</Text>
-                          </View>
-                          <View style={{ flexDirection: 'row', gap: 8 }}>
-                            <TouchableOpacity
-                              style={[styles.actionBtn, { flex: 1, justifyContent: 'center', backgroundColor: A.card, borderColor: A.border }]}
-                              onPress={() => { setEditingRate(null); setRateInput(''); }}
-                            >
-                              <Text style={{ color: A.textSub, fontSize: 12 }}>Cancel</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                              style={[styles.actionBtn, { flex: 1, justifyContent: 'center', backgroundColor: A.amberDim || A.amber + '20', borderColor: A.amber }]}
-                              onPress={() => saveShopRate(row.shopId)}
-                              disabled={savingRate || !rateInput.trim()}
-                            >
-                              {savingRate ? <ActivityIndicator size="small" color={A.amber} /> : (
-                                <Text style={{ color: A.amber, fontSize: 12, fontWeight: '600' }}>Save Rate</Text>
-                              )}
-                            </TouchableOpacity>
-                          </View>
-                        </View>
-                      ) : (
-                        <TouchableOpacity
-                          style={[styles.actionBtn, { backgroundColor: A.amberDim || A.amber + '20', borderColor: A.amber, marginTop: 8 }]}
-                          onPress={() => { setEditingRate(row.shopId); setRateInput(String(row.commissionPercentage)); }}
-                        >
-                          <DollarSign size={12} color={A.amber} />
-                          <Text style={[styles.actionBtnText, { color: A.amber }]}>Edit Rate ({row.commissionPercentage.toFixed(0)}%)</Text>
-                        </TouchableOpacity>
                       )}
                     </View>
                   );
@@ -968,122 +853,6 @@ export default function AdminShops() {
                 </ScrollView>
               </>
             )}
-          </View>
-        </View>
-      </Modal>
-
-      {/* Order detail modal */}
-      <Modal visible={showOrderModal} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            {selectedOrder && (() => {
-              const meta = getOrderStatusMeta(selectedOrder.status);
-              const items = Array.isArray(selectedOrder.products) ? selectedOrder.products : [];
-              const deliveryFee = Number(selectedOrder.delivery_fee || 0);
-              const ecocashFee = Number(selectedOrder.ecocash_fee_amount || 0);
-              const grandTotal = Number(selectedOrder.total_amount) + deliveryFee + ecocashFee;
-              const shopName = Array.isArray(selectedOrder.shops) ? selectedOrder.shops[0]?.name : selectedOrder.shops?.name || 'Unknown';
-              return (
-                <>
-                  <View style={styles.modalHeader}>
-                    <Text style={styles.modalTitle}>Order #{selectedOrder.id.slice(0, 8)}</Text>
-                    <TouchableOpacity onPress={() => { setShowOrderModal(false); setSelectedOrder(null); }}>
-                      <X size={22} color={A.textSub} />
-                    </TouchableOpacity>
-                  </View>
-                  <ScrollView style={{ maxHeight: 500 }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                      <View style={{ backgroundColor: meta.color + '20', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4, borderWidth: 1, borderColor: meta.color }}>
-                        <Text style={{ fontSize: 11, fontWeight: '700', color: meta.color, letterSpacing: 1 }}>{meta.label.toUpperCase()}</Text>
-                      </View>
-                    </View>
-                    <Text style={styles.modalLabel}>SHOP</Text>
-                    <Text style={styles.modalValue}>{shopName}</Text>
-                    <Text style={styles.modalLabel}>CUSTOMER</Text>
-                    <Text style={styles.modalValue}>{selectedOrder.customer_name || '—'}</Text>
-                    {selectedOrder.customer_phone && (
-                      <>
-                        <Text style={styles.modalLabel}>PHONE</Text>
-                        <Text style={styles.modalValue}>{selectedOrder.customer_phone}</Text>
-                      </>
-                    )}
-                    {selectedOrder.drivers && (Array.isArray(selectedOrder.drivers) ? selectedOrder.drivers[0] : selectedOrder.drivers) && (
-                      <>
-                        <Text style={styles.modalLabel}>DRIVER</Text>
-                        <Text style={styles.modalValue}>{(() => { const d: any = selectedOrder.drivers; const dr = Array.isArray(d) ? d[0] : d; return dr ? `${dr.full_name}${dr.phone_number ? ` (${dr.phone_number})` : ''}` : ''; })()}</Text>
-                      </>
-                    )}
-                    {selectedOrder.delivery_location && (
-                      <>
-                        <Text style={styles.modalLabel}>DELIVERY LOCATION</Text>
-                        <Text style={styles.modalValue}>{selectedOrder.delivery_location}</Text>
-                      </>
-                    )}
-                    <Text style={styles.modalLabel}>PAYMENT METHOD</Text>
-                    <Text style={styles.modalValue}>{(selectedOrder.payment_method || '—').replace(/_/g, ' ')}</Text>
-                    <Text style={styles.modalLabel}>ORDER ITEMS</Text>
-                    <View style={{ marginTop: 4, gap: 4 }}>
-                      {items.length === 0 ? (
-                        <Text style={{ fontSize: 13, color: A.textSub }}>No items recorded</Text>
-                      ) : items.map((item: any, i: number) => (
-                        <View key={i} style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                          <Text style={{ fontSize: 13, color: A.textSub }}>{item.name} x{item.qty || item.quantity}</Text>
-                          <Text style={{ fontSize: 13, fontWeight: '600', color: A.text }}>${Number(item.price * (item.qty || item.quantity)).toFixed(2)}</Text>
-                        </View>
-                      ))}
-                    </View>
-                    <View style={{ marginTop: 12, paddingTop: 10, borderTopWidth: 1, borderTopColor: A.border, gap: 4 }}>
-                      <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                        <Text style={{ fontSize: 12, color: A.textSub }}>Subtotal</Text>
-                        <Text style={{ fontSize: 13, fontWeight: '600', color: A.text }}>${Number(selectedOrder.total_amount).toFixed(2)}</Text>
-                      </View>
-                      {deliveryFee > 0 && (
-                        <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                          <Text style={{ fontSize: 12, color: A.textSub }}>Delivery Fee</Text>
-                          <Text style={{ fontSize: 13, fontWeight: '600', color: A.cyan }}>${deliveryFee.toFixed(2)}</Text>
-                        </View>
-                      )}
-                      {ecocashFee > 0 && (
-                        <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                          <Text style={{ fontSize: 12, color: A.textSub }}>Ecocash Fee</Text>
-                          <Text style={{ fontSize: 13, fontWeight: '600', color: A.amber }}>${ecocashFee.toFixed(2)}</Text>
-                        </View>
-                      )}
-                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 4, paddingTop: 4, borderTopWidth: 1, borderTopColor: A.border }}>
-                        <Text style={{ fontSize: 14, fontWeight: '700', color: A.text }}>Total</Text>
-                        <Text style={{ fontSize: 16, fontWeight: '800', color: A.green }}>${grandTotal.toFixed(2)}</Text>
-                      </View>
-                    </View>
-                    {selectedOrder.order_note && (
-                      <>
-                        <Text style={styles.modalLabel}>NOTE</Text>
-                        <Text style={styles.modalValue}>{selectedOrder.order_note}</Text>
-                      </>
-                    )}
-                    <Text style={styles.modalLabel}>PLACED</Text>
-                    <Text style={styles.modalValue}>{new Date(selectedOrder.created_at).toLocaleString()}</Text>
-                    {selectedOrder.confirmed_at && (
-                      <>
-                        <Text style={styles.modalLabel}>CONFIRMED</Text>
-                        <Text style={styles.modalValue}>{new Date(selectedOrder.confirmed_at).toLocaleString()}</Text>
-                      </>
-                    )}
-                    {selectedOrder.picked_up_at && (
-                      <>
-                        <Text style={styles.modalLabel}>PICKED UP</Text>
-                        <Text style={styles.modalValue}>{new Date(selectedOrder.picked_up_at).toLocaleString()}</Text>
-                      </>
-                    )}
-                    {selectedOrder.delivered_at && (
-                      <>
-                        <Text style={styles.modalLabel}>DELIVERED</Text>
-                        <Text style={styles.modalValue}>{new Date(selectedOrder.delivered_at).toLocaleString()}</Text>
-                      </>
-                    )}
-                  </ScrollView>
-                </>
-              );
-            })()}
           </View>
         </View>
       </Modal>

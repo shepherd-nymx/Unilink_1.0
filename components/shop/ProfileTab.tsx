@@ -20,7 +20,7 @@ import {
   type OperatingHours,
   type DaySchedule,
 } from '@/lib/shop-types';
-import { Store, LogOut, MapPin, Navigation, Globe, Clock, CreditCard, DollarSign, BadgeCheck, TriangleAlert as AlertTriangle, X, Check, MessageCircle, Plus, Trash2, Ban, Search, Smartphone, Tag, ChevronDown, Camera, Image as ImageIcon, Truck } from 'lucide-react-native';
+import { Store, LogOut, MapPin, Navigation, Globe, Clock, CreditCard, DollarSign, BadgeCheck, TriangleAlert as AlertTriangle, X, Check, MessageCircle, Plus, Trash2, Ban, Search, Smartphone, Tag, ChevronDown, Camera, Image as ImageIcon } from 'lucide-react-native';
 import * as Location from 'expo-location';
 import * as ImagePicker from 'expo-image-picker';
 import { SHOP_CATEGORIES } from '@/components/marketplace/types';
@@ -72,17 +72,11 @@ export function ProfileTab({
   const [ecocashFee, setEcocashFee] = useState(shop.ecocash_fee != null ? String(shop.ecocash_fee) : '0');
   const [ecocashName, setEcocashName] = useState(shop.ecocash_name || '');
   const [ecocashNumber, setEcocashNumber] = useState(shop.ecocash_number || '');
-  const [ecocashCc, setEcocashCc] = useState('+263');
-  const [ecocashNum, setEcocashNum] = useState('');
   const [savingEcocash, setSavingEcocash] = useState(false);
   const [deliveryFee, setDeliveryFee] = useState(shop.delivery_fee != null ? String(shop.delivery_fee) : '0');
   const [savingFees, setSavingFees] = useState(false);
   const [whatsappInput, setWhatsappInput] = useState(shop.whatsapp_number || '');
-  const [whatsappCc, setWhatsappCc] = useState('+263');
-  const [whatsappNum, setWhatsappNum] = useState('');
   const [savingWhatsapp, setSavingWhatsapp] = useState(false);
-  const [driverMode, setDriverMode] = useState<'shop_assigned' | 'customer_assigned'>(shop.driver_assignment_mode || 'shop_assigned');
-  const [savingDriverMode, setSavingDriverMode] = useState(false);
   const [msg, setMsg] = useState('');
 
   // Category
@@ -94,8 +88,6 @@ export function ProfileTab({
   const [editName, setEditName] = useState(shop.name);
   const [editDescription, setEditDescription] = useState(shop.description || '');
   const [editPhone, setEditPhone] = useState(shop.contact_phone);
-  const [phoneCc, setPhoneCc] = useState('+263');
-  const [phoneNum, setPhoneNum] = useState('');
   const [savingInfo, setSavingInfo] = useState(false);
   const [logoUploading, setLogoUploading] = useState(false);
 
@@ -116,10 +108,6 @@ export function ProfileTab({
   // Delivery fee tiers
   const [feeTiers, setFeeTiers] = useState<{ id?: string; min_amount: string; max_amount: string; fee: string; label: string }[]>([]);
   const [savingTiers, setSavingTiers] = useState(false);
-
-  // Distance-based delivery fee tiers
-  const [distFeeTiers, setDistFeeTiers] = useState<{ id?: string; min_km: string; max_km: string; fee: string; label: string }[]>([]);
-  const [savingDistTiers, setSavingDistTiers] = useState(false);
 
   const useGps = async () => {
     setLocating(true);
@@ -236,33 +224,19 @@ export function ProfileTab({
       .from('shops')
       .update({
         ecocash_name: ecocashName.trim() || null,
-        ecocash_number: (ecocashCc.trim() + ecocashNum.trim().replace(/[^0-9]/g, '')) || null,
+        ecocash_number: ecocashNumber.trim() || null,
       })
       .eq('id', shop.id);
     setSavingEcocash(false);
     if (error) { setMsg(error.message); return; }
-    onShopUpdated({ ...shop, ecocash_name: ecocashName.trim() || null, ecocash_number: (ecocashCc.trim() + ecocashNum.trim().replace(/[^0-9]/g, '')) || null });
+    onShopUpdated({ ...shop, ecocash_name: ecocashName.trim() || null, ecocash_number: ecocashNumber.trim() || null });
     setMsg('EcoCash details saved');
-  };
-
-  const saveDriverMode = async (mode: 'shop_assigned' | 'customer_assigned') => {
-    setSavingDriverMode(true);
-    setMsg('');
-    const { error } = await supabase
-      .from('shops')
-      .update({ driver_assignment_mode: mode })
-      .eq('id', shop.id);
-    setSavingDriverMode(false);
-    if (error) { setMsg(error.message); return; }
-    setDriverMode(mode);
-    onShopUpdated({ ...shop, driver_assignment_mode: mode });
-    setMsg(mode === 'shop_assigned' ? 'You will assign drivers to orders.' : 'Customers will choose their own driver at checkout.');
   };
 
   const saveWhatsapp = async () => {
     setSavingWhatsapp(true);
     setMsg('');
-    const cleaned = (whatsappCc.trim() + whatsappNum.trim().replace(/[^0-9]/g, '')).replace(/[^0-9+]/g, '');
+    const cleaned = whatsappInput.trim().replace(/[^0-9+]/g, '');
     const { error } = await supabase
       .from('shops')
       .update({ whatsapp_number: cleaned || null })
@@ -327,7 +301,7 @@ export function ProfileTab({
     const updates = {
       name: editName.trim() || shop.name,
       description: editDescription.trim() || null,
-      contact_phone: (phoneCc.trim() + phoneNum.trim().replace(/[^0-9]/g, '')) || shop.contact_phone,
+      contact_phone: editPhone.trim() || shop.contact_phone,
     };
     const { error } = await supabase.from('shops').update(updates).eq('id', shop.id);
     setSavingInfo(false);
@@ -337,23 +311,10 @@ export function ProfileTab({
   };
 
   useEffect(() => {
-    const parseCcNum = (raw: string): { cc: string; num: string } => {
-      if (!raw) return { cc: '+263', num: '' };
-      const m = raw.replace(/\s/g, '').match(/^(\+\d{1,4})(\d+)$/);
-      if (m) return { cc: m[1], num: m[2] };
-      return { cc: '+263', num: raw.replace(/[^0-9]/g, '') };
-    };
-    const wp = parseCcNum(shop.whatsapp_number || '');
-    setWhatsappCc(wp.cc); setWhatsappNum(wp.num);
-    const ph = parseCcNum(shop.contact_phone || '');
-    setPhoneCc(ph.cc); setPhoneNum(ph.num);
-    const ec = parseCcNum(shop.ecocash_number || '');
-    setEcocashCc(ec.cc); setEcocashNum(ec.num);
     loadServiceLocations();
     loadAvailableLocations();
     loadBlacklist();
     loadFeeTiers();
-    loadDistFeeTiers();
   }, []);
 
   const loadBlacklist = async () => {
@@ -481,67 +442,6 @@ export function ProfileTab({
       setMsg(e.message || 'Failed to save tiers');
     } finally {
       setSavingTiers(false);
-    }
-  };
-
-  const loadDistFeeTiers = async () => {
-    const { data } = await supabase
-      .from('shop_distance_fee_tiers')
-      .select('id, min_km, max_km, fee, label, sort_order')
-      .eq('shop_id', shop.id)
-      .order('min_km', { ascending: true });
-    if (data) {
-      setDistFeeTiers(data.map((t: any) => ({
-        id: t.id,
-        min_km: String(t.min_km),
-        max_km: t.max_km != null ? String(t.max_km) : '',
-        fee: String(t.fee),
-        label: t.label || '',
-      })));
-    }
-  };
-
-  const addDistTier = () => {
-    setDistFeeTiers(prev => [...prev, { min_km: '0', max_km: '', fee: '0', label: '' }]);
-  };
-
-  const updateDistTier = (idx: number, field: 'min_km' | 'max_km' | 'fee' | 'label', value: string) => {
-    setDistFeeTiers(prev => prev.map((t, i) => i === idx ? { ...t, [field]: value } : t));
-  };
-
-  const removeDistTier = (idx: number) => {
-    setDistFeeTiers(prev => prev.filter((_, i) => i !== idx));
-  };
-
-  const saveDistTiers = async () => {
-    setSavingDistTiers(true);
-    setMsg('');
-    try {
-      await supabase.from('shop_distance_fee_tiers').delete().eq('shop_id', shop.id);
-      for (let i = 0; i < distFeeTiers.length; i++) {
-        const t = distFeeTiers[i];
-        const min = parseFloat(t.min_km) || 0;
-        const max = t.max_km.trim() !== '' ? parseFloat(t.max_km) : null;
-        const fee = parseFloat(t.fee) || 0;
-        if (max !== null && max <= min) {
-          setMsg(`Distance tier ${i + 1}: max km must be greater than min km`);
-          setSavingDistTiers(false);
-          return;
-        }
-        await supabase.from('shop_distance_fee_tiers').insert({
-          shop_id: shop.id,
-          min_km: min,
-          max_km: max,
-          fee,
-          label: t.label.trim() || null,
-          sort_order: i,
-        });
-      }
-      setMsg('Distance fee tiers saved');
-    } catch (e: any) {
-      setMsg(e.message || 'Failed to save distance tiers');
-    } finally {
-      setSavingDistTiers(false);
     }
   };
 
@@ -676,24 +576,14 @@ export function ProfileTab({
         </View>
         <View style={styles.fieldGroup}>
           <Text style={styles.label}>Contact Phone</Text>
-          <View style={{ flexDirection: 'row', gap: 8 }}>
-            <TextInput
-              style={[styles.feeInput, { flex: 0.3 }]}
-              value={phoneCc}
-              onChangeText={setPhoneCc}
-              placeholder="+263"
-              placeholderTextColor={A.textMuted}
-              keyboardType="phone-pad"
-            />
-            <TextInput
-              style={[styles.feeInput, { flex: 1, minWidth: 0 }]}
-              value={phoneNum}
-              onChangeText={setPhoneNum}
-              placeholder="771234567"
-              placeholderTextColor={A.textMuted}
-              keyboardType="number-pad"
-            />
-          </View>
+          <TextInput
+            style={styles.feeInput}
+            value={editPhone}
+            onChangeText={setEditPhone}
+            placeholder="e.g. +263771234567"
+            placeholderTextColor={A.textMuted}
+            keyboardType="phone-pad"
+          />
         </View>
         <View style={styles.row}>
           <Text style={styles.label}>Email (not editable)</Text>
@@ -906,24 +796,14 @@ export function ProfileTab({
         </View>
         <View style={styles.fieldGroup}>
           <Text style={styles.label}>EcoCash Phone Number</Text>
-          <View style={{ flexDirection: 'row', gap: 8, width: '100%' }}>
-            <TextInput
-              style={[styles.feeInput, { width: 92, flexShrink: 1 }]}
-              value={ecocashCc}
-              onChangeText={setEcocashCc}
-              placeholder="+263"
-              placeholderTextColor={A.textMuted}
-              keyboardType="phone-pad"
-            />
-            <TextInput
-              style={[styles.feeInput, { flex: 1, minWidth: 0 }]}
-              value={ecocashNum}
-              onChangeText={setEcocashNum}
-              placeholder="771234567"
-              placeholderTextColor={A.textMuted}
-              keyboardType="number-pad"
-            />
-          </View>
+          <TextInput
+            style={styles.feeInput}
+            value={ecocashNumber}
+            onChangeText={setEcocashNumber}
+            placeholder="e.g. +263771234567"
+            placeholderTextColor={A.textMuted}
+            keyboardType="phone-pad"
+          />
         </View>
         <TouchableOpacity style={[styles.saveBtn, { backgroundColor: A.amber }]} onPress={saveEcocashDetails} disabled={savingEcocash}>
           {savingEcocash ? <ActivityIndicator size="small" color="#000" /> : <Text style={[styles.saveBtnText, { color: '#000' }]}>Save EcoCash Details</Text>}
@@ -976,69 +856,19 @@ export function ProfileTab({
         </Text>
         <View style={styles.fieldGroup}>
           <Text style={styles.label}>WhatsApp Number</Text>
-          <View style={{ flexDirection: 'row', gap: 8, width: '100%' }}>
-            <TextInput
-              style={[styles.feeInput, { width: 92, flexShrink: 1 }]}
-              value={whatsappCc}
-              onChangeText={setWhatsappCc}
-              placeholder="+263"
-              placeholderTextColor={A.textMuted}
-              keyboardType="phone-pad"
-            />
-            <TextInput
-              style={[styles.feeInput, { flex: 1, minWidth: 0 }]}
-              value={whatsappNum}
-              onChangeText={setWhatsappNum}
-              placeholder="771234567"
-              placeholderTextColor={A.textMuted}
-              keyboardType="number-pad"
-            />
-          </View>
-          <Text style={styles.feeHint}>Country code + number. Leave empty to disable WhatsApp order confirmation.</Text>
+          <TextInput
+            style={styles.feeInput}
+            value={whatsappInput}
+            onChangeText={setWhatsappInput}
+            placeholder="e.g. +263771234567"
+            placeholderTextColor={A.textMuted}
+            keyboardType="phone-pad"
+          />
+          <Text style={styles.feeHint}>Include country code. Leave empty to disable WhatsApp order confirmation.</Text>
         </View>
         <TouchableOpacity style={[styles.saveBtn, { backgroundColor: '#25D366' }]} onPress={saveWhatsapp} disabled={savingWhatsapp}>
           {savingWhatsapp ? <ActivityIndicator size="small" color="#fff" /> : <Text style={[styles.saveBtnText, { color: '#fff' }]}>Save WhatsApp Number</Text>}
         </TouchableOpacity>
-      </View>
-
-      {/* Driver Assignment Mode */}
-      <View style={styles.card}>
-        <View style={styles.cardHeader}>
-          <Truck size={16} color={A.cyan} />
-          <Text style={styles.cardTitle}>Driver Assignment</Text>
-        </View>
-        <Text style={styles.whatsappDesc}>
-          Choose who selects the driver for each order. When customers choose, they must message the driver on WhatsApp before placing the order. The driver then handles all tracking updates.
-        </Text>
-        <View style={{ gap: 10 }}>
-          <TouchableOpacity
-            style={[styles.payRow, { borderBottomWidth: 0, borderWidth: 1.5, borderColor: driverMode === 'shop_assigned' ? A.cyan : A.border, backgroundColor: driverMode === 'shop_assigned' ? A.cyanDim : 'transparent', borderRadius: 10, paddingVertical: 14 }]}
-            onPress={() => saveDriverMode('shop_assigned')}
-            disabled={savingDriverMode}
-          >
-            <View style={[styles.checkbox, { backgroundColor: driverMode === 'shop_assigned' ? A.cyan : 'transparent', borderColor: driverMode === 'shop_assigned' ? A.cyan : A.border }]}>
-              {driverMode === 'shop_assigned' && <Check size={10} color="#fff" />}
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.payLabel, { color: A.text, fontWeight: '700' }]}>Shop assigns driver</Text>
-              <Text style={{ fontSize: 11, color: A.textSub, marginTop: 2 }}>You pick a driver from your dashboard when the order is ready.</Text>
-            </View>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.payRow, { borderBottomWidth: 0, borderWidth: 1.5, borderColor: driverMode === 'customer_assigned' ? A.cyan : A.border, backgroundColor: driverMode === 'customer_assigned' ? A.cyanDim : 'transparent', borderRadius: 10, paddingVertical: 14 }]}
-            onPress={() => saveDriverMode('customer_assigned')}
-            disabled={savingDriverMode}
-          >
-            <View style={[styles.checkbox, { backgroundColor: driverMode === 'customer_assigned' ? A.cyan : 'transparent', borderColor: driverMode === 'customer_assigned' ? A.cyan : A.border }]}>
-              {driverMode === 'customer_assigned' && <Check size={10} color="#fff" />}
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.payLabel, { color: A.text, fontWeight: '700' }]}>Customer chooses driver</Text>
-              <Text style={{ fontSize: 11, color: A.textSub, marginTop: 2 }}>Customer picks a driver at checkout, sends them a WhatsApp message, then places the order. The driver marks all tracking events.</Text>
-            </View>
-            {savingDriverMode && <ActivityIndicator size="small" color={A.cyan} />}
-          </TouchableOpacity>
-        </View>
       </View>
 
       {/* Service Locations — choose which customer locations can see this shop */}
@@ -1284,83 +1114,6 @@ export function ProfileTab({
           {feeTiers.length > 0 && (
             <TouchableOpacity style={[styles.saveBtn, { backgroundColor: A.blue, flex: 1, marginTop: 0 }]} onPress={saveTiers} disabled={savingTiers}>
               {savingTiers ? <ActivityIndicator size="small" color="#fff" /> : <Text style={[styles.saveBtnText, { color: '#fff' }]}>Save Tiers</Text>}
-            </TouchableOpacity>
-          )}
-        </View>
-      </View>
-
-      {/* Distance-Based Delivery Fee Tiers */}
-      <View style={styles.card}>
-        <View style={styles.cardHeader}>
-          <Navigation size={16} color={A.cyan} />
-          <Text style={styles.cardTitle}>Delivery Fee Tiers (by Distance)</Text>
-        </View>
-        <Text style={styles.whatsappDesc}>
-          Set delivery fees based on the distance from your shop to the customer's location. For example, charge $1 for customers within 2 km and $3 for 2–5 km. This is used alongside or instead of the order-cost tiers above. Leave empty to use the order-cost or flat fee.
-        </Text>
-
-        {distFeeTiers.length > 0 ? (
-          <View style={{ gap: 8, marginBottom: 12 }}>
-            {distFeeTiers.map((tier, idx) => (
-              <View key={idx} style={[styles.tierRow, { borderColor: A.inputBorder }]}>
-                <View style={styles.tierInputs}>
-                  <View style={styles.tierField}>
-                    <Text style={styles.tierLabel}>Min (km)</Text>
-                    <TextInput
-                      style={[styles.tierInput, { borderColor: A.inputBorder, color: A.text }]}
-                      value={tier.min_km}
-                      onChangeText={v => updateDistTier(idx, 'min_km', v)}
-                      placeholder="0"
-                      placeholderTextColor={A.textMuted}
-                      keyboardType="decimal-pad"
-                    />
-                  </View>
-                  <View style={styles.tierField}>
-                    <Text style={styles.tierLabel}>Max (km)</Text>
-                    <TextInput
-                      style={[styles.tierInput, { borderColor: A.inputBorder, color: A.text }]}
-                      value={tier.max_km}
-                      onChangeText={v => updateDistTier(idx, 'max_km', v)}
-                      placeholder="empty = above"
-                      placeholderTextColor={A.textMuted}
-                      keyboardType="decimal-pad"
-                    />
-                  </View>
-                  <View style={styles.tierField}>
-                    <Text style={styles.tierLabel}>Fee ($)</Text>
-                    <TextInput
-                      style={[styles.tierInput, { borderColor: A.inputBorder, color: A.text }]}
-                      value={tier.fee}
-                      onChangeText={v => updateDistTier(idx, 'fee', v)}
-                      placeholder="0.00"
-                      placeholderTextColor={A.textMuted}
-                      keyboardType="decimal-pad"
-                    />
-                  </View>
-                </View>
-                <TouchableOpacity onPress={() => removeDistTier(idx)}>
-                  <Trash2 size={15} color={A.red} />
-                </TouchableOpacity>
-              </View>
-            ))}
-          </View>
-        ) : (
-          <View style={[styles.warnBox, { borderColor: A.amber, marginBottom: 12 }]}>
-            <AlertTriangle size={14} color={A.amber} />
-            <Text style={[styles.warnText, { color: A.amber }]}>No distance tiers set — order-cost tiers or the flat fee will be used.</Text>
-          </View>
-        )}
-
-        <View style={{ flexDirection: 'row', gap: 8 }}>
-          <TouchableOpacity style={[styles.saveBtn, { backgroundColor: A.cyan, flex: 1, marginTop: 0 }]} onPress={addDistTier}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-              <Plus size={14} color="#000" />
-              <Text style={[styles.saveBtnText, { color: '#000' }]}>Add Distance Tier</Text>
-            </View>
-          </TouchableOpacity>
-          {distFeeTiers.length > 0 && (
-            <TouchableOpacity style={[styles.saveBtn, { backgroundColor: A.blue, flex: 1, marginTop: 0 }]} onPress={saveDistTiers} disabled={savingDistTiers}>
-              {savingDistTiers ? <ActivityIndicator size="small" color="#fff" /> : <Text style={[styles.saveBtnText, { color: '#fff' }]}>Save Tiers</Text>}
             </TouchableOpacity>
           )}
         </View>

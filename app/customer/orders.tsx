@@ -32,29 +32,14 @@ type Order = {
   } | null;
 };
 
-type ShopOrder = {
-  id: string;
-  products: any[];
-  total_amount: number;
-  delivery_fee: number;
-  delivery_location: string | null;
-  payment_method: string | null;
-  status: string;
-  created_at: string;
-  customer_id: string;
-  shops: { name: string }[] | null;
-  drivers: { full_name: string; phone_number: string }[] | null;
-};
-
 export default function CustomerOrders() {
   const router = useRouter();
   const { customerId, customerName } = useLocalSearchParams<{ customerId: string; customerName: string }>();
   const { isDark } = useTheme();
 
-  const [activeTab, setActiveTab] = useState<'grocery' | 'delivery' | 'shop'>('grocery');
+  const [activeTab, setActiveTab] = useState<'grocery' | 'delivery'>('grocery');
   const [orders, setOrders] = useState<Order[]>([]);
   const [deliveryRequests, setDeliveryRequests] = useState<DeliveryRequestRow[]>([]);
-  const [shopOrders, setShopOrders] = useState<ShopOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [notification, setNotification] = useState<{ message: string; type: 'success' | 'warning' } | null>(null);
@@ -89,17 +74,6 @@ export default function CustomerOrders() {
     } catch {}
   }, [customerId]);
 
-  const loadShopOrders = useCallback(async () => {
-    try {
-      const { data } = await supabase
-        .from('shop_orders')
-        .select('id, products, total_amount, delivery_fee, delivery_location, payment_method, status, created_at, customer_id, shops!shop_orders_shop_id_fkey(name), drivers(full_name, phone_number)')
-        .eq('customer_id', customerId as string)
-        .order('created_at', { ascending: false });
-      setShopOrders((data as unknown as ShopOrder[]) ?? []);
-    } catch {}
-  }, [customerId]);
-
   const loadDeliveryRequests = useCallback(async () => {
     try {
       const { data } = await supabase
@@ -117,8 +91,8 @@ export default function CustomerOrders() {
   }, [customerId]);
 
   const loadAll = useCallback(async () => {
-    await Promise.all([loadOrders(), loadDeliveryRequests(), loadShopOrders()]);
-  }, [loadOrders, loadDeliveryRequests, loadShopOrders]);
+    await Promise.all([loadOrders(), loadDeliveryRequests()]);
+  }, [loadOrders, loadDeliveryRequests]);
 
   useFocusEffect(useCallback(() => {
     setLoading(true);
@@ -141,12 +115,6 @@ export default function CustomerOrders() {
         else if (newStatus === 'in_progress') showNotification('Driver is on the way!', 'success');
         else if (newStatus === 'delivered') showNotification('Your delivery has been completed!', 'success');
         loadDeliveryRequests();
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'shop_orders', filter: `customer_id=eq.${customerId}` }, (payload) => {
-        const newStatus = (payload.new as any)?.status;
-        if (newStatus === 'out_for_delivery') showNotification('Your shop order is on the way!', 'success');
-        else if (newStatus === 'delivered') showNotification('Your shop order has been delivered!', 'success');
-        loadShopOrders();
       })
       .subscribe();
 
@@ -405,56 +373,6 @@ export default function CustomerOrders() {
     </ScrollView>
   );
 
-  const renderShopOrders = () => (
-    <ScrollView
-      style={styles.content}
-      showsVerticalScrollIndicator={false}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={P} />}
-      contentContainerStyle={{ paddingBottom: 32 }}
-    >
-      {shopOrders.length === 0 ? (
-        <View style={styles.emptyState}>
-          <View style={styles.emptyRing}><ShoppingBag size={36} color={TX3} /></View>
-          <Text style={styles.emptyStateText}>No shop deliveries yet</Text>
-          <Text style={styles.emptyStateSubtext}>Orders from marketplace shops will appear here with live delivery updates</Text>
-        </View>
-      ) : shopOrders.map((order) => {
-        const statusColor = order.status === 'delivered' ? SUCCESS : order.status === 'cancelled' ? ERR : order.status === 'out_for_delivery' || order.status === 'picked_up' ? AMBER : P;
-        const itemCount = (Array.isArray(order.products) ? order.products : []).reduce((sum: number, item: any) => sum + Number(item.qty || item.quantity || 1), 0);
-        const driver = Array.isArray(order.drivers) ? (order.drivers as any)[0] : order.drivers;
-        return (
-          <View key={order.id} style={styles.orderCard}>
-            <View style={[styles.orderCardTop, { backgroundColor: `${statusColor}08` }]}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <ShoppingBag size={16} color={statusColor} />
-                <View>
-                  <Text style={styles.detailValue}>{order.shops?.[0]?.name || 'Shop order'}</Text>
-                  <Text style={styles.orderDate}>{new Date(order.created_at).toLocaleDateString()}</Text>
-                </View>
-              </View>
-              <View style={[styles.statusBadge, { backgroundColor: `${statusColor}18`, borderColor: statusColor }]}>
-                <Text style={[styles.statusBadgeText, { color: statusColor }]}>{order.status.replace(/_/g, ' ').toUpperCase()}</Text>
-              </View>
-            </View>
-            <View style={styles.orderBody}>
-              <View style={[styles.statusBar, { backgroundColor: `${statusColor}12`, borderWidth: 1, borderColor: `${statusColor}30` }]}>
-                <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: statusColor }} />
-                <Text style={[styles.statusBarText, { color: statusColor }]}>
-                  {order.status === 'delivered' ? 'Shop delivery completed' : order.status === 'out_for_delivery' ? 'Driver is on the way to you' : order.status === 'cancelled' ? 'Shop order cancelled' : 'Shop is preparing your order'}
-                </Text>
-              </View>
-              <View style={styles.detailRow}><Text style={styles.detailLabel}>Order ID</Text><Text style={styles.detailValue}>#{order.id.slice(0, 8)}</Text></View>
-              <View style={styles.detailRow}><Text style={styles.detailLabel}>Items</Text><Text style={styles.detailValue}>{itemCount} item{itemCount !== 1 ? 's' : ''}</Text></View>
-              <View style={styles.detailRow}><Text style={styles.detailLabel}>Total</Text><Text style={styles.detailValueBold}>${(Number(order.total_amount) + Number(order.delivery_fee || 0)).toFixed(2)}</Text></View>
-              {order.delivery_location && <View style={styles.infoRow}><MapPin size={14} color={AMBER} /><Text style={styles.infoText}><Text style={styles.infoBold}>Deliver to:</Text> {order.delivery_location}</Text></View>}
-              {driver && <View style={styles.driverRow}><View><Text style={styles.driverLabel}>DRIVER</Text><Text style={styles.driverName}>{driver.full_name}</Text></View><Truck size={20} color={P} /></View>}
-            </View>
-          </View>
-        );
-      })}
-    </ScrollView>
-  );
-
   const renderDeliveryRequests = () => (
     <ScrollView
       style={styles.content}
@@ -664,18 +582,9 @@ export default function CustomerOrders() {
             </View>
           )}
         </TouchableOpacity>
-        <TouchableOpacity style={[styles.tab, activeTab === 'shop' && styles.tabActive]} onPress={() => setActiveTab('shop')}>
-          <ShoppingBag size={15} color={activeTab === 'shop' ? P : TX3} />
-          <Text style={[styles.tabText, activeTab === 'shop' && styles.tabTextActive]}>Shop Delivery Tracking</Text>
-          {shopOrders.length > 0 && (
-            <View style={[styles.tabBadge, { backgroundColor: P }]}>
-              <Text style={styles.tabBadgeText}>{shopOrders.length}</Text>
-            </View>
-          )}
-        </TouchableOpacity>
       </View>
 
-      {activeTab === 'grocery' ? renderGroceryOrders() : activeTab === 'delivery' ? renderDeliveryRequests() : renderShopOrders()}
+      {activeTab === 'grocery' ? renderGroceryOrders() : renderDeliveryRequests()}
     </View>
   );
 }

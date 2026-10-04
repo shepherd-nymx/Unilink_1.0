@@ -915,17 +915,17 @@ export default function CustomerDashboard() {
       flexDirection: 'column',
       justifyContent: 'flex-start',
       paddingHorizontal: 20,
-      paddingTop: 52,
-      paddingBottom: 18,
-      backgroundColor: '#060e1a',
+      paddingTop: 48,
+      paddingBottom: 12,
+      backgroundColor: '#070f1c',
       borderBottomWidth: 1,
-      borderBottomColor: 'rgba(0,229,255,0.14)',
-      gap: 14,
+      borderBottomColor: 'rgba(0,229,255,0.18)',
+      gap: 6,
       shadowColor: '#00e5ff',
-      shadowOffset: { width: 0, height: 3 },
-      shadowOpacity: 0.1,
-      shadowRadius: 18,
-      elevation: 5,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.08,
+      shadowRadius: 12,
+      elevation: 4,
     },
     headerTopRow: {
       flexDirection: 'row',
@@ -1047,41 +1047,37 @@ export default function CustomerDashboard() {
     },
     bottomNav: {
       flexDirection: 'row',
-      borderTopWidth: 0.5,
-      borderTopColor: 'rgba(148,163,184,0.25)',
-      paddingBottom: Platform.OS === 'ios' ? 20 : 10,
-      paddingTop: 10,
-      backgroundColor: isDark ? '#0a1220' : '#ffffff',
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: -6 },
-      shadowOpacity: isDark ? 0.5 : 0.08,
-      shadowRadius: 16,
-      elevation: 16,
+      borderTopWidth: 2,
+      borderTopColor: isDark ? 'rgba(56,189,248,0.16)' : 'rgba(26,115,232,0.15)',
+      paddingBottom: Platform.OS === 'ios' ? 20 : 12,
+      paddingTop: 12,
+      backgroundColor: isDark ? 'rgba(5,13,26,0.95)' : 'rgba(255,255,255,0.98)',
+      shadowColor: P,
+      shadowOffset: { width: 0, height: -4 },
+      shadowOpacity: isDark ? 0.15 : 0.08,
+      shadowRadius: 12,
+      elevation: 8,
     },
     bottomNavItem: {
       flex: 1,
       alignItems: 'center',
       justifyContent: 'center',
-      gap: 5,
-      paddingVertical: 4,
+      gap: 6,
+      paddingVertical: 8,
     },
     bottomNavIconWrap: {
-      width: 52,
-      height: 34,
-      borderRadius: 12,
+      width: 48,
+      height: 44,
+      borderRadius: 14,
       justifyContent: 'center',
       alignItems: 'center',
       position: 'relative',
-      backgroundColor: 'transparent',
-      borderWidth: 0,
-    },
-    bottomNavIconWrapActive: {
-      backgroundColor: isDark ? 'rgba(0,229,255,0.14)' : '#E8F1FF',
+      backgroundColor: isDark ? 'rgba(56,189,248,0.06)' : 'rgba(26,115,232,0.04)',
     },
     bottomNavLabel: {
-      fontSize: 11,
+      fontSize: 12,
       fontWeight: '700',
-      letterSpacing: 0.2,
+      letterSpacing: 0.3,
     },
     bottomNavDot: {
       position: 'absolute',
@@ -1093,16 +1089,16 @@ export default function CustomerDashboard() {
       borderWidth: 1.5,
       borderColor: CARD,
     },
-    headerTitle: { fontSize: 26, fontWeight: '900', color: '#e8f6ff', letterSpacing: 0.2, marginTop: 8 },
-    headerSubtitle: { fontSize: 12, color: '#7dd8ea', marginTop: 3, fontWeight: '600', letterSpacing: 1.2, textTransform: 'uppercase' as any },
+    headerTitle: { fontSize: 20, fontWeight: '900', color: '#d0eaff', letterSpacing: 0.3, marginTop: 2 },
+    headerSubtitle: { fontSize: 11, color: '#00e5ff', marginTop: 2, fontWeight: '600', letterSpacing: 0.5, textTransform: 'uppercase' as any },
     welcomeBadge: {
-      flexDirection: 'row', alignItems: 'center', gap: 6,
+      flexDirection: 'row', alignItems: 'center', gap: 5,
       alignSelf: 'flex-start',
-      paddingHorizontal: 10, paddingVertical: 4,
-      borderRadius: 12,
-      backgroundColor: 'rgba(0,255,136,0.08)',
+      paddingHorizontal: 8, paddingVertical: 2,
+      borderRadius: 10,
+      backgroundColor: 'rgba(0,229,255,0.08)',
       borderWidth: 1,
-      borderColor: 'rgba(0,255,136,0.25)',
+      borderColor: 'rgba(0,229,255,0.2)',
     },
     welcomeBadgeDot: {
       width: 5, height: 5, borderRadius: 3,
@@ -1112,9 +1108,9 @@ export default function CustomerDashboard() {
       fontSize: 8, fontWeight: '800', color: '#00ff88', letterSpacing: 1,
     },
     tutorialBtn: {
-      flexDirection: 'row', alignItems: 'center', gap: 6,
-      paddingHorizontal: 14, paddingVertical: 8,
-      borderRadius: 20, borderWidth: 1, flexShrink: 0,
+      flexDirection: 'row', alignItems: 'center', gap: 5,
+      paddingHorizontal: 12, paddingVertical: 6,
+      borderRadius: 18, borderWidth: 1, flexShrink: 0,
       borderColor: 'rgba(0,229,255,0.35)',
       backgroundColor: 'rgba(0,229,255,0.08)',
       shadowColor: '#00e5ff',
@@ -1123,7 +1119,7 @@ export default function CustomerDashboard() {
       shadowRadius: 6,
       elevation: 2,
     },
-    tutorialBtnText: { fontSize: 11, fontWeight: '700', color: '#00e5ff', letterSpacing: 0.4 },
+    tutorialBtnText: { fontSize: 10, fontWeight: '700', color: '#00e5ff', letterSpacing: 0.4 },
     content: { flex: 1 },
     searchContainer: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 8 },
     searchInputWrapper: {
@@ -1597,7 +1593,8 @@ export default function CustomerDashboard() {
           <Text style={styles.headerSubtitle} numberOfLines={1} ellipsizeMode="tail">
             Select your groceries
           </Text>
-        </View>      </View>
+        </View>
+      </View>
 
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
@@ -2109,7 +2106,10 @@ export default function CustomerDashboard() {
           onPress={() => router.push({ pathname: '/customer/profile', params: { customerId, customerName } })}
           activeOpacity={0.6}
         >
-          <View style={styles.bottomNavIconWrap}>
+          <View style={[
+            styles.bottomNavIconWrap,
+            { backgroundColor: isDark ? 'rgba(56,189,248,0.1)' : 'rgba(26,115,232,0.08)' }
+          ]}>
             <User size={24} color={P} strokeWidth={2} />
           </View>
           <Text style={[styles.bottomNavLabel, { color: P }]}>Profile</Text>
@@ -2120,7 +2120,14 @@ export default function CustomerDashboard() {
           onPress={() => router.push({ pathname: '/customer/chat', params: { customerId, customerName } })}
           activeOpacity={0.6}
         >
-          <View style={styles.bottomNavIconWrap}>
+          <View style={[
+            styles.bottomNavIconWrap,
+            {
+              backgroundColor: unreadMessageCount > 0
+                ? 'rgba(239,68,68,0.1)'
+                : isDark ? 'rgba(56,189,248,0.1)' : 'rgba(26,115,232,0.08)'
+            }
+          ]}>
             <AnimatedChatIcon
               unreadCount={unreadMessageCount}
               iconColor={unreadMessageCount > 0 ? '#EF4444' : P}
@@ -2139,7 +2146,14 @@ export default function CustomerDashboard() {
           onPress={() => router.push({ pathname: '/customer/orders', params: { customerId } })}
           activeOpacity={0.6}
         >
-          <View style={styles.bottomNavIconWrap}>
+          <View style={[
+            styles.bottomNavIconWrap,
+            {
+              backgroundColor: notificationDot || shopOrderUpdatesCount > 0
+                ? (notificationDot === 'yellow' || shopOrderUpdatesCount > 0 ? 'rgba(245,158,11,0.1)' : 'rgba(16,185,129,0.1)')
+                : isDark ? 'rgba(56,189,248,0.1)' : 'rgba(26,115,232,0.08)'
+            }
+          ]}>
             <History
               size={24}
               color={notificationDot || shopOrderUpdatesCount > 0 ? (notificationDot === 'yellow' ? WARN : SUCCESS) : P}
@@ -2167,7 +2181,10 @@ export default function CustomerDashboard() {
           onPress={() => router.push('/support' as any)}
           activeOpacity={0.6}
         >
-          <View style={styles.bottomNavIconWrap}>
+          <View style={[
+            styles.bottomNavIconWrap,
+            { backgroundColor: isDark ? 'rgba(56,189,248,0.1)' : 'rgba(26,115,232,0.08)' }
+          ]}>
             <HelpCircle size={24} color={P} strokeWidth={2} />
           </View>
           <Text style={[styles.bottomNavLabel, { color: P }]}>Support</Text>

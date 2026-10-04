@@ -107,17 +107,8 @@ export default function DriverSettings() {
   const [isAvailable, setIsAvailable] = useState(false);
   const [deliveryTypes, setDeliveryTypes] = useState<string[]>(['walking']);
   const [paymentMethods, setPaymentMethods] = useState<string[]>(['pay_on_delivery']);
-  const [whatsappCountryCode, setWhatsappCountryCode] = useState('+263');
   const [whatsappNumber, setWhatsappNumber] = useState('');
   const [notificationEmail, setNotificationEmail] = useState('');
-  const [homeLatitude, setHomeLatitude] = useState('');
-  const [homeLongitude, setHomeLongitude] = useState('');
-  const [homeAddress, setHomeAddress] = useState('');
-  const [detectingGps, setDetectingGps] = useState(false);
-  const [distanceTiers, setDistanceTiers] = useState<{ id?: string; min_km: string; max_km: string; fee: string; label: string }[]>([
-    { min_km: '0', max_km: '2', fee: '1.50', label: 'Short hop' },
-    { min_km: '2', max_km: '5', fee: '3.00', label: 'Medium' },
-  ]);
   const [profilePictureUrl, setProfilePictureUrl] = useState('');
   const [uploadingImage, setUploadingImage] = useState(false);
   const [availabilityStartTime, setAvailabilityStartTime] = useState('');
@@ -223,27 +214,8 @@ export default function DriverSettings() {
       setIsAvailable(data.is_available);
       setDeliveryTypes(data.delivery_type || ['walking']);
       setPaymentMethods(data.payment_methods || ['pay_on_delivery']);
-      const rawWp = data.whatsapp_number || '';
-      if (rawWp.startsWith('+')) {
-        const match = rawWp.match(/^(\+\d{1,4})(.*)$/);
-        if (match) { setWhatsappCountryCode(match[1]); setWhatsappNumber(match[2].replace(/\D/g, '')); }
-        else { setWhatsappNumber(rawWp.replace(/[^0-9]/g, '')); }
-      } else { setWhatsappNumber(rawWp.replace(/[^0-9]/g, '')); }
+      setWhatsappNumber(data.whatsapp_number || '');
       setNotificationEmail(data.notification_email || data.email || '');
-      setHomeLatitude(data.home_latitude != null ? String(data.home_latitude) : '');
-      setHomeLongitude(data.home_longitude != null ? String(data.home_longitude) : '');
-      setHomeAddress(data.home_address || '');
-      const { data: tiers } = await supabase
-        .from('driver_distance_fee_tiers')
-        .select('id, min_km, max_km, fee, label, sort_order')
-        .eq('driver_id', driverId as string)
-        .order('sort_order', { ascending: true });
-      if (tiers && tiers.length > 0) {
-        setDistanceTiers(tiers.map((t: any) => ({
-          id: t.id, min_km: String(t.min_km), max_km: t.max_km != null ? String(t.max_km) : '',
-          fee: String(t.fee), label: t.label || '',
-        })));
-      }
       setProfilePictureUrl(data.profile_picture_url || '');
       setUniversityName((data.universities as any)?.name || '');
       setDefaultUniversityId(data.university_id || null);
@@ -269,34 +241,14 @@ export default function DriverSettings() {
         fee_up_to_200: parseFloat(feeUpTo200), fee_up_to_300: parseFloat(feeUpTo300),
         fee_up_to_400: parseFloat(feeUpTo400), fee_up_to_500: parseFloat(feeUpTo500),
         is_available: isAvailable, delivery_type: deliveryTypes, payment_methods: paymentMethods,
-        whatsapp_number: (whatsappCountryCode.trim() + whatsappNumber.trim()) || null,
+        whatsapp_number: whatsappNumber.trim() || null,
         notification_email: notificationEmail.trim() || null,
-        home_latitude: homeLatitude.trim() ? parseFloat(homeLatitude) : null,
-        home_longitude: homeLongitude.trim() ? parseFloat(homeLongitude) : null,
-        home_address: homeAddress.trim() || null,
         profile_picture_url: profilePictureUrl.trim() || null,
         availability_start_time: availabilityStartTime.trim() || null,
         availability_end_time: availabilityEndTime.trim() || null,
         availability_days: availabilityDays,
       }).eq('id', driverId as string);
       if (dbError) throw dbError;
-
-      await supabase.from('driver_distance_fee_tiers').delete().eq('driver_id', driverId as string);
-      const tiersToInsert = distanceTiers
-        .filter(t => t.fee.trim() && t.min_km.trim())
-        .map((t, i) => ({
-          driver_id: driverId as string,
-          min_km: parseFloat(t.min_km),
-          max_km: t.max_km.trim() ? parseFloat(t.max_km) : null,
-          fee: parseFloat(t.fee),
-          label: t.label.trim() || null,
-          sort_order: i,
-        }));
-      if (tiersToInsert.length > 0) {
-        const { error: tierErr } = await supabase.from('driver_distance_fee_tiers').insert(tiersToInsert);
-        if (tierErr) throw tierErr;
-      }
-
       setSuccessMessage('Settings saved successfully');
       setTimeout(() => setSuccessMessage(''), 3000);
     } catch (err: any) { setError(err.message || 'Failed to save settings'); }
@@ -306,10 +258,6 @@ export default function DriverSettings() {
   const toggleType = (t: string) => setDeliveryTypes(prev => prev.includes(t) ? prev.filter(x => x !== t) : [...prev, t]);
   const togglePayment = (m: string) => setPaymentMethods(prev => prev.includes(m) ? prev.filter(x => x !== m) : [...prev, m]);
   const toggleDay = (d: string) => setAvailabilityDays(prev => prev.includes(d) ? prev.filter(x => x !== d) : [...prev, d]);
-  const updateTier = (idx: number, field: 'min_km' | 'max_km' | 'fee' | 'label', val: string) =>
-    setDistanceTiers(prev => prev.map((t, i) => i === idx ? { ...t, [field]: val } : t));
-  const addTier = () => setDistanceTiers(prev => [...prev, { min_km: '', max_km: '', fee: '', label: '' }]);
-  const removeTier = (idx: number) => setDistanceTiers(prev => prev.filter((_, i) => i !== idx));
 
   const headerBorder = headerGlow.interpolate({ inputRange: [0, 1], outputRange: ['rgba(0,229,255,0.06)', 'rgba(0,229,255,0.25)'] });
 
@@ -482,178 +430,19 @@ export default function DriverSettings() {
         </View>
 
         <View style={ss.section}>
-          <Text style={ss.sectionTitle}>Your GPS Location</Text>
-          <Text style={ss.sectionDesc}>Customers use this to find the messenger closest to them. Set your typical base location (e.g. your dorm, campus spot).</Text>
-          <View style={ss.inputWrap}>
-            <MapPin size={14} color={TEXT2} />
-            <TextInput
-              style={ss.inputInline}
-              value={homeAddress}
-              onChangeText={setHomeAddress}
-              placeholder="e.g. Near UZ Maths Department"
-              placeholderTextColor={TEXT3}
-            />
-          </View>
-          <View style={{ flexDirection: 'row', gap: 8, marginTop: 10 }}>
-            <View style={{ flex: 1 }}>
-              <Text style={ss.fieldLabel}>Latitude</Text>
-              <View style={ss.inputWrap}>
-                <TextInput
-                  style={ss.inputInline}
-                  value={homeLatitude}
-                  onChangeText={setHomeLatitude}
-                  placeholder="-17.7852"
-                  placeholderTextColor={TEXT3}
-                  keyboardType="decimal-pad"
-                />
-              </View>
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={ss.fieldLabel}>Longitude</Text>
-              <View style={ss.inputWrap}>
-                <TextInput
-                  style={ss.inputInline}
-                  value={homeLongitude}
-                  onChangeText={setHomeLongitude}
-                  placeholder="31.0522"
-                  placeholderTextColor={TEXT3}
-                  keyboardType="decimal-pad"
-                />
-              </View>
-            </View>
-          </View>
-          <TouchableOpacity
-            style={[ss.toggleBtn, { marginTop: 10, alignSelf: 'flex-start' }]}
-            onPress={async () => {
-              setDetectingGps(true);
-              setError('');
-              try {
-                let lat: number;
-                let lng: number;
-
-                if (Platform.OS === 'web') {
-                  if (!navigator.geolocation) {
-                    setError('Geolocation is not supported by your browser. Please enter coordinates manually.');
-                    return;
-                  }
-                  const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
-                    navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
-                  });
-                  lat = pos.coords.latitude;
-                  lng = pos.coords.longitude;
-                } else {
-                  const Location = await import('expo-location');
-                  const { status } = await Location.requestForegroundPermissionsAsync();
-                  if (status !== 'granted') {
-                    setError('Location permission denied. Please enter coordinates manually.');
-                    return;
-                  }
-                  const pos = await Location.getCurrentPositionAsync({});
-                  lat = pos.coords.latitude;
-                  lng = pos.coords.longitude;
-                }
-
-                setHomeLatitude(String(lat.toFixed(6)));
-                setHomeLongitude(String(lng.toFixed(6)));
-
-                await supabase
-                  .from('drivers')
-                  .update({ home_latitude: lat, home_longitude: lng })
-                  .eq('id', driverId as string);
-
-                setSuccessMessage('GPS location saved to your profile');
-                setTimeout(() => setSuccessMessage(''), 3000);
-              } catch (err: any) {
-                setError(err?.message || 'Failed to detect GPS location');
-              } finally {
-                setDetectingGps(false);
-              }
-            }}
-            disabled={detectingGps}
-            activeOpacity={0.85}
-          >
-            {detectingGps ? <ActivityIndicator size="small" color={CYAN} /> : <Navigation2 size={14} color={CYAN} />}
-            <Text style={[ss.toggleBtnText, { color: CYAN }]}>{detectingGps ? 'Detecting...' : 'Use My Current GPS'}</Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={ss.section}>
-          <Text style={ss.sectionTitle}>Distance-Based Delivery Fees</Text>
-          <Text style={ss.sectionDesc}>Set the fee you charge based on how far the customer is from your base location. Customers see this when choosing you.</Text>
-          {distanceTiers.map((tier, idx) => (
-            <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-              <View style={{ flex: 0.8 }}>
-                <Text style={ss.fieldLabel}>Min km</Text>
-                <TextInput
-                  style={[ss.input, { paddingHorizontal: 8, paddingVertical: 8, fontSize: 13 }]}
-                  value={tier.min_km}
-                  onChangeText={v => updateTier(idx, 'min_km', v)}
-                  placeholder="0"
-                  placeholderTextColor={TEXT3}
-                  keyboardType="decimal-pad"
-                />
-              </View>
-              <Text style={{ color: TEXT2, fontSize: 16, marginTop: 18 }}>–</Text>
-              <View style={{ flex: 0.8 }}>
-                <Text style={ss.fieldLabel}>Max km</Text>
-                <TextInput
-                  style={[ss.input, { paddingHorizontal: 8, paddingVertical: 8, fontSize: 13 }]}
-                  value={tier.max_km}
-                  onChangeText={v => updateTier(idx, 'max_km', v)}
-                  placeholder="∞"
-                  placeholderTextColor={TEXT3}
-                  keyboardType="decimal-pad"
-                />
-              </View>
-              <View style={{ flex: 0.7 }}>
-                <Text style={ss.fieldLabel}>Fee $</Text>
-                <TextInput
-                  style={[ss.input, { paddingHorizontal: 8, paddingVertical: 8, fontSize: 13 }]}
-                  value={tier.fee}
-                  onChangeText={v => updateTier(idx, 'fee', v)}
-                  placeholder="2.00"
-                  placeholderTextColor={TEXT3}
-                  keyboardType="decimal-pad"
-                />
-              </View>
-              <TouchableOpacity onPress={() => removeTier(idx)} style={{ marginTop: 18, paddingHorizontal: 4 }}>
-                <Text style={{ color: '#ff5555', fontSize: 20, fontWeight: '700' }}>×</Text>
-              </TouchableOpacity>
-            </View>
-          ))}
-          <TouchableOpacity style={ss.photoBtn} onPress={addTier}>
-            <Text style={ss.photoBtnText}>+ Add Distance Tier</Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={ss.section}>
           <Text style={ss.sectionTitle}>WhatsApp Number</Text>
           <Text style={ss.sectionDesc}>Customers will use this to notify you when an order is placed</Text>
-          <View style={{ flexDirection: 'row', gap: 8, width: '100%' }}>
-            <View style={[ss.inputWrap, { width: 92, flexShrink: 1 }]}>
-              <Text style={{ fontSize: 13, fontWeight: '700', color: TEXT2 }}>Code</Text>
-              <TextInput
-                style={[ss.inputInline, { fontSize: 13 }]}
-                value={whatsappCountryCode}
-                onChangeText={setWhatsappCountryCode}
-                placeholder="+263"
-                placeholderTextColor={TEXT3}
-                keyboardType="phone-pad"
-                autoCorrect={false}
-              />
-            </View>
-            <View style={[ss.inputWrap, { flex: 1, minWidth: 0 }]}>
-              <MessageCircle size={14} color={TEXT2} />
-              <TextInput
-                style={ss.inputInline}
-                value={whatsappNumber}
-                onChangeText={setWhatsappNumber}
-                placeholder="771234567"
-                placeholderTextColor={TEXT3}
-                keyboardType="number-pad"
-                autoCorrect={false}
-              />
-            </View>
+          <View style={ss.inputWrap}>
+            <MessageCircle size={14} color={TEXT2} />
+            <TextInput
+              style={ss.inputInline}
+              value={whatsappNumber}
+              onChangeText={setWhatsappNumber}
+              placeholder="e.g. +263771234567"
+              placeholderTextColor={TEXT3}
+              keyboardType="phone-pad"
+              autoCorrect={false}
+            />
           </View>
         </View>
 
@@ -897,7 +686,7 @@ const ss = StyleSheet.create({
     borderRadius: 10, padding: 10, fontSize: 13, color: TEXT,
   },
   inputWrap: {
-    flexDirection: 'row', alignItems: 'center', gap: 8, minWidth: 0,
+    flexDirection: 'row', alignItems: 'center', gap: 8,
     backgroundColor: CARD2, borderWidth: 1, borderColor: TEXT3,
     borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8,
   },
