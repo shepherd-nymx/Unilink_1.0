@@ -77,7 +77,8 @@ export default function CustomerLogin() {
   };
 
   const handleLogin = async () => {
-    if (!username || !password) {
+    const userTrim = username.trim();
+    if (!userTrim || !password) {
       setError('Please fill in all fields');
       return;
     }
@@ -86,34 +87,60 @@ export default function CustomerLogin() {
     setError('');
 
     try {
-      const { data, error: dbError } = await supabase
+      const lookup = userTrim.replace(/([%_\\])/g, '\\$1');
+      const { data: candidates, error: dbError } = await supabase
         .from('customers')
         .select('*')
-        .eq('username', username)
-        .maybeSingle();
+        .ilike('username', `${lookup}%`)
+        .limit(20);
 
       if (dbError) throw dbError;
 
-      if (!data) {
+      const customer = (candidates || []).find(
+        (c: any) => String(c.username || '').trim().toLowerCase() === userTrim.toLowerCase()
+      );
+
+      if (!customer) {
         setError('Invalid username or password');
         setLoading(false);
         return;
       }
 
-      const passwordHash = btoa(password);
+      const storedHash = customer.password_hash;
 
-      if (data.password_hash !== passwordHash) {
-        setError('Invalid username or password');
-        setLoading(false);
-        return;
+      if (!storedHash) {
+        // Admin-created accounts have no password yet — first login sets it.
+        const { error: setErr } = await supabase
+          .from('customers')
+          .update({ password_hash: btoa(password.trim()) })
+          .eq('id', customer.id);
+        if (setErr) throw setErr;
+      } else {
+        const matchedInput = [password, password.trim(), `${password} `, ` ${password}`]
+          .find((candidate) => {
+            try { return btoa(candidate) === storedHash; } catch { return false; }
+          });
+
+        if (matchedInput == null) {
+          setError('Invalid username or password');
+          setLoading(false);
+          return;
+        }
+
+        if (matchedInput !== password.trim()) {
+          await supabase
+            .from('customers')
+            .update({ password_hash: btoa(password.trim()) })
+            .eq('id', customer.id);
+        }
       }
 
-      saveUserData({ id: data.id, type: 'customer', name: data.full_name });
-      registerForPushNotificationsOnLogin(data.id, 'customer').catch(() => {});
-      registerDeviceToken(data.id).catch(() => {});
+      saveUserData({ id: customer.id, type: 'customer', name: customer.full_name });
+      registerForPushNotificationsOnLogin(customer.id, 'customer').catch(() => {});
+      registerDeviceToken(customer.id).catch(() => {});
       router.replace({
         pathname: '/customer/dashboard',
-        params: { customerId: data.id, customerName: data.full_name },
+        params: { customerId: customer.id, customerName: customer.full_name },
       });
     } catch (err: any) {
       setError(err.message || 'Login failed');
