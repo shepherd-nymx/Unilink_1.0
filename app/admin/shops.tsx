@@ -15,7 +15,7 @@ import {
 import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { A } from '@/lib/admin-theme';
-import { ArrowLeft, Store, CircleCheck as CheckCircle, Circle as XCircle, DollarSign, Clock, Ban, Eye, X, CircleAlert as AlertCircle, ShoppingBag, Settings, MapPin, Calendar, Smartphone, Award } from 'lucide-react-native';
+import { ArrowLeft, Store, CircleCheck as CheckCircle, Circle as XCircle, DollarSign, Clock, Ban, Eye, X, CircleAlert as AlertCircle, ShoppingBag, Settings, MapPin, Calendar, Smartphone, Award, Users, Truck } from 'lucide-react-native';
 import { SkeletonList } from '@/components/Skeleton';
 import { ConnectionBadge } from '@/components/ConnectionBadge';
 
@@ -36,6 +36,7 @@ type Shop = {
   payment_verified_at: string | null;
   approved_at: string | null;
   premium_badge: string | null;
+  driver_assignment_mode?: string;
 };
 
 type ShopOrder = {
@@ -99,6 +100,7 @@ export default function AdminShops() {
   const [error, setError] = useState('');
   const [connState, setConnState] = useState<'connecting' | 'connected' | 'disconnected' | 'error'>('connecting');
   const [savingBadge, setSavingBadge] = useState(false);
+  const [shopCustomerCounts, setShopCustomerCounts] = useState<Record<string, number>>({});
 
   useEffect(() => {
     loadData();
@@ -135,6 +137,19 @@ export default function AdminShops() {
         .order('created_at', { ascending: false })
         .limit(50);
       setOrders(orderData || []);
+
+      const { data: custOrderData } = await supabase
+        .from('shop_orders')
+        .select('shop_id, customer_id');
+      const counts: Record<string, Set<string>> = {};
+      (custOrderData || []).forEach((o: any) => {
+        if (!o.shop_id || !o.customer_id) return;
+        if (!counts[o.shop_id]) counts[o.shop_id] = new Set();
+        counts[o.shop_id].add(o.customer_id);
+      });
+      const countMap: Record<string, number> = {};
+      Object.keys(counts).forEach(k => { countMap[k] = counts[k].size; });
+      setShopCustomerCounts(countMap);
 
       const { data: settings } = await supabase
         .from('shop_settings')
@@ -299,6 +314,17 @@ export default function AdminShops() {
     loadData();
   };
 
+  const toggleAssignmentMode = async (shop: Shop) => {
+    const current = shop.driver_assignment_mode === 'customer_assigned' ? 'customer_assigned' : 'shop_assigned';
+    const next = current === 'customer_assigned' ? 'shop_assigned' : 'customer_assigned';
+    const { error: err } = await supabase
+      .from('shops')
+      .update({ driver_assignment_mode: next })
+      .eq('id', shop.id);
+    if (err) { setError(err.message); return; }
+    setShops(prev => prev.map(s => s.id === shop.id ? { ...s, driver_assignment_mode: next } : s));
+  };
+
   const rejectShop = async () => {
     if (!shopToReject || !rejectionReason.trim()) return;
     await updateShopStatus(shopToReject.id, 'rejected', { rejection_reason: rejectionReason.trim() });
@@ -422,6 +448,23 @@ export default function AdminShops() {
                             {STATUS_LABELS[shop.status] || shop.status}
                           </Text>
                         </View>
+                      </View>
+
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: 10, flexWrap: 'wrap' as any }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                          <Users size={13} color={A.cyan} />
+                          <Text style={styles.shopDetailText}>{shopCustomerCounts[shop.id] ?? 0} customers</Text>
+                        </View>
+                        <TouchableOpacity
+                          style={[styles.assignmentToggle, { borderColor: shop.driver_assignment_mode === 'customer_assigned' ? A.amber : A.cyan }]}
+                          onPress={() => toggleAssignmentMode(shop)}
+                          activeOpacity={0.8}
+                        >
+                          <Truck size={13} color={shop.driver_assignment_mode === 'customer_assigned' ? A.amber : A.cyan} />
+                          <Text style={[styles.assignmentToggleText, { color: shop.driver_assignment_mode === 'customer_assigned' ? A.amber : A.cyan }]}>
+                            {shop.driver_assignment_mode === 'customer_assigned' ? 'Customer picks driver' : 'Shop assigns driver'}
+                          </Text>
+                        </TouchableOpacity>
                       </View>
 
                       <View style={styles.shopActions}>
@@ -926,6 +969,12 @@ const styles = StyleSheet.create({
   shopName: { fontSize: 15, fontWeight: '700', color: A.text, flexShrink: 1 },
   shopContact: { fontSize: 11, color: A.textSub, marginTop: 4 },
   shopAddress: { fontSize: 11, color: A.textMuted, marginTop: 2 },
+  shopDetailText: { fontSize: 12, color: A.textSub, fontWeight: '600' },
+  assignmentToggle: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, borderWidth: 1,
+  },
+  assignmentToggleText: { fontSize: 11, fontWeight: '700' },
   statusBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, borderWidth: 1, flexShrink: 0 },
   statusText: { fontSize: 10, fontWeight: '600', flexShrink: 1 },
   shopActions: { flexDirection: 'row', gap: 8, marginTop: 12, flexWrap: 'wrap' as any },
