@@ -23,6 +23,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useTermsGuard } from '@/hooks/useTermsGuard';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { setCurrentUser, registerForPushNotificationsOnLogin } from '@/lib/notification-service';
+import AnnouncementPopup from '@/components/AnnouncementPopup';
 import { saveUserData, clearUserData, loadUserData } from '@/lib/storage-service';
 import NotificationPermissionModal from '@/components/NotificationPermissionModal';
 
@@ -1038,6 +1039,8 @@ export default function DriverDashboard() {
       </View>
         </>
       )}
+
+      <AnnouncementPopup audience="drivers" />
     </View>
   );
 }

@@ -21,9 +21,17 @@ const URGENCY_STYLES: Record<
   critical: { label: 'Critical Alert', color: '#B91C1C', dim: '#FEE2E2', icon: Siren },
 };
 
-const DISMISSED_KEY = 'dismissed_announcement';
+const DISMISSED_PREFIX = 'dismissed_announcement';
 
-export default function AnnouncementPopup({ visible }: { visible: boolean }) {
+export type AnnouncementAudience = 'customers' | 'drivers';
+
+export default function AnnouncementPopup({
+  visible = true,
+  audience,
+}: {
+  visible?: boolean;
+  audience: AnnouncementAudience;
+}) {
   const [announcement, setAnnouncement] = useState<Announcement | null>(null);
   const [dismissed, setDismissed] = useState(true);
 
@@ -36,6 +44,7 @@ export default function AnnouncementPopup({ visible }: { visible: boolean }) {
           .from('announcements')
           .select('id, message, urgency, updated_at')
           .eq('is_active', true)
+          .in('audience', [audience, 'all'])
           .order('updated_at', { ascending: false })
           .limit(1)
           .maybeSingle();
@@ -52,7 +61,7 @@ export default function AnnouncementPopup({ visible }: { visible: boolean }) {
         setAnnouncement(next);
 
         if (typeof window !== 'undefined') {
-          const stored = localStorage.getItem(DISMISSED_KEY);
+          const stored = localStorage.getItem(`${DISMISSED_PREFIX}_${audience}`);
           setDismissed(stored === `${next.id}:${next.updated_at}`);
         }
       } catch (err) {
@@ -72,7 +81,7 @@ export default function AnnouncementPopup({ visible }: { visible: boolean }) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [visible]);
+  }, [visible, audience]);
 
   if (!visible || !announcement || dismissed) return null;
 
@@ -81,7 +90,7 @@ export default function AnnouncementPopup({ visible }: { visible: boolean }) {
 
   const handleDismiss = () => {
     if (typeof window !== 'undefined' && announcement) {
-      localStorage.setItem(DISMISSED_KEY, `${announcement.id}:${announcement.updated_at}`);
+      localStorage.setItem(`${DISMISSED_PREFIX}_${audience}`, `${announcement.id}:${announcement.updated_at}`);
     }
     setDismissed(true);
   };

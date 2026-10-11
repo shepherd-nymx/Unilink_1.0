@@ -2204,7 +2204,7 @@ export default function CustomerDashboard() {
         }}
       />
 
-      <AnnouncementPopup visible={isChecking === false && isAccepted} />
+      <AnnouncementPopup visible={isChecking === false && isAccepted} audience="customers" />
 
       <AddCustomItemModal
         visible={showAddItemModal}

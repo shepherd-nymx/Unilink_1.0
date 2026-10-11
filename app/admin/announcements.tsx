@@ -23,16 +23,21 @@ import {
   TriangleAlert,
   Siren,
   Check,
+  Users,
+  Truck,
+  UsersRound,
 } from 'lucide-react-native';
 import { supabase } from '@/lib/supabase';
 import { A } from '@/lib/admin-theme';
 
 type Urgency = 'info' | 'warning' | 'critical';
+type Audience = 'customers' | 'drivers' | 'all';
 
 type Announcement = {
   id: string;
   message: string;
   urgency: Urgency;
+  audience: Audience;
   is_active: boolean;
   created_by: string | null;
   created_at: string;
@@ -63,6 +68,12 @@ const URGENCY_META: Record<Urgency, { label: string; description: string; color:
   },
 };
 
+const AUDIENCE_META: Record<Audience, { label: string; description: string; color: string; icon: typeof Users }> = {
+  customers: { label: 'Customers', description: 'Shoppers only', color: A.blue, icon: Users },
+  drivers: { label: 'Drivers', description: 'Messengers only', color: A.green, icon: Truck },
+  all: { label: 'Everyone', description: 'Customers and drivers', color: A.cyan, icon: UsersRound },
+};
+
 export default function AdminAnnouncements() {
   const router = useRouter();
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
@@ -71,6 +82,7 @@ export default function AdminAnnouncements() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [message, setMessage] = useState('');
   const [urgency, setUrgency] = useState<Urgency>('info');
+  const [audience, setAudience] = useState<Audience>('all');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [deleteTarget, setDeleteTarget] = useState<Announcement | null>(null);
@@ -99,10 +111,12 @@ export default function AdminAnnouncements() {
       setEditingId(announcement.id);
       setMessage(announcement.message);
       setUrgency(announcement.urgency);
+      setAudience(announcement.audience || 'customers');
     } else {
       setEditingId(null);
       setMessage('');
       setUrgency('info');
+      setAudience('all');
     }
     setError('');
     setComposerOpen(true);
@@ -113,6 +127,7 @@ export default function AdminAnnouncements() {
     setEditingId(null);
     setMessage('');
     setUrgency('info');
+    setAudience('all');
     setError('');
   };
 
@@ -130,13 +145,13 @@ export default function AdminAnnouncements() {
       if (editingId) {
         const { error: dbError } = await supabase
           .from('announcements')
-          .update({ message: trimmed, urgency, updated_at: new Date().toISOString() })
+          .update({ message: trimmed, urgency, audience, updated_at: new Date().toISOString() })
           .eq('id', editingId);
         if (dbError) throw dbError;
       } else {
         const { error: dbError } = await supabase
           .from('announcements')
-          .insert({ message: trimmed, urgency, is_active: true, created_by: 'Admin' });
+          .insert({ message: trimmed, urgency, audience, is_active: true, created_by: 'Admin' });
         if (dbError) throw dbError;
       }
       closeComposer();
@@ -452,6 +467,16 @@ export default function AdminAnnouncements() {
                       <Text style={s.inactivePillText}>HIDDEN</Text>
                     </View>
                   )}
+                  {(() => {
+                    const audMeta = AUDIENCE_META[item.audience] || AUDIENCE_META.all;
+                    const AudIcon = audMeta.icon;
+                    return (
+                      <View style={[s.urgencyPill, { backgroundColor: A.blueDim }]}>
+                        <AudIcon size={12} color={A.blue} />
+                        <Text style={[s.urgencyPillText, { color: A.blue }]}>{audMeta.label}</Text>
+                      </View>
+                    );
+                  })()}
                   <Text style={s.cardDate}>{formatDate(item.created_at)}</Text>
                 </View>
 
@@ -504,8 +529,7 @@ export default function AdminAnnouncements() {
                   </TouchableOpacity>
                 </View>
                 <Text style={s.composerSubtitle}>
-                  Every active announcement pops up for all customers. Hiding or editing it stops or
-                  refreshes the pop-up.
+                  Pops up for the audience you pick. Hiding or editing it stops or refreshes the pop-up.
                 </Text>
 
                 <Text style={s.label}>MESSAGE</Text>
@@ -531,6 +555,26 @@ export default function AdminAnnouncements() {
                         key={level}
                         style={[s.urgencyOption, selected && { borderColor: meta.color, backgroundColor: meta.dim }]}
                         onPress={() => setUrgency(level)}
+                      >
+                        <Icon size={18} color={selected ? meta.color : A.textMuted} />
+                        <Text style={s.urgencyOptionLabel}>{meta.label}</Text>
+                        <Text style={s.urgencyOptionDesc}>{meta.description}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+
+                <Text style={s.label}>AUDIENCE</Text>
+                <View style={s.urgencyRow}>
+                  {(['customers', 'drivers', 'all'] as Audience[]).map((level) => {
+                    const meta = AUDIENCE_META[level];
+                    const Icon = meta.icon;
+                    const selected = audience === level;
+                    return (
+                      <TouchableOpacity
+                        key={level}
+                        style={[s.urgencyOption, selected && { borderColor: meta.color, backgroundColor: meta.color + '1f' }]}
+                        onPress={() => setAudience(level)}
                       >
                         <Icon size={18} color={selected ? meta.color : A.textMuted} />
                         <Text style={s.urgencyOptionLabel}>{meta.label}</Text>
