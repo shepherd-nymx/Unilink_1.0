@@ -32,6 +32,7 @@ import InAppNotificationBanner from '@/components/InAppNotificationBanner';
 import DriverSelectionModal from '@/components/DriverSelectionModal';
 import OpenRequestWaitingModal from '@/components/OpenRequestWaitingModal';
 import CustomerTutorial from '@/components/CustomerTutorial';
+import AnnouncementPopup from '@/components/AnnouncementPopup';
 import AnimatedDeliveryBackground from '@/components/AnimatedDeliveryBackground';
 
 const CACHE_PREFIX = 'cache_customer_';
@@ -2202,6 +2203,8 @@ export default function CustomerDashboard() {
           }
         }}
       />
+
+      <AnnouncementPopup visible={isChecking === false && isAccepted} />
 
       <AddCustomItemModal
         visible={showAddItemModal}

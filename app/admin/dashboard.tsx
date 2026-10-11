@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import {
   LogOut, Users, Truck, Package, UserCog, ShoppingBag, School, ChevronRight, Star,
   Mail, Store, ScrollText, Shield, CircleAlert as AlertCircle, CircleCheck as CheckCircle,
-  DollarSign,
+  DollarSign, Megaphone,
 } from 'lucide-react-native';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { clearUserData } from '@/lib/storage-service';
@@ -127,6 +127,7 @@ export default function AdminDashboard() {
     { label: 'Universities', description: 'Add and edit locations', icon: School, color: '#00ccff', dimColor: 'rgba(0,204,255,0.12)', route: '/admin/universities' },
     { label: 'Reviews', description: 'View and moderate driver reviews', icon: Star, color: '#FFD700', dimColor: 'rgba(255,215,0,0.12)', route: '/admin/reviews' },
     { label: 'Email Logs', description: 'View transactional email history', icon: Mail, color: A.cyan, dimColor: A.cyanDim, route: '/admin/emails' },
+    { label: 'Announcements', description: 'Broadcast messages to all customers', icon: Megaphone, color: '#ff6b00', dimColor: 'rgba(255,107,0,0.12)', route: '/admin/announcements' },
     { label: 'Shops', description: 'Approve shops, set fees, view orders', icon: Store, color: '#10b981', dimColor: 'rgba(16,185,129,0.12)', route: '/admin/shops' },
     { label: 'DPO & Compliance', description: 'Privacy requests, DPO, data register, incidents', icon: Shield, color: A.cyan, dimColor: A.cyanDim, route: '/admin/compliance' },
     { label: 'Audit Logs', description: 'View system audit trail', icon: ScrollText, color: A.amber, dimColor: A.amberDim, route: '/admin/audit-logs' },
