@@ -87,6 +87,11 @@ export default function CustomerLogin() {
     setError('');
 
     try {
+      // A stale auth session (e.g. from the shop portal in the same browser)
+      // switches requests to the authenticated role, whose policies hide all
+      // customer rows and break this lookup. The app manages sessions itself.
+      await supabase.auth.signOut().catch(() => {});
+
       const lookup = userTrim.replace(/([%_\\])/g, '\\$1');
       const { data: candidates, error: dbError } = await supabase
         .from('customers')

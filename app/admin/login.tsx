@@ -49,6 +49,10 @@ export default function AdminLogin() {
     if (!username || !password) { setError('Please fill in all fields'); return; }
     setLoading(true); setError('');
     try {
+      // Clear any stale auth session from another portal (e.g. shop login in
+      // the same browser) so data queries run under the intended role.
+      await supabase.auth.signOut().catch(() => {});
+
       const { data, error: dbError } = await supabase
         .rpc('verify_admin_login', { p_username: username, p_password: password }).maybeSingle() as { data: { id: string; username: string } | null; error: any };
       if (dbError) throw dbError;

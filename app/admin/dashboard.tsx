@@ -39,7 +39,11 @@ export default function AdminDashboard() {
       Animated.timing(fadeAnim, { toValue: 1, duration: 500, useNativeDriver: true }),
       Animated.timing(slideAnim, { toValue: 0, duration: 500, useNativeDriver: true }),
     ]).start();
-    loadStats();
+    // A stale auth session from another portal makes every count read as 0.
+    (async () => {
+      await supabase.auth.signOut().catch(() => {});
+      loadStats();
+    })();
   }, []);
 
   const loadStats = async () => {
