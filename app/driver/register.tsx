@@ -12,6 +12,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { validateUpload } from '@/lib/upload-validation';
 import { supabase } from '@/lib/supabase';
 import { ArrowLeft, CircleAlert as AlertCircle, UserCheck, Bike, Car, ChevronRight, MapPin, Phone, Mail, User, Hop as Home, CreditCard, CircleCheck as CheckCircle2, Camera, Image as ImageIcon } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
@@ -193,12 +194,18 @@ export default function DriverRegister() {
         setIdPhotoUploading(true);
         try {
           const fileExt = idPhotoUri.split('.').pop()?.toLowerCase() || 'jpg';
+          if (!['jpg', 'jpeg', 'png', 'webp'].includes(fileExt)) {
+            throw new Error('Only JPG, PNG, or WebP images are allowed for the ID photo.');
+          }
           const fileName = `id-card-${Date.now()}.${fileExt}`;
           const filePath = `${fileName}`;
 
           // Convert URI to blob for upload
           const response = await fetch(idPhotoUri);
           const blob = await response.blob();
+
+          const check = validateUpload({ blob, fileNameOrUri: idPhotoUri });
+          if (!check.ok) throw new Error(check.reason);
 
           const { error: uploadError } = await supabase.storage
             .from('driver-id-cards')

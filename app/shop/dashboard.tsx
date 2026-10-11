@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
+import { validateUpload } from '@/lib/upload-validation';
 import { loadShopSession, clearShopSession } from '@/lib/shop-session-service';
 import { A } from '@/lib/admin-theme';
 import { SkeletonList } from '@/components/Skeleton';
@@ -434,9 +435,14 @@ export default function ShopDashboard() {
       let imageUrl = editingProduct?.image_url || null;
       if (productImageUri) {
         const fileExt = productImageUri.split('.').pop()?.toLowerCase() || 'jpg';
+        if (!['jpg', 'jpeg', 'png', 'webp'].includes(fileExt)) {
+          throw new Error('Only JPG, PNG, or WebP images are allowed.');
+        }
         const fileName = `product-${Date.now()}.${fileExt}`;
         const response = await fetch(productImageUri);
         const blob = await response.blob();
+        const check = validateUpload({ blob, fileNameOrUri: productImageUri });
+        if (!check.ok) throw new Error(check.reason);
         const { error: upErr } = await supabase.storage
           .from('shop-assets')
           .upload(fileName, blob, { contentType: blob.type || 'image/jpeg' });

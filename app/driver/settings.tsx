@@ -18,6 +18,7 @@ import { supabase } from '@/lib/supabase';
 import * as ImagePicker from 'expo-image-picker';
 import { ArrowLeft, Camera, User, School, Save, CircleCheck as CheckCircle, Zap, Clock, Bike, Car, MapPin, Navigation2, MessageCircle, LogOut, Mail } from 'lucide-react-native';
 import SwitchLocationModal from '@/components/SwitchLocationModal';
+import { validateUpload } from '@/lib/upload-validation';
 import { useTheme } from '@/contexts/ThemeContext';
 import { clearUserData } from '@/lib/storage-service';
 
@@ -166,8 +167,14 @@ export default function DriverSettings() {
     try {
       setUploadingImage(true); setError('');
       const fileExt = originalFileName.split('.').pop()?.toLowerCase() || 'jpg';
+      if (!['jpg', 'jpeg', 'png', 'webp'].includes(fileExt)) {
+        setError('Only JPG, PNG, or WebP images are allowed.');
+        return;
+      }
       const fileName = `${driverId}/${Date.now()}.${fileExt}`;
       const blob = await fetch(base64).then(r => r.blob());
+      const check = validateUpload({ blob, fileNameOrUri: originalFileName });
+      if (!check.ok) { setError(check.reason); return; }
       const { error: uploadError } = await supabase.storage.from('profile-pictures').upload(fileName, blob, { contentType: `image/${fileExt}`, upsert: true });
       if (uploadError) throw uploadError;
       const { data: { publicUrl } } = supabase.storage.from('profile-pictures').getPublicUrl(fileName);
@@ -181,7 +188,13 @@ export default function DriverSettings() {
     try {
       setUploadingImage(true); setError('');
       const blob = await fetch(uri).then(r => r.blob());
+      const check = validateUpload({ blob, fileNameOrUri: uri });
+      if (!check.ok) { setError(check.reason); return; }
       const fileExt = uri.split('.').pop()?.toLowerCase() || 'jpg';
+      if (!['jpg', 'jpeg', 'png', 'webp'].includes(fileExt)) {
+        setError('Only JPG, PNG, or WebP images are allowed.');
+        return;
+      }
       const fileName = `${driverId}/${Date.now()}.${fileExt}`;
       const { error: uploadError } = await supabase.storage.from('profile-pictures').upload(fileName, blob, { contentType: `image/${fileExt}`, upsert: true });
       if (uploadError) throw uploadError;

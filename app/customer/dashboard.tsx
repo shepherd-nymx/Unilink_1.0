@@ -26,6 +26,7 @@ import { useTermsGuard } from '@/hooks/useTermsGuard';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { setCurrentUser, registerForPushNotificationsOnLogin } from '@/lib/notification-service';
 import { saveUserData, clearUserData, loadUserData } from '@/lib/storage-service';
+import { validateUpload } from '@/lib/upload-validation';
 import NotificationPermissionModal from '@/components/NotificationPermissionModal';
 import AnimatedChatIcon from '@/components/AnimatedChatIcon';
 import InAppNotificationBanner from '@/components/InAppNotificationBanner';
@@ -705,6 +706,12 @@ export default function CustomerDashboard() {
       } else {
         const response = await fetch(itemImage);
         fileData = await response.blob();
+      }
+
+      const check = validateUpload({ blob: fileData, fileNameOrUri: itemImage });
+      if (!check.ok) {
+        setError(check.reason);
+        return null;
       }
 
       const { data, error: uploadError } = await supabase.storage

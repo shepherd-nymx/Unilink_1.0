@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
+import { validateUpload } from '@/lib/upload-validation';
 import { saveShopSession } from '@/lib/shop-session-service';
 import {
   ArrowLeft,
@@ -247,9 +248,14 @@ export default function ShopRegister() {
       if (logoUri) {
         try {
           const fileExt = logoUri.split('.').pop()?.toLowerCase() || 'jpg';
+          if (!['jpg', 'jpeg', 'png', 'webp'].includes(fileExt)) {
+            throw new Error('Only JPG, PNG, or WebP images are allowed for the logo.');
+          }
           const fileName = `logo-${Date.now()}.${fileExt}`;
           const response = await fetch(logoUri);
           const blob = await response.blob();
+          const check = validateUpload({ blob, fileNameOrUri: logoUri });
+          if (!check.ok) throw new Error(check.reason);
           const { error: uploadError } = await supabase.storage
             .from('shop-assets')
             .upload(fileName, blob, { contentType: blob.type || 'image/jpeg' });
