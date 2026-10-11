@@ -24,6 +24,7 @@ import { useTermsGuard } from '@/hooks/useTermsGuard';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { setCurrentUser, registerForPushNotificationsOnLogin } from '@/lib/notification-service';
 import AnnouncementPopup from '@/components/AnnouncementPopup';
+import DriverTutorial from '@/components/DriverTutorial';
 import { saveUserData, clearUserData, loadUserData } from '@/lib/storage-service';
 import NotificationPermissionModal from '@/components/NotificationPermissionModal';
 
@@ -236,6 +237,7 @@ export default function DriverDashboard() {
   const [showSwitchLocation, setShowSwitchLocation] = useState(false);
   const [activeUniversityId, setActiveUniversityId] = useState<string | null>(null);
   const [activeUniversityName, setActiveUniversityName] = useState<string>('');
+  const [showTutorial, setShowTutorial] = useState(false);
   const activeUniversityIdRef = useRef<string | null>(null);
 
   const headerGlow = useRef(new Animated.Value(0)).current;
@@ -261,6 +263,12 @@ export default function DriverDashboard() {
       saveUserData({ id: driverId, type: 'driver' });
       registerForPushNotificationsOnLogin(driverId, 'driver').catch(() => {});
       loadDriverInfo();
+
+      const tutorialKey = `driver_tutorial_seen_${driverId}`;
+      const seen = typeof window !== 'undefined' ? localStorage.getItem(tutorialKey) : null;
+      if (!seen) {
+        setTimeout(() => setShowTutorial(true), 1500);
+      }
 
       const channel = supabase
         .channel('driver-deliveries')
@@ -584,6 +592,9 @@ export default function DriverDashboard() {
             </View>
           )}
         </View>
+        <TouchableOpacity style={s.iconBtn} onPress={() => setShowTutorial(true)} activeOpacity={0.75}>
+          <HelpCircle size={18} color={CYAN} />
+        </TouchableOpacity>
       </Animated.View>
 
       {error ? (
@@ -1039,6 +1050,17 @@ export default function DriverDashboard() {
       </View>
         </>
       )}
+
+      <DriverTutorial
+        visible={showTutorial}
+        onClose={() => {
+          setShowTutorial(false);
+          const tutorialKey = `driver_tutorial_seen_${driverId}`;
+          if (typeof window !== 'undefined') {
+            localStorage.setItem(tutorialKey, '1');
+          }
+        }}
+      />
 
       <AnnouncementPopup audience="drivers" />
     </View>
