@@ -12,6 +12,7 @@ type PrivacyRequest = {
   id: string; customer_id: string; request_type: string; status: string;
   description: string | null; requested_at: string; completed_at: string | null;
   admin_notes: string | null; created_at: string;
+  customers?: { full_name: string } | null;
 };
 
 type Tab = 'requests' | 'dpo' | 'processing' | 'processors' | 'incidents' | 'retention' | 'policies';
@@ -63,7 +64,7 @@ export default function CompliancePage() {
   const loadData = useCallback(async () => {
     try {
       const [reqRes, dpoRes, procRes, processorsRes, incRes, retRes, polRes] = await Promise.all([
-        supabase.from('privacy_requests').select('*').order('created_at', { ascending: false }).limit(50),
+        supabase.from('privacy_requests').select('*, customers(full_name)').order('created_at', { ascending: false }).limit(50),
         supabase.from('dpo_settings').select('*').maybeSingle(),
         supabase.from('data_processing_register').select('*').order('created_at', { ascending: false }),
         supabase.from('third_party_processors').select('*').order('added_at', { ascending: false }),
@@ -235,6 +236,9 @@ export default function CompliancePage() {
                       <Text style={[styles.statusText, { color: REQUEST_STATUS_COLORS[req.status] || A.textMuted }]}>{req.status}</Text>
                     </View>
                   </View>
+                  <Text style={{ fontSize: 13, fontWeight: '600', color: A.cyan, marginBottom: 6 }}>
+                    Requested by: {req.customers?.full_name || 'Unknown customer'}
+                  </Text>
                   {req.description ? <Text style={[styles.cardDesc, { color: A.textSub }]}>{req.description}</Text> : null}
                   <Text style={[styles.cardDate, { color: A.textMuted }]}>{formatDate(req.created_at)}</Text>
                   {req.admin_notes ? (
@@ -544,6 +548,11 @@ export default function CompliancePage() {
             </View>
             <View style={{ padding: 20, gap: 14 }}>
               <Text style={[styles.cardTitle, { color: A.text }]}>{reviewingRequest?.request_type.replace(/_/g, ' ')}</Text>
+              {reviewingRequest?.customers?.full_name ? (
+                <Text style={{ fontSize: 13, fontWeight: '600', color: A.cyan, marginBottom: 6 }}>
+                  Requested by: {reviewingRequest.customers.full_name}
+                </Text>
+              ) : null}
               {reviewingRequest?.description ? <Text style={[styles.cardDesc, { color: A.textSub }]}>{reviewingRequest.description}</Text> : null}
               <View style={{ gap: 6 }}>
                 <Text style={[styles.label, { color: A.textSub }]}>STATUS</Text>
