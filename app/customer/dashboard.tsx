@@ -203,6 +203,7 @@ export default function CustomerDashboard() {
   const [showOpenRequestWaiting, setShowOpenRequestWaiting] = useState(false);
   const [openRequestDeliveryId, setOpenRequestDeliveryId] = useState<string | null>(null);
   const [showTutorial, setShowTutorial] = useState(false);
+  const [showWelcomeGuide, setShowWelcomeGuide] = useState(true);
   const [fetchedName, setFetchedName] = useState<string | null>(null);
   const [showScrollHint, setShowScrollHint] = useState(false);
   const scrollHintAnim = useRef(new Animated.Value(0)).current;
@@ -1372,6 +1373,29 @@ export default function CustomerDashboard() {
     modalHeader: { alignItems: 'center', marginBottom: 20 },
     modalTitle: { fontSize: 22, fontWeight: '800', color: TX, marginTop: 12 },
     modalSubtitle: { fontSize: 14, color: TX2, marginTop: 6, textAlign: 'center' },
+    welcomeGuideCard: {
+      borderRadius: 20, padding: 28, width: '100%', maxWidth: 440,
+      borderWidth: 1.5, alignItems: 'center',
+      shadowColor: '#000', shadowOffset: { width: 0, height: 10 },
+      shadowOpacity: 0.3, shadowRadius: 30, elevation: 20,
+    },
+    welcomeGuideIcon: {
+      width: 72, height: 72, borderRadius: 36,
+      justifyContent: 'center', alignItems: 'center', marginBottom: 16,
+    },
+    welcomeGuideTitle: { fontSize: 22, fontWeight: '800', marginBottom: 14, textAlign: 'center' },
+    welcomeGuideText: { fontSize: 14, lineHeight: 22, marginBottom: 22 },
+    welcomeGuideBtn: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+      paddingVertical: 14, paddingHorizontal: 24, borderRadius: 12, width: '100%',
+      marginBottom: 10,
+    },
+    welcomeGuideBtnText: { fontSize: 15, fontWeight: '700', color: '#fff' },
+    welcomeGuideSecondaryBtn: {
+      paddingVertical: 12, borderRadius: 12, width: '100%',
+      borderWidth: 1.5, alignItems: 'center',
+    },
+    welcomeGuideSecondaryText: { fontSize: 14, fontWeight: '600' },
     paymentCodeSection: { marginBottom: 18 },
     paymentLabel: { fontSize: 14, fontWeight: '700', color: TX, marginBottom: 10 },
     paymentCodeBox: {
@@ -2203,6 +2227,50 @@ export default function CustomerDashboard() {
           }
         }}
       />
+
+      <Modal
+        visible={showWelcomeGuide}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowWelcomeGuide(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.welcomeGuideCard, { backgroundColor: CARD, borderColor: isDark ? '#1E3A5F' : '#E2E8F0' }]}>
+            <View style={[styles.welcomeGuideIcon, { backgroundColor: 'rgba(26,115,232,0.12)' }]}>
+              <ShoppingBag size={34} color={P} />
+            </View>
+            <Text style={[styles.welcomeGuideTitle, { color: isDark ? '#E2F0FF' : '#0F172A' }]}>
+              Welcome to UniLink!
+            </Text>
+            <Text style={[styles.welcomeGuideText, { color: isDark ? '#8FB4D4' : '#475569' }]}>
+              {'There are two ways to get what you need:\n\n'}
+              {'1. Marketplace \u2014 browse and shop directly from registered shops.\n\n'}
+              {'2. List it yourself \u2014 simply list whatever you want with an approximate price, and a messenger will source it for you.\n\n'}
+              {'Please note: the price you list is only an estimate. It may change as your messenger communicates with you while looking for the items \u2014 and some items may not be found.'}
+            </Text>
+            <TouchableOpacity
+              style={[styles.welcomeGuideBtn, { backgroundColor: P }]}
+              onPress={() => {
+                setShowWelcomeGuide(false);
+                router.push('/customer/marketplace');
+              }}
+              activeOpacity={0.85}
+            >
+              <ShoppingCart size={18} color="#fff" />
+              <Text style={styles.welcomeGuideBtnText}>Explore the Marketplace</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.welcomeGuideSecondaryBtn, { borderColor: isDark ? '#1E3A5F' : '#E2E8F0' }]}
+              onPress={() => setShowWelcomeGuide(false)}
+              activeOpacity={0.85}
+            >
+              <Text style={[styles.welcomeGuideSecondaryText, { color: isDark ? '#8FB4D4' : '#64748B' }]}>
+                Got it
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       <AnnouncementPopup visible={isChecking === false && isAccepted} audience="customers" />
 
