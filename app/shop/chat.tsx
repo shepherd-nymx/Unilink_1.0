@@ -104,7 +104,30 @@ export default function ShopChat() {
         .eq('customer_id', custId)
         .eq('order_id', ordId)
         .maybeSingle();
-      if (data) setActiveConv(data as any);
+      if (data) {
+        setActiveConv(data as any);
+      } else if (shopId) {
+        // No thread yet — create one so the shop can message first
+        const { data: convId, error } = await supabase.rpc('get_or_create_shop_conversation', {
+          p_customer_id: custId,
+          p_shop_id: shopId,
+          p_order_id: ordId || null,
+        });
+        if (!error && convId) {
+          const { data: created } = await supabase
+            .from('chat_conversations')
+            .select(`
+              id, customer_id, shop_id, order_id, last_message, last_message_at, unread_count_shop,
+              customers!chat_conversations_customer_id_fkey(full_name, phone_number)
+            `)
+            .eq('id', convId)
+            .maybeSingle();
+          if (created) {
+            setActiveConv(created as any);
+            loadConversations();
+          }
+        }
+      }
     } catch (err) {
       console.error('Failed to open conversation:', err);
     }

@@ -257,8 +257,8 @@ export default function ChatInterface({
       let rpcName: string;
       let rpcParams: Record<string, any>;
 
-      if (shopId && currentUserType !== 'shop') {
-        // Customer ↔ shop conversation
+      if (shopId && customerId) {
+        // Customer ↔ shop conversation (works from either side)
         rpcName = 'get_or_create_shop_conversation';
         rpcParams = { p_customer_id: customerId, p_shop_id: shopId, p_order_id: orderId || null };
       } else if (driverId && (driverId !== 'undefined')) {
