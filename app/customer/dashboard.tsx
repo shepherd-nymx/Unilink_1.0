@@ -1011,6 +1011,9 @@ export default function CustomerDashboard() {
     header: {
       flexDirection: 'column',
       justifyContent: 'flex-start',
+      alignSelf: 'center',
+      width: '100%',
+      maxWidth: 480,
       paddingHorizontal: 20,
       paddingTop: 40,
       paddingBottom: 20,
