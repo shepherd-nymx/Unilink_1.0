@@ -421,13 +421,11 @@ export default function ChatInterface({
   };
 
   const sendLocationMessage = async () => {
-    if (!locAddress.trim() || !conversationId || locSending) return;
+    if (!locAddress.trim() || locLat == null || locLng == null || !conversationId || locSending) return;
     setLocSending(true);
     const parts = ['📍 Delivery Location', `Address: ${locAddress.trim()}`];
-    if (locLat != null && locLng != null) {
-      parts.push(`GPS: ${locLat.toFixed(5)}, ${locLng.toFixed(5)}`);
-      parts.push(`Map: https://www.google.com/maps?q=${locLat},${locLng}`);
-    }
+    parts.push(`GPS: ${locLat.toFixed(5)}, ${locLng.toFixed(5)}`);
+    parts.push(`Map: https://www.google.com/maps?q=${locLat},${locLng}`);
     const messageText = parts.join('\n');
     try {
       const { error } = await supabase.from('chat_messages').insert({
@@ -599,7 +597,7 @@ export default function ChatInterface({
                     <TouchableOpacity
                       style={s.locGpsBtn}
                       onPress={detectLocGps}
-                      disabled={locDetecting}
+                      disabled={locDetecting || locLat != null}
                       activeOpacity={0.8}
                     >
                       {locDetecting ? (
@@ -607,12 +605,12 @@ export default function ChatInterface({
                       ) : (
                         <Crosshair size={13} color={CYAN} />
                       )}
-                      <Text style={s.locGpsText}>{locLat != null ? 'GPS Captured' : 'Attach GPS'}</Text>
+                      <Text style={s.locGpsText}>{locLat != null ? 'GPS Captured' : 'Attach GPS (Required)'}</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
-                      style={[s.locSendBtn, (!locAddress.trim() || locSending) && s.locSendBtnDisabled]}
+                      style={[s.locSendBtn, (!locAddress.trim() || locLat == null || locSending) && s.locSendBtnDisabled]}
                       onPress={sendLocationMessage}
-                      disabled={!locAddress.trim() || locSending}
+                      disabled={!locAddress.trim() || locLat == null || locSending}
                       activeOpacity={0.8}
                     >
                       <Send size={12} color={CHAT_BG} />
@@ -621,7 +619,9 @@ export default function ChatInterface({
                   </View>
                   {locLat != null && locLng != null ? (
                     <Text style={s.locCoordsPreview}>GPS: {locLat.toFixed(5)}, {locLng.toFixed(5)}</Text>
-                  ) : null}
+                  ) : (
+                    <Text style={s.locGpsRequiredNote}>GPS location is required before sending.</Text>
+                  )}
                 </View>
               )}
             </View>
@@ -980,6 +980,11 @@ const s = StyleSheet.create({
   locCoordsPreview: {
     fontSize: 10,
     color: TEXT_SUB,
+    letterSpacing: 0.3,
+  },
+  locGpsRequiredNote: {
+    fontSize: 10,
+    color: '#ffaa00',
     letterSpacing: 0.3,
   },
   messageWrapper: {

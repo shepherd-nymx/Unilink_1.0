@@ -41,6 +41,7 @@ export function CheckoutModal({
   const [ecocashPop, setEcocashPop] = useState('');
   const [locationMode, setLocationMode] = useState<'registered' | 'current' | 'manual'>('manual');
   const [detectingLocation, setDetectingLocation] = useState(false);
+  const [gpsError, setGpsError] = useState('');
 
   useEffect(() => {
     if (visible) {
@@ -172,16 +173,19 @@ export function CheckoutModal({
   const confirmLocation = async () => {
     if (!deliveryLocation.trim()) return;
     setConfirmingLocation(true);
+    setGpsError('');
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status === 'granted') {
-        const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-        setConfirmedLatitude(pos.coords.latitude);
-        setConfirmedLongitude(pos.coords.longitude);
+      if (status !== 'granted') {
+        setGpsError('GPS access is required. Please allow location permission to continue.');
+        return;
       }
+      const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      setConfirmedLatitude(pos.coords.latitude);
+      setConfirmedLongitude(pos.coords.longitude);
       setLocationConfirmed(true);
     } catch {
-      setLocationConfirmed(true);
+      setGpsError('Could not read your GPS position. Please try again.');
     } finally {
       setConfirmingLocation(false);
     }
@@ -190,12 +194,13 @@ export function CheckoutModal({
   const handlePlace = () => {
     if (!deliveryLocation.trim()) return;
     if (!locationConfirmed) return;
+    if (confirmedLatitude == null || confirmedLongitude == null) return;
     if (anyBlocked) return;
     if (requiresWhatsapp && !whatsappConfirmed) return;
     onPlaceOrder(deliveryLocation.trim(), confirmedLatitude, confirmedLongitude, paymentMethod, parseFloat(effectiveDeliveryFee) || 0, totalEcocashFee, isEcocash ? ecocashPop.trim() || null : null);
   };
 
-  const canPlace = !!deliveryLocation.trim() && locationConfirmed && !placingOrder && !anyBlocked && (!requiresWhatsapp || whatsappConfirmed);
+  const canPlace = !!deliveryLocation.trim() && locationConfirmed && confirmedLatitude != null && confirmedLongitude != null && !placingOrder && !anyBlocked && (!requiresWhatsapp || whatsappConfirmed);
   const isPaynow = paymentMethod === 'paynow';
   const numericDeliveryFee = parseFloat(effectiveDeliveryFee) || 0;
   const grandTotal = cartTotal + numericDeliveryFee + totalEcocashFee;
@@ -447,12 +452,19 @@ export function CheckoutModal({
                     GPS: {confirmedLatitude.toFixed(4)}, {confirmedLongitude.toFixed(4)}
                   </Text>
                 ) : (
-                  <Text style={[styles.locConfirmedGps, { color: palette.textSecondary }]}>GPS not captured (address only)</Text>
+                  <Text style={[styles.locConfirmedGps, { color: palette.error }]}>GPS required — tap Change to add it</Text>
                 )}
               </View>
               <TouchableOpacity onPress={() => { setLocationConfirmed(false); setConfirmedLatitude(null); setConfirmedLongitude(null); setLocationMode('manual'); }}>
                 <Text style={{ color: palette.warning, fontSize: 12, fontWeight: '600' }}>Change</Text>
               </TouchableOpacity>
+            </View>
+          ) : null}
+
+          {gpsError ? (
+            <View style={[styles.blockBox, { backgroundColor: `${palette.error}15`, borderColor: palette.error, marginTop: 8, marginBottom: 0 }]}>
+              <AlertCircle size={14} color={palette.error} />
+              <Text style={[styles.blockText, { color: palette.error }]}>{gpsError}</Text>
             </View>
           ) : null}
 
@@ -624,7 +636,7 @@ export function CheckoutModal({
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
               {isPaynow && <ExternalLink size={16} color="#fff" />}
               <Text style={styles.placeOrderBtnText}>
-                {anyUnavailable ? 'Shop Unavailable' : anyClosed ? 'Shop Closed — No Orders' : requiresWhatsapp && !whatsappConfirmed ? 'Send WhatsApp First' : !locationConfirmed ? 'Confirm Location First' : isPaynow ? `Pay ${grandTotal.toFixed(2)} via Paynow` : 'Place Order(s)'}
+                {anyUnavailable ? 'Shop Unavailable' : anyClosed ? 'Shop Closed — No Orders' : requiresWhatsapp && !whatsappConfirmed ? 'Send WhatsApp First' : !locationConfirmed || confirmedLatitude == null || confirmedLongitude == null ? 'Confirm Location First' : isPaynow ? `Pay ${grandTotal.toFixed(2)} via Paynow` : 'Place Order(s)'}
               </Text>
             </View>
           )}
