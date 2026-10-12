@@ -16,7 +16,7 @@ import {
 } from 'react-native';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { supabase } from '@/lib/supabase';
-import { LogOut, ShoppingCart, ShoppingBag, Car, User, CircleAlert as AlertCircle, History, ChevronDown, ChevronUp, Plus, X, Package, Search, Star, CircleCheck as CheckCircle, Camera, Image as ImageIcon, MessageCircle, Circle as HelpCircle, Bell, Truck } from 'lucide-react-native';
+import { LogOut, ShoppingCart, ShoppingBag, Car, User, CircleAlert as AlertCircle, History, ChevronDown, ChevronUp, Plus, X, Package, Search, Star, CircleCheck as CheckCircle, Camera, Image as ImageIcon, MessageCircle, Circle as HelpCircle, Bell, Truck, CreditCard } from 'lucide-react-native';
 import * as Location from 'expo-location';
 import * as ImagePicker from 'expo-image-picker';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -1444,6 +1444,22 @@ export default function CustomerDashboard() {
     welcomeGuideSecondaryText: { fontSize: 14, fontWeight: '600' },
     paymentCodeSection: { marginBottom: 18 },
     paymentLabel: { fontSize: 14, fontWeight: '700', color: TX, marginBottom: 10 },
+    paynowPayButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 8,
+      backgroundColor: '#1A73E8',
+      borderRadius: 12,
+      paddingVertical: 14,
+      marginBottom: 12,
+      shadowColor: '#1A73E8',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.3,
+      shadowRadius: 6,
+      elevation: 3,
+    },
+    paynowPayButtonText: { color: '#fff', fontSize: 15, fontWeight: '800' },
     paymentCodeBox: {
       backgroundColor: isDark ? 'rgba(26,115,232,0.12)' : '#EBF3FF',
       padding: 14, borderRadius: 12, borderWidth: 1.5, borderColor: P, marginBottom: 10,
@@ -2355,22 +2371,33 @@ export default function CustomerDashboard() {
 
             {acceptedOrder?.payment_option === 'paynow' && (
               <View style={styles.paymentCodeSection}>
-                <Text style={styles.paymentLabel}>Send Payment To:</Text>
-                <View style={styles.paymentCodeBox}>
-                  <Text style={styles.paymentCodeLabel}>Paynow Reference</Text>
-                  <Text style={styles.paymentCode}>{acceptedOrder?.id?.slice(0, 8).toUpperCase()}</Text>
-                </View>
+                <Text style={styles.paymentLabel}>Pay with Paynow</Text>
                 <View style={styles.amountBox}>
                   <Text style={styles.amountLabel}>Total Amount</Text>
                   <Text style={styles.amountValue}>
                     ${(acceptedOrder.total_amount + acceptedOrder.delivery_fee).toFixed(2)}
                   </Text>
                 </View>
+                <TouchableOpacity
+                  style={styles.paynowPayButton}
+                  onPress={() => {
+                    const { startPaynowPayment, generateReference } = require('@/lib/paynow-service');
+                    const ref = generateReference('delivery_request', acceptedOrder.id);
+                    startPaynowPayment({
+                      paymentType: 'delivery_request',
+                      entityId: acceptedOrder.id,
+                      amount: acceptedOrder.total_amount + acceptedOrder.delivery_fee,
+                      reference: ref,
+                      description: `UniLink Grocery Order - ${acceptedOrder?.drivers?.full_name || 'Driver'}`,
+                      metadata: { delivery_id: acceptedOrder.id },
+                    });
+                  }}
+                >
+                  <CreditCard size={20} color="#fff" />
+                  <Text style={styles.paynowPayButtonText}>Pay Now on Paynow Website</Text>
+                </TouchableOpacity>
                 <Text style={styles.paymentInstructions}>
-                  1. Open your Paynow app or web portal{'\n'}
-                  2. Send Money using the reference above{'\n'}
-                  3. Use the total amount shown{'\n'}
-                  4. Chat with your driver to confirm payment
+                  Tap the button above and you will be taken to the Paynow website to complete payment securely.
                 </Text>
               </View>
             )}
