@@ -1012,8 +1012,8 @@ export default function CustomerDashboard() {
       flexDirection: 'column',
       justifyContent: 'flex-start',
       paddingHorizontal: 20,
-      paddingTop: 48,
-      paddingBottom: 12,
+      paddingTop: 40,
+      paddingBottom: 20,
       backgroundColor: '#070f1c',
       borderBottomWidth: 1,
       borderBottomColor: 'rgba(0,229,255,0.18)',
@@ -1031,8 +1031,27 @@ export default function CustomerDashboard() {
     },
     headerActions: {
       flexDirection: 'row',
-      gap: 8,
-      flexShrink: 0,
+      gap: 12,
+    },
+    requestDeliveryBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 10,
+      paddingVertical: 16,
+      borderRadius: 999,
+      backgroundColor: '#00e5ff',
+      shadowColor: '#00e5ff',
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 0.55,
+      shadowRadius: 24,
+      elevation: 10,
+    },
+    requestDeliveryBtnText: {
+      fontSize: 19,
+      fontWeight: '800',
+      color: '#050D1A',
+      letterSpacing: 0.3,
     },
     logoImageWrap: {
       flexDirection: 'row',
@@ -1186,44 +1205,39 @@ export default function CustomerDashboard() {
       borderWidth: 1.5,
       borderColor: CARD,
     },
-    headerTitle: { fontSize: 20, fontWeight: '900', color: '#d0eaff', letterSpacing: 0.3, marginTop: 0 },
-    headerSubtitle: { fontSize: 11, color: '#00e5ff', marginTop: 1, fontWeight: '600', letterSpacing: 0.5, textTransform: 'uppercase' as any },
+    headerTitle: { fontSize: 34, fontWeight: '900', color: '#ffffff', letterSpacing: 0.3, marginTop: 0 },
+    headerSubtitle: { fontSize: 15, color: '#00e5ff', marginTop: 4, fontWeight: '700', letterSpacing: 1.5, textTransform: 'uppercase' as any },
     welcomeBadge: {
-      flexDirection: 'row', alignItems: 'center', gap: 5,
+      flexDirection: 'row', alignItems: 'center', gap: 6,
       alignSelf: 'flex-start',
-      paddingHorizontal: 8, paddingVertical: 2,
-      borderRadius: 10,
-      backgroundColor: 'rgba(0,229,255,0.08)',
+      paddingHorizontal: 14, paddingVertical: 6,
+      borderRadius: 999,
+      backgroundColor: 'rgba(0,255,136,0.08)',
       borderWidth: 1,
-      borderColor: 'rgba(0,229,255,0.2)',
+      borderColor: 'rgba(0,255,136,0.35)',
     },
     welcomeBadgeDot: {
-      width: 5, height: 5, borderRadius: 3,
+      width: 7, height: 7, borderRadius: 4,
       backgroundColor: '#00ff88',
     },
     welcomeBadgeText: {
-      fontSize: 8, fontWeight: '800', color: '#00ff88', letterSpacing: 1,
+      fontSize: 12, fontWeight: '800', color: '#00ff88', letterSpacing: 1.5,
     },
     tutorialBtn: {
-      flexDirection: 'row', alignItems: 'center', gap: 5,
-      paddingHorizontal: 12, paddingVertical: 6,
-      borderRadius: 18, borderWidth: 1, flexShrink: 0,
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+      flex: 1,
+      paddingVertical: 12,
+      borderRadius: 999, borderWidth: 1,
       borderColor: 'rgba(0,229,255,0.35)',
       backgroundColor: 'rgba(0,229,255,0.08)',
-      shadowColor: '#00e5ff',
-      shadowOffset: { width: 0, height: 0 },
-      shadowOpacity: 0.2,
-      shadowRadius: 6,
-      elevation: 2,
     },
+    tutorialBtnText: { fontSize: 14, fontWeight: '700', color: '#00e5ff', letterSpacing: 0.4 },
     shareBtn: {
-      flexDirection: 'row', alignItems: 'center', gap: 5,
-      paddingHorizontal: 12, paddingVertical: 6,
-      borderRadius: 18, borderWidth: 1, flexShrink: 0,
-      borderColor: '#0e2a38', backgroundColor: 'rgba(0,229,255,0.06)',
-    },
-    requestDeliveryRow: {
-      flexDirection: 'row', justifyContent: 'flex-end', marginTop: 8,
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+      flex: 1,
+      paddingVertical: 12,
+      borderRadius: 999, borderWidth: 1,
+      borderColor: 'rgba(0,229,255,0.35)', backgroundColor: 'rgba(0,229,255,0.06)',
     },
     shareModalOverlay: {
       position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
@@ -1246,7 +1260,6 @@ export default function CustomerDashboard() {
     },
     copyLinkText: { flex: 1, fontSize: 12, fontWeight: '600', color: '#e2e8f0' },
     copyLinkAction: { fontSize: 11, fontWeight: '800', color: '#00e5ff' },
-    tutorialBtnText: { fontSize: 10, fontWeight: '700', color: '#00e5ff', letterSpacing: 0.4 },
     content: { flex: 1 },
     searchContainer: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 8 },
     searchInputWrapper: {
@@ -1760,47 +1773,45 @@ export default function CustomerDashboard() {
         )}
         <View style={styles.headerTopRow}>
           <Text style={[styles.logoWordmark, { color: '#00e5ff' }]}>UNILINK</Text>
-          <View style={styles.headerActions}>
-            <TouchableOpacity
-              onPress={handleShare}
-              style={styles.shareBtn}
-              activeOpacity={0.75}
-              accessibilityLabel="Share UniLink with friends"
-            >
-              <Share2 size={13} color="#00e5ff" />
-              <Text style={styles.tutorialBtnText}>{shareCopied ? 'Link copied!' : 'Share'}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => setShowTutorial(true)}
-              style={styles.tutorialBtn}
-              activeOpacity={0.75}
-            >
-              <HelpCircle size={13} color="#00e5ff" />
-              <Text style={styles.tutorialBtnText}>How it works</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-        <View style={styles.requestDeliveryRow}>
-          <TouchableOpacity
-            onPress={() => router.push({ pathname: '/customer/delivery-request', params: { customerId, customerName } } as any)}
-            style={[styles.tutorialBtn, { backgroundColor: '#00e5ff', borderColor: '#00e5ff' }]}
-            activeOpacity={0.75}
-          >
-            <Truck size={13} color="#050D1A" strokeWidth={2.5} />
-            <Text style={[styles.tutorialBtnText, { color: '#050D1A' }]}>Request Delivery</Text>
-          </TouchableOpacity>
-        </View>
-        <View style={styles.headerContent}>
           <View style={styles.welcomeBadge}>
             <View style={styles.welcomeBadgeDot} />
             <Text style={styles.welcomeBadgeText}>ACTIVE</Text>
           </View>
+        </View>
+        <View style={styles.headerContent}>
           <Text style={styles.headerTitle} numberOfLines={1} ellipsizeMode="tail">
             Hi, {customerName || fetchedName || 'there'}
           </Text>
           <Text style={styles.headerSubtitle} numberOfLines={1} ellipsizeMode="tail">
             Select your groceries
           </Text>
+        </View>
+        <TouchableOpacity
+          onPress={() => router.push({ pathname: '/customer/delivery-request', params: { customerId, customerName } } as any)}
+          style={styles.requestDeliveryBtn}
+          activeOpacity={0.8}
+        >
+          <Truck size={22} color="#050D1A" strokeWidth={2.5} />
+          <Text style={styles.requestDeliveryBtnText}>Request Delivery</Text>
+        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          <TouchableOpacity
+            onPress={handleShare}
+            style={styles.shareBtn}
+            activeOpacity={0.75}
+            accessibilityLabel="Share UniLink with friends"
+          >
+            <Share2 size={14} color="#00e5ff" />
+            <Text style={styles.tutorialBtnText}>{shareCopied ? 'Link copied!' : 'Share'}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => setShowTutorial(true)}
+            style={styles.tutorialBtn}
+            activeOpacity={0.75}
+          >
+            <HelpCircle size={14} color="#00e5ff" />
+            <Text style={styles.tutorialBtnText}>How it works</Text>
+          </TouchableOpacity>
         </View>
       </View>
 
