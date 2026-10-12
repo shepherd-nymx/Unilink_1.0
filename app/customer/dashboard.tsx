@@ -1013,7 +1013,7 @@ export default function CustomerDashboard() {
       justifyContent: 'flex-start',
       alignSelf: 'center',
       width: '100%',
-      maxWidth: 480,
+      maxWidth: 260,
       paddingHorizontal: 20,
       paddingTop: 40,
       paddingBottom: 20,
@@ -1034,24 +1034,24 @@ export default function CustomerDashboard() {
     },
     headerActions: {
       flexDirection: 'row',
-      gap: 12,
+      gap: 6,
     },
     requestDeliveryBtn: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
-      gap: 10,
-      paddingVertical: 16,
+      gap: 7,
+      paddingVertical: 10,
       borderRadius: 999,
       backgroundColor: '#00e5ff',
       shadowColor: '#00e5ff',
       shadowOffset: { width: 0, height: 0 },
       shadowOpacity: 0.55,
-      shadowRadius: 24,
-      elevation: 10,
+      shadowRadius: 18,
+      elevation: 8,
     },
     requestDeliveryBtnText: {
-      fontSize: 19,
+      fontSize: 14,
       fontWeight: '800',
       color: '#050D1A',
       letterSpacing: 0.3,
@@ -1128,7 +1128,7 @@ export default function CustomerDashboard() {
       borderColor: '#94a3b8',
     },
     logoWordmark: {
-      fontSize: 16,
+      fontSize: 12,
       fontWeight: '900',
       color: '#00e5ff',
       letterSpacing: 2.5,
@@ -1208,37 +1208,37 @@ export default function CustomerDashboard() {
       borderWidth: 1.5,
       borderColor: CARD,
     },
-    headerTitle: { fontSize: 34, fontWeight: '900', color: '#ffffff', letterSpacing: 0.3, marginTop: 0 },
-    headerSubtitle: { fontSize: 15, color: '#00e5ff', marginTop: 4, fontWeight: '700', letterSpacing: 1.5, textTransform: 'uppercase' as any },
+    headerTitle: { fontSize: 20, fontWeight: '900', color: '#ffffff', letterSpacing: 0.3, marginTop: 0 },
+    headerSubtitle: { fontSize: 10, color: '#00e5ff', marginTop: 2, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase' as any },
     welcomeBadge: {
       flexDirection: 'row', alignItems: 'center', gap: 6,
       alignSelf: 'flex-start',
-      paddingHorizontal: 14, paddingVertical: 6,
+      paddingHorizontal: 10, paddingVertical: 4,
       borderRadius: 999,
       backgroundColor: 'rgba(0,255,136,0.08)',
       borderWidth: 1,
       borderColor: 'rgba(0,255,136,0.35)',
     },
     welcomeBadgeDot: {
-      width: 7, height: 7, borderRadius: 4,
+      width: 6, height: 6, borderRadius: 3,
       backgroundColor: '#00ff88',
     },
     welcomeBadgeText: {
-      fontSize: 12, fontWeight: '800', color: '#00ff88', letterSpacing: 1.5,
+      fontSize: 9, fontWeight: '800', color: '#00ff88', letterSpacing: 1.2,
     },
     tutorialBtn: {
       flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
       flex: 1,
-      paddingVertical: 12,
+      paddingVertical: 9,
       borderRadius: 999, borderWidth: 1,
       borderColor: 'rgba(0,229,255,0.35)',
       backgroundColor: 'rgba(0,229,255,0.08)',
     },
-    tutorialBtnText: { fontSize: 14, fontWeight: '700', color: '#00e5ff', letterSpacing: 0.4 },
+    tutorialBtnText: { fontSize: 11, fontWeight: '700', color: '#00e5ff', letterSpacing: 0.3 },
     shareBtn: {
       flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
       flex: 1,
-      paddingVertical: 12,
+      paddingVertical: 9,
       borderRadius: 999, borderWidth: 1,
       borderColor: 'rgba(0,229,255,0.35)', backgroundColor: 'rgba(0,229,255,0.06)',
     },
@@ -1794,7 +1794,7 @@ export default function CustomerDashboard() {
           style={styles.requestDeliveryBtn}
           activeOpacity={0.8}
         >
-          <Truck size={22} color="#050D1A" strokeWidth={2.5} />
+          <Truck size={16} color="#050D1A" strokeWidth={2.5} />
           <Text style={styles.requestDeliveryBtnText}>Request Delivery</Text>
         </TouchableOpacity>
         <View style={styles.headerActions}>
@@ -1804,7 +1804,7 @@ export default function CustomerDashboard() {
             activeOpacity={0.75}
             accessibilityLabel="Share UniLink with friends"
           >
-            <Share2 size={14} color="#00e5ff" />
+            <Share2 size={11} color="#00e5ff" />
             <Text style={styles.tutorialBtnText}>{shareCopied ? 'Link copied!' : 'Share'}</Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -1812,7 +1812,7 @@ export default function CustomerDashboard() {
             style={styles.tutorialBtn}
             activeOpacity={0.75}
           >
-            <HelpCircle size={14} color="#00e5ff" />
+            <HelpCircle size={11} color="#00e5ff" />
             <Text style={styles.tutorialBtnText}>How it works</Text>
           </TouchableOpacity>
         </View>
