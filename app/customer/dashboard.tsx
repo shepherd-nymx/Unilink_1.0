@@ -26,6 +26,7 @@ import { useTermsGuard } from '@/hooks/useTermsGuard';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { setCurrentUser, registerForPushNotificationsOnLogin } from '@/lib/notification-service';
 import { saveUserData, clearUserData, loadUserData } from '@/lib/storage-service';
+import { startPaynowPayment, generateReference } from '@/lib/paynow-service';
 import { validateUpload } from '@/lib/upload-validation';
 import NotificationPermissionModal from '@/components/NotificationPermissionModal';
 import AnimatedChatIcon from '@/components/AnimatedChatIcon';
@@ -2380,17 +2381,25 @@ export default function CustomerDashboard() {
                 </View>
                 <TouchableOpacity
                   style={styles.paynowPayButton}
-                  onPress={() => {
-                    const { startPaynowPayment, generateReference } = require('@/lib/paynow-service');
-                    const ref = generateReference('delivery_request', acceptedOrder.id);
-                    startPaynowPayment({
-                      paymentType: 'delivery_request',
-                      entityId: acceptedOrder.id,
-                      amount: acceptedOrder.total_amount + acceptedOrder.delivery_fee,
-                      reference: ref,
-                      description: `UniLink Grocery Order - ${acceptedOrder?.drivers?.full_name || 'Driver'}`,
-                      metadata: { delivery_id: acceptedOrder.id },
-                    });
+                  onPress={async () => {
+                    try {
+                      const ref = generateReference('delivery_request', acceptedOrder.id);
+                      const result = await startPaynowPayment({
+                        paymentType: 'delivery_request',
+                        entityId: acceptedOrder.id,
+                        amount: acceptedOrder.total_amount + acceptedOrder.delivery_fee,
+                        reference: ref,
+                        description: `UniLink Grocery Order - ${acceptedOrder?.drivers?.full_name || 'Driver'}`,
+                        metadata: { delivery_id: acceptedOrder.id },
+                      });
+                      if (!result.success || !result.paymentUrl) {
+                        setError(`Could not open Paynow: ${result.error || 'unknown error'}`);
+                        setShowPaymentModal(false);
+                      }
+                    } catch (e: any) {
+                      setError(`Could not open Paynow: ${e?.message || 'unknown error'}`);
+                      setShowPaymentModal(false);
+                    }
                   }}
                 >
                   <CreditCard size={20} color="#fff" />
