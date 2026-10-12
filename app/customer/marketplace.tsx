@@ -262,9 +262,8 @@ export default function Marketplace() {
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
   const cartTotal = cart.reduce((sum, item) => sum + Number(item.product.price) * item.quantity, 0);
 
-  // A shop is visible when every name on its service-locations list matches something
-  // in the customer's known location: their university, or their registered address
-  // (e.g. "5 Larkin St, Selborne Park, Bulawayo" matches a "Selborne Park" entry).
+  // A shop is visible only when it has explicitly listed the customer's location
+  // (their university or registered address) in its service-location settings.
   const customerLocationText = [
     customerUniversityName,
     customerAddress?.formatted_address || '',
@@ -272,8 +271,8 @@ export default function Marketplace() {
 
   const shopServesCustomer = (shopId: string): boolean => {
     const sls = shopServiceLocations[shopId];
-    if (!sls || sls.length === 0) return true; // No restriction = visible to all
-    if (!customerLocationText.trim()) return true; // Can't filter if we don't know customer's location
+    if (!sls || sls.length === 0) return false; // No service locations set = visible to no one
+    if (!customerLocationText.trim()) return false; // Unknown customer location = can't verify service
     return sls.some(sl => customerLocationText.includes(sl.location_name.toLowerCase().trim()));
   };
 
