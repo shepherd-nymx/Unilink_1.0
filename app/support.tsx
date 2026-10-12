@@ -30,7 +30,7 @@ const COMPANY = {
   tagline: 'The company behind UniLink Grocery Delivery',
   domain: 'futurepulse.co.zw',
   url: 'https://futurepulse.co.zw',
-  logo: require('../../assets/images/future-pulse-logo.png'),
+  logo: require('../assets/images/future-pulse-logo.png'),
 };
 
 const CONTACT = {
