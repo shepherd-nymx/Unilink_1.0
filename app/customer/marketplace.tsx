@@ -262,11 +262,19 @@ export default function Marketplace() {
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
   const cartTotal = cart.reduce((sum, item) => sum + Number(item.product.price) * item.quantity, 0);
 
+  // A shop is visible when every name on its service-locations list matches something
+  // in the customer's known location: their university, or their registered address
+  // (e.g. "5 Larkin St, Selborne Park, Bulawayo" matches a "Selborne Park" entry).
+  const customerLocationText = [
+    customerUniversityName,
+    customerAddress?.formatted_address || '',
+  ].filter(Boolean).join(', ').toLowerCase();
+
   const shopServesCustomer = (shopId: string): boolean => {
     const sls = shopServiceLocations[shopId];
     if (!sls || sls.length === 0) return true; // No restriction = visible to all
-    if (!customerUniversityName) return true; // Can't filter if we don't know customer's location
-    return sls.some(sl => sl.location_name.toLowerCase() === customerUniversityName.toLowerCase());
+    if (!customerLocationText.trim()) return true; // Can't filter if we don't know customer's location
+    return sls.some(sl => customerLocationText.includes(sl.location_name.toLowerCase().trim()));
   };
 
   const anyCartBlocked = cartByShop.some(sc => {
