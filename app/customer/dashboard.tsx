@@ -1195,6 +1195,9 @@ export default function CustomerDashboard() {
       borderRadius: 18, borderWidth: 1, flexShrink: 0,
       borderColor: '#0e2a38', backgroundColor: 'rgba(0,229,255,0.06)',
     },
+    requestDeliveryRow: {
+      flexDirection: 'row', justifyContent: 'flex-end', marginTop: 8,
+    },
     tutorialBtnText: { fontSize: 10, fontWeight: '700', color: '#00e5ff', letterSpacing: 0.4 },
     content: { flex: 1 },
     searchContainer: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 8 },
@@ -1696,15 +1699,17 @@ export default function CustomerDashboard() {
               <HelpCircle size={13} color="#00e5ff" />
               <Text style={styles.tutorialBtnText}>How it works</Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => router.push({ pathname: '/customer/delivery-request', params: { customerId, customerName } } as any)}
-              style={[styles.tutorialBtn, { backgroundColor: '#00e5ff', borderColor: '#00e5ff' }]}
-              activeOpacity={0.75}
-            >
-              <Truck size={13} color="#050D1A" strokeWidth={2.5} />
-              <Text style={[styles.tutorialBtnText, { color: '#050D1A' }]}>Request Delivery</Text>
-            </TouchableOpacity>
           </View>
+        </View>
+        <View style={styles.requestDeliveryRow}>
+          <TouchableOpacity
+            onPress={() => router.push({ pathname: '/customer/delivery-request', params: { customerId, customerName } } as any)}
+            style={[styles.tutorialBtn, { backgroundColor: '#00e5ff', borderColor: '#00e5ff' }]}
+            activeOpacity={0.75}
+          >
+            <Truck size={13} color="#050D1A" strokeWidth={2.5} />
+            <Text style={[styles.tutorialBtnText, { color: '#050D1A' }]}>Request Delivery</Text>
+          </TouchableOpacity>
         </View>
         <View style={styles.headerContent}>
           <View style={styles.welcomeBadge}>
