@@ -878,6 +878,45 @@ export default function CustomerDashboard() {
 
       if (dbError) throw dbError;
 
+      if (paymentOption === 'paynow') {
+        // Launch Paynow checkout immediately — user pays on the Paynow site now.
+        const { startPaynowPayment, generateReference } = await import('@/lib/paynow-service');
+        const ref = generateReference('delivery_request', data.id);
+        const result = await startPaynowPayment({
+          paymentType: 'delivery_request',
+          entityId: data.id,
+          amount: total + deliveryFee,
+          reference: ref,
+          description: `UniLink Grocery Order - ${fetchedName || customerName || 'Customer'}`,
+          metadata: { delivery_id: data.id },
+        });
+
+        if (!result.success) {
+          setError('Order placed, but we could not open Paynow. Please pay from your orders page.');
+        }
+
+        if (isOpenRequest) {
+          setOpenRequestDeliveryId(data.id);
+          setShowOpenRequestWaiting(true);
+          setShowLocationSelector(false);
+        } else if (result.success) {
+          // Redirect already happened to the Paynow site; no ticket redirect needed.
+          return;
+        } else {
+          router.push({
+            pathname: '/customer/ticket',
+            params: {
+              deliveryId: data.id,
+              customerName: customerName,
+              total: total.toFixed(2),
+              deliveryFee: deliveryFee.toFixed(2),
+              paymentOption: paymentOption,
+            },
+          });
+        }
+        return;
+      }
+
       if (isOpenRequest) {
         setOpenRequestDeliveryId(data.id);
         setShowOpenRequestWaiting(true);
@@ -1904,7 +1943,7 @@ export default function CustomerDashboard() {
                   <Text style={{ fontSize: 13, fontWeight: '700', color: P }}>Paynow Payment Notice</Text>
                 </View>
                 <Text style={{ fontSize: 12, color: TX2, lineHeight: 17 }}>
-                  You must send payment immediately after the driver accepts your order. Groceries will be purchased after payment is confirmed.
+                  After placing your order you will be taken straight to the Paynow website to pay. Groceries will be purchased after payment is confirmed.
                 </Text>
               </View>
             )}
