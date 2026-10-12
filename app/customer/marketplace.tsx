@@ -141,14 +141,15 @@ export default function Marketplace() {
       const storedSession = loadUserData();
       const sessionCustomerId = storedSession?.type === 'customer' ? storedSession.id : undefined;
       if (sessionCustomerId) {
-        const { data: customer } = await supabase
+        const { data: customer, error: customerErr } = await supabase
           .from('customers')
-          .select('university_id, customer_latitude, customer_longitude, formatted_address')
+          .select('university_id, customer_latitude, customer_longitude')
           .eq('id', sessionCustomerId)
           .maybeSingle();
+        if (customerErr) console.warn('customer fetch:', customerErr.message);
         if (customer) {
           setCustomerAddress({
-            formatted_address: (customer as any).formatted_address || null,
+            formatted_address: null,
             latitude: (customer as any).customer_latitude != null ? Number((customer as any).customer_latitude) : null,
             longitude: (customer as any).customer_longitude != null ? Number((customer as any).customer_longitude) : null,
           });
