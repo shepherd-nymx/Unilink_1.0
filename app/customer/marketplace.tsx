@@ -143,15 +143,15 @@ export default function Marketplace() {
       if (sessionCustomerId) {
         const { data: customer, error: customerErr } = await supabase
           .from('customers')
-          .select('university_id, customer_latitude, customer_longitude')
+          .select('university_id, latitude, longitude')
           .eq('id', sessionCustomerId)
           .maybeSingle();
         if (customerErr) console.warn('customer fetch:', customerErr.message);
         if (customer) {
           setCustomerAddress({
             formatted_address: null,
-            latitude: (customer as any).customer_latitude != null ? Number((customer as any).customer_latitude) : null,
-            longitude: (customer as any).customer_longitude != null ? Number((customer as any).customer_longitude) : null,
+            latitude: (customer as any).latitude != null ? Number((customer as any).latitude) : null,
+            longitude: (customer as any).longitude != null ? Number((customer as any).longitude) : null,
           });
         }
         if (customer?.university_id) {
