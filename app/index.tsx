@@ -1,6 +1,7 @@
 import {
   View,
   Text,
+  Image,
   StyleSheet,
   TouchableOpacity,
   Platform,
@@ -8,6 +9,7 @@ import {
   Animated,
   ScrollView,
   Dimensions,
+  Linking,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import {
@@ -37,6 +39,8 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useState, useEffect, useRef } from 'react';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { isFirstVisit, markFirstVisitDone } from '@/lib/storage-service';
+
+const FUTURE_PULSE_LOGO = require('../assets/images/future-pulse-logo.png');
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -532,6 +536,18 @@ export default function Home() {
       color: colors.textTertiary,
       textAlign: 'center',
     },
+    footerLogo: {
+      width: 44,
+      height: 44,
+      marginBottom: 10,
+    },
+    footerPoweredBy: {
+      fontSize: 11,
+      fontWeight: '600',
+      color: colors.textTertiary,
+      marginTop: 10,
+      letterSpacing: 0.3,
+    },
     footerLinks: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -882,6 +898,7 @@ export default function Home() {
 
         {/* ── FOOTER ── */}
         <View style={s.footer}>
+          <Image source={FUTURE_PULSE_LOGO} style={s.footerLogo} resizeMode="contain" />
           <Text style={s.footerText}>UniLink — connect, deliver, and receive anywhere, anytime.</Text>
           <View style={s.footerLinks}>
             <TouchableOpacity style={s.footerAdmin} onPress={() => router.push('/support' as any)}>
@@ -894,6 +911,9 @@ export default function Home() {
               <Text style={s.footerAdminText}>Admin Portal</Text>
             </TouchableOpacity>
           </View>
+          <TouchableOpacity onPress={() => Linking.openURL('https://futurepulse.co.zw')} activeOpacity={0.7}>
+            <Text style={s.footerPoweredBy}>Powered by Future Pulse Investments · futurepulse.co.zw</Text>
+          </TouchableOpacity>
         </View>
 
       </ScrollView>
