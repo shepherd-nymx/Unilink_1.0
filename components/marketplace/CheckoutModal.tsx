@@ -7,6 +7,7 @@ import {
 } from 'lucide-react-native';
 import { CartByShop, Shop, ThemePalette, formatPaymentMethod, getAcceptedMethods, computeShopOpen, formatOperatingHours, DeliveryFeeTier, computeTierDeliveryFee } from './types';
 import * as Location from 'expo-location';
+import { reverseGeocode } from '@/lib/map-utils';
 
 type Props = {
   visible: boolean;
@@ -144,7 +145,12 @@ export function CheckoutModal({
       const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
       setConfirmedLatitude(pos.coords.latitude);
       setConfirmedLongitude(pos.coords.longitude);
-      setDeliveryLocation(`Current location (${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)})`);
+      let address = `Current location (${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)})`;
+      try {
+        const geocoded = await reverseGeocode(pos.coords.latitude, pos.coords.longitude);
+        if (geocoded && geocoded.trim()) address = geocoded;
+      } catch {}
+      setDeliveryLocation(address);
       setLocationConfirmed(true);
       setLocationMode('current');
     } catch {
