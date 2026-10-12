@@ -16,7 +16,8 @@ import {
 } from 'react-native';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { supabase } from '@/lib/supabase';
-import { LogOut, ShoppingCart, ShoppingBag, Car, User, CircleAlert as AlertCircle, History, ChevronDown, ChevronUp, Plus, X, Package, Search, Star, CircleCheck as CheckCircle, Camera, Image as ImageIcon, MessageCircle, Circle as HelpCircle, Bell, Truck, CreditCard } from 'lucide-react-native';
+import { LogOut, ShoppingCart, ShoppingBag, Car, User, CircleAlert as AlertCircle, History, ChevronDown, ChevronUp, Plus, X, Package, Search, Star, CircleCheck as CheckCircle, Camera, Image as ImageIcon, MessageCircle, Circle as HelpCircle, Bell, Truck, CreditCard, Share2 } from 'lucide-react-native';
+import { Share as RNShare } from 'react-native';
 import * as Location from 'expo-location';
 import * as ImagePicker from 'expo-image-picker';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -208,8 +209,28 @@ export default function CustomerDashboard() {
   const [showWelcomeGuide, setShowWelcomeGuide] = useState(true);
   const [fetchedName, setFetchedName] = useState<string | null>(null);
   const [showScrollHint, setShowScrollHint] = useState(false);
+  const [shareCopied, setShareCopied] = useState(false);
   const scrollHintAnim = useRef(new Animated.Value(0)).current;
   const scrollHintTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleShare = async () => {
+    const url = 'https://unilinkbase.com';
+    const message = 'Check out UniLink — get groceries and deliveries brought straight to you: ' + url;
+    if (Platform.OS === 'web') {
+      try {
+        if (typeof navigator !== 'undefined' && navigator.share) {
+          await navigator.share({ title: 'UniLink', text: message, url });
+        } else if (typeof navigator !== 'undefined' && navigator.clipboard) {
+          await navigator.clipboard.writeText(url);
+          setExpiredNotification(null);
+          setShareCopied(true);
+          setTimeout(() => setShareCopied(false), 2500);
+        }
+      } catch {}
+    } else {
+      RNShare.share({ message }).catch(() => {});
+    }
+  };
 
   useEffect(() => {
     if (!customerId) {
@@ -1168,6 +1189,12 @@ export default function CustomerDashboard() {
       shadowRadius: 6,
       elevation: 2,
     },
+    shareBtn: {
+      flexDirection: 'row', alignItems: 'center', gap: 5,
+      paddingHorizontal: 12, paddingVertical: 6,
+      borderRadius: 18, borderWidth: 1, flexShrink: 0,
+      borderColor: '#0e2a38', backgroundColor: 'rgba(0,229,255,0.06)',
+    },
     tutorialBtnText: { fontSize: 10, fontWeight: '700', color: '#00e5ff', letterSpacing: 0.4 },
     content: { flex: 1 },
     searchContainer: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 8 },
@@ -1652,6 +1679,15 @@ export default function CustomerDashboard() {
         <View style={styles.headerTopRow}>
           <Text style={[styles.logoWordmark, { color: '#00e5ff' }]}>UNILINK</Text>
           <View style={styles.headerActions}>
+            <TouchableOpacity
+              onPress={handleShare}
+              style={styles.shareBtn}
+              activeOpacity={0.75}
+              accessibilityLabel="Share UniLink with friends"
+            >
+              <Share2 size={13} color="#00e5ff" />
+              <Text style={styles.tutorialBtnText}>{shareCopied ? 'Link copied!' : 'Share'}</Text>
+            </TouchableOpacity>
             <TouchableOpacity
               onPress={() => setShowTutorial(true)}
               style={styles.tutorialBtn}
