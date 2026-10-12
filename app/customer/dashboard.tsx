@@ -1038,18 +1038,20 @@ export default function CustomerDashboard() {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
-      gap: 7,
-      paddingVertical: 10,
+      gap: 6,
+      paddingVertical: 7,
+      alignSelf: 'center',
+      paddingHorizontal: 24,
       borderRadius: 999,
       backgroundColor: '#00e5ff',
       shadowColor: '#00e5ff',
       shadowOffset: { width: 0, height: 0 },
       shadowOpacity: 0.55,
-      shadowRadius: 18,
-      elevation: 8,
+      shadowRadius: 14,
+      elevation: 6,
     },
     requestDeliveryBtnText: {
-      fontSize: 14,
+      fontSize: 12,
       fontWeight: '800',
       color: '#050D1A',
       letterSpacing: 0.3,
@@ -1792,7 +1794,7 @@ export default function CustomerDashboard() {
           style={styles.requestDeliveryBtn}
           activeOpacity={0.8}
         >
-          <Truck size={16} color="#050D1A" strokeWidth={2.5} />
+          <Truck size={14} color="#050D1A" strokeWidth={2.5} />
           <Text style={styles.requestDeliveryBtnText}>Request Delivery</Text>
         </TouchableOpacity>
         <View style={styles.headerActions}>
