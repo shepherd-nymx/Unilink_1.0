@@ -16,7 +16,7 @@ import {
 } from 'react-native';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { supabase } from '@/lib/supabase';
-import { LogOut, ShoppingCart, ShoppingBag, Car, User, CircleAlert as AlertCircle, History, ChevronDown, ChevronUp, Plus, X, Package, Search, Star, CircleCheck as CheckCircle, Camera, Image as ImageIcon, MessageCircle, Circle as HelpCircle, Bell, Truck, CreditCard, Share2 } from 'lucide-react-native';
+import { LogOut, ShoppingCart, ShoppingBag, Car, User, CircleAlert as AlertCircle, History, ChevronDown, ChevronUp, Plus, X, Package, Search, Star, CircleCheck as CheckCircle, Camera, Image as ImageIcon, MessageCircle, Circle as HelpCircle, Bell, Truck, CreditCard, Share2, Mail, Link2, Smartphone } from 'lucide-react-native';
 import { Share as RNShare } from 'react-native';
 import * as Location from 'expo-location';
 import * as ImagePicker from 'expo-image-picker';
@@ -210,26 +210,53 @@ export default function CustomerDashboard() {
   const [fetchedName, setFetchedName] = useState<string | null>(null);
   const [showScrollHint, setShowScrollHint] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
   const scrollHintAnim = useRef(new Animated.Value(0)).current;
   const scrollHintTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const handleShare = async () => {
-    const url = 'https://unilinkbase.com';
-    const message = 'Check out UniLink — get groceries and deliveries brought straight to you: ' + url;
-    if (Platform.OS === 'web') {
-      try {
-        if (typeof navigator !== 'undefined' && navigator.share) {
-          await navigator.share({ title: 'UniLink', text: message, url });
-        } else if (typeof navigator !== 'undefined' && navigator.clipboard) {
-          await navigator.clipboard.writeText(url);
-          setExpiredNotification(null);
-          setShareCopied(true);
-          setTimeout(() => setShareCopied(false), 2500);
-        }
-      } catch {}
-    } else {
-      RNShare.share({ message }).catch(() => {});
+  const SHARE_URL = 'https://unilinkbase.com';
+  const SHARE_MESSAGE = 'Check out UniLink — get groceries and deliveries brought straight to you: ' + SHARE_URL;
+
+  const handleShare = () => {
+    if (Platform.OS !== 'web') {
+      RNShare.share({ message: SHARE_MESSAGE }).catch(() => {});
+      return;
     }
+    setShowShareModal(true);
+  };
+
+  const shareViaWhatsApp = () => {
+    window.open('https://wa.me/?text=' + encodeURIComponent(SHARE_MESSAGE), '_blank');
+    setShowShareModal(false);
+  };
+
+  const shareViaSMS = () => {
+    window.open('sms:?&body=' + encodeURIComponent(SHARE_MESSAGE), '_self');
+    setShowShareModal(false);
+  };
+
+  const shareViaEmail = () => {
+    window.open('mailto:?subject=' + encodeURIComponent('Check out UniLink') + '&body=' + encodeURIComponent(SHARE_MESSAGE));
+    setShowShareModal(false);
+  };
+
+  const copyShareLink = async () => {
+    try {
+      await navigator.clipboard.writeText(SHARE_URL);
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2500);
+    } catch {}
+  };
+
+  const tryNativeShare = async () => {
+    setShowShareModal(false);
+    try {
+      if (typeof navigator !== 'undefined' && navigator.share) {
+        await navigator.share({ title: 'UniLink', text: SHARE_MESSAGE, url: SHARE_URL });
+      } else {
+        await copyShareLink();
+      }
+    } catch {}
   };
 
   useEffect(() => {
@@ -1198,6 +1225,27 @@ export default function CustomerDashboard() {
     requestDeliveryRow: {
       flexDirection: 'row', justifyContent: 'flex-end', marginTop: 8,
     },
+    shareModalOverlay: {
+      position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+      zIndex: 100,
+      alignItems: 'center', justifyContent: 'flex-start', paddingTop: 110,
+    },
+    shareModalCard: {
+      backgroundColor: '#0b1c2c', borderRadius: 16, borderWidth: 1, borderColor: 'rgba(0,229,255,0.25)',
+      padding: 16, width: 280, gap: 12,
+      shadowColor: '#00e5ff', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.25, shadowRadius: 20, elevation: 12,
+    },
+    shareModalTitle: { fontSize: 13, fontWeight: '800', color: '#fff', letterSpacing: 0.3 },
+    shareModalOptions: { flexDirection: 'row', justifyContent: 'space-between' },
+    shareOption: { alignItems: 'center', gap: 5, flex: 1 },
+    shareOptionText: { fontSize: 10, fontWeight: '700', color: '#cbd5e1' },
+    copyLinkRow: {
+      flexDirection: 'row', alignItems: 'center', gap: 8,
+      backgroundColor: 'rgba(0,229,255,0.08)', borderWidth: 1, borderColor: 'rgba(0,229,255,0.25)',
+      borderRadius: 10, paddingHorizontal: 10, paddingVertical: 8,
+    },
+    copyLinkText: { flex: 1, fontSize: 12, fontWeight: '600', color: '#e2e8f0' },
+    copyLinkAction: { fontSize: 11, fontWeight: '800', color: '#00e5ff' },
     tutorialBtnText: { fontSize: 10, fontWeight: '700', color: '#00e5ff', letterSpacing: 0.4 },
     content: { flex: 1 },
     searchContainer: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 8 },
@@ -1679,6 +1727,37 @@ export default function CustomerDashboard() {
         onDismiss={clearInAppMessage}
       />
       <View style={styles.header}>
+        {showShareModal && (
+          <View style={styles.shareModalOverlay}>
+            <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={() => setShowShareModal(false)} />
+            <View style={styles.shareModalCard}>
+              <Text style={styles.shareModalTitle}>Share UniLink with friends</Text>
+              <View style={styles.shareModalOptions}>
+                <TouchableOpacity style={styles.shareOption} onPress={shareViaWhatsApp} activeOpacity={0.7}>
+                  <Smartphone size={20} color="#25D366" />
+                  <Text style={styles.shareOptionText}>WhatsApp</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.shareOption} onPress={shareViaSMS} activeOpacity={0.7}>
+                  <MessageCircle size={20} color="#00e5ff" />
+                  <Text style={styles.shareOptionText}>SMS</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.shareOption} onPress={shareViaEmail} activeOpacity={0.7}>
+                  <Mail size={20} color="#F59E0B" />
+                  <Text style={styles.shareOptionText}>Email</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.shareOption} onPress={tryNativeShare} activeOpacity={0.7}>
+                  <Share2 size={20} color="#8B5CF6" />
+                  <Text style={styles.shareOptionText}>More</Text>
+                </TouchableOpacity>
+              </View>
+              <TouchableOpacity style={styles.copyLinkRow} onPress={copyShareLink} activeOpacity={0.7}>
+                <Link2 size={14} color="#00e5ff" />
+                <Text style={styles.copyLinkText} numberOfLines={1}>unilinkbase.com</Text>
+                <Text style={styles.copyLinkAction}>{shareCopied ? 'Copied!' : 'Copy'}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
         <View style={styles.headerTopRow}>
           <Text style={[styles.logoWordmark, { color: '#00e5ff' }]}>UNILINK</Text>
           <View style={styles.headerActions}>
