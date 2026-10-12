@@ -1,6 +1,7 @@
 import {
   View,
   Text,
+  Image,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
@@ -22,6 +23,14 @@ const DEVELOPER = {
   name: 'Shepherd Mufaro Mutevedzi',
   role: 'Founder & Developer',
   email: 'shepherdmutevedzi@gmail.com',
+};
+
+const COMPANY = {
+  name: 'Future Pulse Investments',
+  tagline: 'The company behind UniLink Grocery Delivery',
+  domain: 'futurepulse.co.zw',
+  url: 'https://futurepulse.co.zw',
+  logo: require('../../assets/images/future-pulse-logo.png'),
 };
 
 const CONTACT = {
@@ -600,8 +609,18 @@ export default function SupportPage() {
       backgroundColor: isDark ? 'rgba(245,158,11,0.15)' : 'rgba(245,158,11,0.1)',
       borderWidth: 2, borderColor: isDark ? 'rgba(245,158,11,0.4)' : 'rgba(245,158,11,0.3)',
       justifyContent: 'center' as any, alignItems: 'center' as any,
+      overflow: 'hidden' as any,
     },
-    aboutAvatarText: { fontSize: 22, fontWeight: '900', color: '#f59e0b' },
+    aboutLogoImage: { width: '100%' as any, height: '100%' as any },
+    companyCard: {
+      flexDirection: 'row' as any, alignItems: 'center' as any, gap: 14,
+      padding: 14, borderRadius: 14,
+      backgroundColor: isDark ? 'rgba(245,158,11,0.06)' : 'rgba(245,158,11,0.06)',
+      borderWidth: 1, borderColor: isDark ? 'rgba(245,158,11,0.2)' : 'rgba(245,158,11,0.15)',
+    },
+    companyLogo: { width: 48, height: 48, borderRadius: 12 },
+    companyName: { fontSize: 14, fontWeight: '800', color: colors.text },
+    companyTagline: { fontSize: 12, color: colors.textSecondary, marginTop: 2, lineHeight: 17 },
     aboutDevInfo: { flex: 1 },
     aboutDevName: { fontSize: 16, fontWeight: '800', color: colors.text, letterSpacing: 0.2 },
     aboutDevRole: {
@@ -908,14 +927,14 @@ export default function SupportPage() {
         {/* About / Developer */}
         <View style={[s.section, { paddingTop: 24 }]}>
           <Text style={s.sectionLabel}>About</Text>
-          <Text style={s.sectionTitle}>Meet the Developer</Text>
+          <Text style={s.sectionTitle}>Who We Are</Text>
 
           <View style={s.aboutCard}>
             <View style={s.aboutGlow} />
             <View style={s.aboutInner}>
               <View style={s.aboutDevRow}>
                 <View style={s.aboutAvatar}>
-                  <Text style={s.aboutAvatarText}>S</Text>
+                  <Image source={COMPANY.logo} style={s.aboutLogoImage} resizeMode="cover" />
                 </View>
                 <View style={s.aboutDevInfo}>
                   <Text style={s.aboutDevName}>{DEVELOPER.name}</Text>
@@ -934,6 +953,24 @@ export default function SupportPage() {
               >
                 <Mail size={16} color="#f59e0b" />
                 <Text style={s.aboutEmailText}>{DEVELOPER.email}</Text>
+                <ExternalLink size={14} color="#f59e0b" />
+              </TouchableOpacity>
+
+              <View style={s.companyCard}>
+                <Image source={COMPANY.logo} style={s.companyLogo} resizeMode="contain" />
+                <View style={{ flex: 1 }}>
+                  <Text style={s.companyName}>{COMPANY.name}</Text>
+                  <Text style={s.companyTagline}>{COMPANY.tagline}</Text>
+                </View>
+              </View>
+
+              <TouchableOpacity
+                style={s.aboutEmailBtn}
+                onPress={() => Linking.openURL(COMPANY.url)}
+                activeOpacity={0.8}
+              >
+                <ExternalLink size={16} color="#f59e0b" />
+                <Text style={s.aboutEmailText}>{COMPANY.domain}</Text>
                 <ExternalLink size={14} color="#f59e0b" />
               </TouchableOpacity>
 
