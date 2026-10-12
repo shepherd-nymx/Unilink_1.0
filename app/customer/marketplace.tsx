@@ -137,11 +137,14 @@ export default function Marketplace() {
     setLoading(true);
     try {
       // Load customer's university for location filtering
-      if (customerId) {
+      // Read the saved session directly: customerId state may not be set yet on first load
+      const storedSession = loadUserData();
+      const sessionCustomerId = storedSession?.type === 'customer' ? storedSession.id : undefined;
+      if (sessionCustomerId) {
         const { data: customer } = await supabase
           .from('customers')
           .select('university_id, customer_latitude, customer_longitude, formatted_address')
-          .eq('id', customerId)
+          .eq('id', sessionCustomerId)
           .maybeSingle();
         if (customer) {
           setCustomerAddress({
