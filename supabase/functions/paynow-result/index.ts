@@ -15,7 +15,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
 };
 
-const PAYNOW_KEY = "56a31fa1-0a7a-4818-a798-62d09c2c0f8c";
+const PAYNOW_KEY = "aaff6ea5-dbbd-4701-b57d-244cad44d196";
 
 function md5(str: string): string {
   return createHash("md5").update(str).digest("hex");

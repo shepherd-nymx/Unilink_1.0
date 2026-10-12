@@ -16,8 +16,8 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
 };
 
-const PAYNOW_ID = "26582";
-const PAYNOW_KEY = "56a31fa1-0a7a-4818-a798-62d09c2c0f8c";
+const PAYNOW_ID = "27374";
+const PAYNOW_KEY = "aaff6ea5-dbbd-4701-b57d-244cad44d196";
 const PAYNOW_INITIATE_URL = "https://www.paynow.co.zw/interface/initiate/";
 
 const APP_URL = (Deno.env.get("APP_URL") || "https://unilinkbase.com").replace(/\/$/, "");
