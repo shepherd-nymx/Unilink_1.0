@@ -1119,7 +1119,7 @@ export default function CustomerDashboard() {
       justifyContent: 'space-between',
       alignItems: 'center',
     },
-    headerContent: { flex: 1, minWidth: 0, marginTop: 2 },
+    headerContent: { flex: 1, minWidth: 0, marginTop: 0 },
     deliveryFab: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -1186,8 +1186,8 @@ export default function CustomerDashboard() {
       borderWidth: 1.5,
       borderColor: CARD,
     },
-    headerTitle: { fontSize: 20, fontWeight: '900', color: '#d0eaff', letterSpacing: 0.3, marginTop: 2 },
-    headerSubtitle: { fontSize: 11, color: '#00e5ff', marginTop: 2, fontWeight: '600', letterSpacing: 0.5, textTransform: 'uppercase' as any },
+    headerTitle: { fontSize: 20, fontWeight: '900', color: '#d0eaff', letterSpacing: 0.3, marginTop: 0 },
+    headerSubtitle: { fontSize: 11, color: '#00e5ff', marginTop: 1, fontWeight: '600', letterSpacing: 0.5, textTransform: 'uppercase' as any },
     welcomeBadge: {
       flexDirection: 'row', alignItems: 'center', gap: 5,
       alignSelf: 'flex-start',
