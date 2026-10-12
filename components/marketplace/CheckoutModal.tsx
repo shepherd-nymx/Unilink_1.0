@@ -413,7 +413,7 @@ export function CheckoutModal({
                 setConfirmedLongitude(null);
               }
             }}
-            placeholder="Enter delivery address or use buttons above"
+            placeholder="e.g. Stand 4521, Brentwood, Bulawayo — or use buttons above"
             placeholderTextColor={palette.placeholderColor}
             multiline
             editable={!anyBlocked}

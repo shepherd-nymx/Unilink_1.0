@@ -14,7 +14,8 @@ import {
   Animated,
 } from 'react-native';
 import { supabase } from '@/lib/supabase';
-import { Send, MessageCircle, X, User, Phone, Zap } from 'lucide-react-native';
+import * as Location from 'expo-location';
+import { Send, MessageCircle, X, User, Phone, Zap, MapPin, Crosshair } from 'lucide-react-native';
 
 const CHAT_BG = '#030810';
 const SURFACE = '#060f1e';
@@ -218,6 +219,12 @@ export default function ChatInterface({
   const scrollViewRef = useRef<ScrollView>(null);
   const headerAnim = useRef(new Animated.Value(0)).current;
   const inputBorderAnim = useRef(new Animated.Value(0)).current;
+  const [showLocationPanel, setShowLocationPanel] = useState(false);
+  const [locAddress, setLocAddress] = useState('');
+  const [locLat, setLocLat] = useState<number | null>(null);
+  const [locLng, setLocLng] = useState<number | null>(null);
+  const [locDetecting, setLocDetecting] = useState(false);
+  const [locSending, setLocSending] = useState(false);
 
   useEffect(() => {
     Animated.spring(headerAnim, { toValue: 1, tension: 55, friction: 9, useNativeDriver: true }).start();
@@ -399,6 +406,50 @@ export default function ChatInterface({
     }
   };
 
+  const detectLocGps = async () => {
+    setLocDetecting(true);
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') return;
+      const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      setLocLat(pos.coords.latitude);
+      setLocLng(pos.coords.longitude);
+    } catch {
+    } finally {
+      setLocDetecting(false);
+    }
+  };
+
+  const sendLocationMessage = async () => {
+    if (!locAddress.trim() || !conversationId || locSending) return;
+    setLocSending(true);
+    const parts = ['📍 Delivery Location', `Address: ${locAddress.trim()}`];
+    if (locLat != null && locLng != null) {
+      parts.push(`GPS: ${locLat.toFixed(5)}, ${locLng.toFixed(5)}`);
+      parts.push(`Map: https://www.google.com/maps?q=${locLat},${locLng}`);
+    }
+    const messageText = parts.join('\n');
+    try {
+      const { error } = await supabase.from('chat_messages').insert({
+        conversation_id: conversationId,
+        sender_type: currentUserType,
+        sender_id: currentUserId,
+        message: messageText,
+        is_broadcast: false,
+      });
+      if (error) throw error;
+      sendDmEmailNotification(messageText);
+      setLocAddress('');
+      setLocLat(null);
+      setLocLng(null);
+      setShowLocationPanel(false);
+    } catch (err) {
+      console.error('Error sending location:', err);
+    } finally {
+      setLocSending(false);
+    }
+  };
+
   const getDisplayName = () => {
     if (otherPartyName) return otherPartyName;
     if (currentUserType === 'driver') return customerName || 'Customer';
@@ -521,6 +572,60 @@ export default function ChatInterface({
               ))
             )}
           </ScrollView>
+
+          {currentUserType === 'customer' && (
+            <View style={s.locSection}>
+              <TouchableOpacity
+                style={s.locToggle}
+                onPress={() => setShowLocationPanel(v => !v)}
+                activeOpacity={0.8}
+              >
+                <MapPin size={13} color={CYAN} />
+                <Text style={s.locToggleText}>{showLocationPanel ? 'Hide Location Details' : 'Add Delivery Location'}</Text>
+              </TouchableOpacity>
+              {showLocationPanel && (
+                <View style={s.locPanel}>
+                  <TextInput
+                    style={s.locInput}
+                    value={locAddress}
+                    onChangeText={setLocAddress}
+                    placeholder="e.g. Stand 4521, Brentwood, Bulawayo"
+                    placeholderTextColor={TEXT_MUTED}
+                    multiline
+                    maxLength={200}
+                    {...(Platform.OS === 'web' ? { outlineStyle: 'none' } as any : {})}
+                  />
+                  <View style={s.locActions}>
+                    <TouchableOpacity
+                      style={s.locGpsBtn}
+                      onPress={detectLocGps}
+                      disabled={locDetecting}
+                      activeOpacity={0.8}
+                    >
+                      {locDetecting ? (
+                        <ActivityIndicator size="small" color={CYAN} />
+                      ) : (
+                        <Crosshair size={13} color={CYAN} />
+                      )}
+                      <Text style={s.locGpsText}>{locLat != null ? 'GPS Captured' : 'Attach GPS'}</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[s.locSendBtn, (!locAddress.trim() || locSending) && s.locSendBtnDisabled]}
+                      onPress={sendLocationMessage}
+                      disabled={!locAddress.trim() || locSending}
+                      activeOpacity={0.8}
+                    >
+                      <Send size={12} color={CHAT_BG} />
+                      <Text style={s.locSendText}>{locSending ? 'Sending...' : 'Send Location'}</Text>
+                    </TouchableOpacity>
+                  </View>
+                  {locLat != null && locLng != null ? (
+                    <Text style={s.locCoordsPreview}>GPS: {locLat.toFixed(5)}, {locLng.toFixed(5)}</Text>
+                  ) : null}
+                </View>
+              )}
+            </View>
+          )}
 
           <View style={s.inputArea}>
             <Animated.View style={[s.inputWrap, { borderColor: inputBorderColor }]}>
@@ -792,6 +897,90 @@ const s = StyleSheet.create({
     color: TEXT,
     maxHeight: 100,
     lineHeight: 22,
+  },
+  locSection: {
+    backgroundColor: SURFACE,
+    borderTopWidth: 1,
+    borderTopColor: BORDER,
+    paddingHorizontal: 14,
+    paddingTop: 8,
+  },
+  locToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 6,
+  },
+  locToggleText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: CYAN,
+    letterSpacing: 0.3,
+  },
+  locPanel: {
+    backgroundColor: CARD,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: BORDER,
+    padding: 10,
+    gap: 8,
+    marginBottom: 8,
+  },
+  locInput: {
+    fontSize: 14,
+    color: TEXT,
+    backgroundColor: CHAT_BG,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: BORDER,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    minHeight: 40,
+    textAlignVertical: 'center',
+  },
+  locActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  locGpsBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 9,
+    borderRadius: 8,
+    backgroundColor: CYAN_DIM,
+    borderWidth: 1,
+    borderColor: 'rgba(0,229,255,0.35)',
+  },
+  locGpsText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: CYAN,
+  },
+  locSendBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 9,
+    borderRadius: 8,
+    backgroundColor: GREEN,
+  },
+  locSendBtnDisabled: {
+    opacity: 0.4,
+  },
+  locSendText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: CHAT_BG,
+  },
+  locCoordsPreview: {
+    fontSize: 10,
+    color: TEXT_SUB,
+    letterSpacing: 0.3,
   },
   messageWrapper: {
     marginBottom: 8,
