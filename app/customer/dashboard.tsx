@@ -24,6 +24,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import AddCustomItemModal from '@/components/AddCustomItemModal';
 import LocationSelector from '@/components/LocationSelector';
 import { useTermsGuard } from '@/hooks/useTermsGuard';
+import { useHardwareBackExit } from '@/hooks/useHardwareBackExit';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { setCurrentUser, registerForPushNotificationsOnLogin } from '@/lib/notification-service';
 import { saveUserData, clearUserData, loadUserData } from '@/lib/storage-service';
@@ -171,6 +172,7 @@ export default function CustomerDashboard() {
   const customerName = params.customerName as string;
   const { colors, isDark } = useTheme();
   const { isChecking, isAccepted } = useTermsGuard('customer');
+  useHardwareBackExit();
   const { unreadMessageCount, shopOrderUpdatesCount, inAppMessage, clearInAppMessage, requestNotificationPermission } = useNotifications();
   const [groceryItems, setGroceryItems] = useState<GroceryItem[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);

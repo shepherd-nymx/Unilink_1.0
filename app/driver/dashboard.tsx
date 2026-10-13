@@ -20,6 +20,7 @@ import AnimatedChatIcon from '@/components/AnimatedChatIcon';
 import InAppNotificationBanner from '@/components/InAppNotificationBanner';
 import SwitchLocationModal from '@/components/SwitchLocationModal';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useHardwareBackExit } from '@/hooks/useHardwareBackExit';
 import { useTermsGuard } from '@/hooks/useTermsGuard';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { setCurrentUser, registerForPushNotificationsOnLogin } from '@/lib/notification-service';
@@ -205,6 +206,7 @@ export default function DriverDashboard() {
   const driverName = params.driverName as string;
   const { colors } = useTheme();
   const { isChecking, isAccepted } = useTermsGuard('driver');
+  useHardwareBackExit();
   const {
     unreadMessageCount,
     pendingDeliveriesCount,

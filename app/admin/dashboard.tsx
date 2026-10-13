@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, Animated, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useHardwareBackExit } from '@/hooks/useHardwareBackExit';
 import {
   LogOut, Users, Truck, Package, UserCog, ShoppingBag, School, ChevronRight, Star,
   Mail, Store, ScrollText, Shield, CircleAlert as AlertCircle, CircleCheck as CheckCircle,
@@ -21,6 +22,7 @@ type Stats = {
 
 export default function AdminDashboard() {
   const router = useRouter();
+  useHardwareBackExit();
   const { requestNotificationPermission } = useNotifications();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(20)).current;

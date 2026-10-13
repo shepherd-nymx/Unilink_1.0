@@ -17,6 +17,7 @@ import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { validateUpload } from '@/lib/upload-validation';
 import { loadShopSession, clearShopSession } from '@/lib/shop-session-service';
+import { useHardwareBackExit } from '@/hooks/useHardwareBackExit';
 import { A } from '@/lib/admin-theme';
 import { SkeletonList } from '@/components/Skeleton';
 import { HistoryTab } from '@/components/shop/HistoryTab';
@@ -61,6 +62,7 @@ type TabKey = 'orders' | 'products' | 'history' | 'analytics' | 'messages' | 'pr
 
 export default function ShopDashboard() {
   const router = useRouter();
+  useHardwareBackExit();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const bannerAnim = useRef(new Animated.Value(0)).current;
   const [loading, setLoading] = useState(true);
