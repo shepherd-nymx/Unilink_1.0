@@ -1166,47 +1166,53 @@ export default function CustomerDashboard() {
     },
     bottomNav: {
       flexDirection: 'row',
-      borderTopWidth: 2,
-      borderTopColor: isDark ? 'rgba(56,189,248,0.16)' : 'rgba(26,115,232,0.15)',
-      paddingBottom: Platform.OS === 'ios' ? 20 : 12,
-      paddingTop: 12,
-      backgroundColor: isDark ? 'rgba(5,13,26,0.95)' : 'rgba(255,255,255,0.98)',
-      shadowColor: P,
-      shadowOffset: { width: 0, height: -4 },
-      shadowOpacity: isDark ? 0.15 : 0.08,
-      shadowRadius: 12,
-      elevation: 8,
+      alignSelf: 'center',
+      width: '92%',
+      maxWidth: 440,
+      marginBottom: Platform.OS === 'ios' ? 14 : 10,
+      marginTop: 8,
+      paddingVertical: 8,
+      paddingHorizontal: 6,
+      borderRadius: 26,
+      backgroundColor: isDark ? 'rgba(13,25,42,0.96)' : '#FFFFFF',
+      borderWidth: 1,
+      borderColor: isDark ? 'rgba(56,189,248,0.22)' : 'rgba(26,115,232,0.12)',
+      shadowColor: '#050D1A',
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: isDark ? 0.45 : 0.18,
+      shadowRadius: 20,
+      elevation: 12,
     },
     bottomNavItem: {
       flex: 1,
       alignItems: 'center',
       justifyContent: 'center',
-      gap: 6,
-      paddingVertical: 8,
+      gap: 3,
+      paddingVertical: 6,
+      borderRadius: 20,
     },
     bottomNavIconWrap: {
-      width: 48,
-      height: 44,
-      borderRadius: 14,
+      width: 44,
+      height: 36,
+      borderRadius: 13,
       justifyContent: 'center',
       alignItems: 'center',
       position: 'relative',
-      backgroundColor: isDark ? 'rgba(56,189,248,0.06)' : 'rgba(26,115,232,0.04)',
     },
     bottomNavLabel: {
-      fontSize: 12,
-      fontWeight: '700',
-      letterSpacing: 0.3,
+      fontSize: 10.5,
+      fontWeight: '800',
+      letterSpacing: 0.4,
     },
     bottomNavDot: {
       position: 'absolute',
-      top: 2,
-      right: 2,
+      top: -3,
+      right: -4,
       width: 9,
       height: 9,
       borderRadius: 5,
       borderWidth: 1.5,
-      borderColor: CARD,
+      borderColor: isDark ? '#0D192A' : '#FFFFFF',
     },
     headerTitle: { fontSize: 20, fontWeight: '900', color: '#ffffff', letterSpacing: 0.3, marginTop: 0 },
     headerSubtitle: { fontSize: 10, color: '#00e5ff', marginTop: 2, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase' as any },
@@ -2323,7 +2329,7 @@ export default function CustomerDashboard() {
       </TouchableOpacity>
 
       {/* Bottom Navigation Bar */}
-      <View style={[styles.bottomNav, { backgroundColor: CARD, borderTopColor: CARD_B }]}>
+      <View style={[styles.bottomNav, { backgroundColor: isDark ? 'rgba(13,25,42,0.96)' : '#FFFFFF' }]}>
         <TouchableOpacity
           style={styles.bottomNavItem}
           onPress={() => router.push({ pathname: '/customer/profile', params: { customerId, customerName } })}
@@ -2331,9 +2337,9 @@ export default function CustomerDashboard() {
         >
           <View style={[
             styles.bottomNavIconWrap,
-            { backgroundColor: isDark ? 'rgba(56,189,248,0.1)' : 'rgba(26,115,232,0.08)' }
+            { backgroundColor: isDark ? 'rgba(56,189,248,0.12)' : 'rgba(26,115,232,0.08)' }
           ]}>
-            <User size={24} color={P} strokeWidth={2} />
+            <User size={20} color={P} strokeWidth={2.2} />
           </View>
           <Text style={[styles.bottomNavLabel, { color: P }]}>Profile</Text>
         </TouchableOpacity>
@@ -2347,15 +2353,15 @@ export default function CustomerDashboard() {
             styles.bottomNavIconWrap,
             {
               backgroundColor: unreadMessageCount > 0
-                ? 'rgba(239,68,68,0.1)'
-                : isDark ? 'rgba(56,189,248,0.1)' : 'rgba(26,115,232,0.08)'
+                ? 'rgba(239,68,68,0.12)'
+                : isDark ? 'rgba(56,189,248,0.12)' : 'rgba(26,115,232,0.08)'
             }
           ]}>
             <AnimatedChatIcon
               unreadCount={unreadMessageCount}
               iconColor={unreadMessageCount > 0 ? '#EF4444' : P}
               badgeColor="#ef4444"
-              size={24}
+              size={20}
             />
           </View>
           <Text style={[
@@ -2373,14 +2379,14 @@ export default function CustomerDashboard() {
             styles.bottomNavIconWrap,
             {
               backgroundColor: notificationDot || shopOrderUpdatesCount > 0
-                ? (notificationDot === 'yellow' || shopOrderUpdatesCount > 0 ? 'rgba(245,158,11,0.1)' : 'rgba(16,185,129,0.1)')
-                : isDark ? 'rgba(56,189,248,0.1)' : 'rgba(26,115,232,0.08)'
+                ? (notificationDot === 'yellow' || shopOrderUpdatesCount > 0 ? 'rgba(245,158,11,0.14)' : 'rgba(16,185,129,0.14)')
+                : isDark ? 'rgba(56,189,248,0.12)' : 'rgba(26,115,232,0.08)'
             }
           ]}>
             <History
-              size={24}
+              size={20}
               color={notificationDot || shopOrderUpdatesCount > 0 ? (notificationDot === 'yellow' ? WARN : SUCCESS) : P}
-              strokeWidth={2}
+              strokeWidth={2.2}
             />
             {notificationDot && (
               <View style={[
@@ -2406,9 +2412,9 @@ export default function CustomerDashboard() {
         >
           <View style={[
             styles.bottomNavIconWrap,
-            { backgroundColor: isDark ? 'rgba(56,189,248,0.1)' : 'rgba(26,115,232,0.08)' }
+            { backgroundColor: isDark ? 'rgba(56,189,248,0.12)' : 'rgba(26,115,232,0.08)' }
           ]}>
-            <HelpCircle size={24} color={P} strokeWidth={2} />
+            <HelpCircle size={20} color={P} strokeWidth={2.2} />
           </View>
           <Text style={[styles.bottomNavLabel, { color: P }]}>Support</Text>
         </TouchableOpacity>
