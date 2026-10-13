@@ -1743,37 +1743,6 @@ export default function CustomerDashboard() {
         onDismiss={clearInAppMessage}
       />
       <View style={styles.header}>
-        {showShareModal && (
-          <View style={styles.shareModalOverlay}>
-            <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={() => setShowShareModal(false)} />
-            <View style={styles.shareModalCard}>
-              <Text style={styles.shareModalTitle}>Share UniLink with friends</Text>
-              <View style={styles.shareModalOptions}>
-                <TouchableOpacity style={styles.shareOption} onPress={shareViaWhatsApp} activeOpacity={0.7}>
-                  <Smartphone size={20} color="#25D366" />
-                  <Text style={styles.shareOptionText}>WhatsApp</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.shareOption} onPress={shareViaSMS} activeOpacity={0.7}>
-                  <MessageCircle size={20} color="#00e5ff" />
-                  <Text style={styles.shareOptionText}>SMS</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.shareOption} onPress={shareViaEmail} activeOpacity={0.7}>
-                  <Mail size={20} color="#F59E0B" />
-                  <Text style={styles.shareOptionText}>Email</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.shareOption} onPress={tryNativeShare} activeOpacity={0.7}>
-                  <Share2 size={20} color="#8B5CF6" />
-                  <Text style={styles.shareOptionText}>More</Text>
-                </TouchableOpacity>
-              </View>
-              <TouchableOpacity style={styles.copyLinkRow} onPress={copyShareLink} activeOpacity={0.7}>
-                <Link2 size={14} color="#00e5ff" />
-                <Text style={styles.copyLinkText} numberOfLines={1}>unilinkbase.com</Text>
-                <Text style={styles.copyLinkAction}>{shareCopied ? 'Copied!' : 'Copy'}</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        )}
         <View style={styles.headerTopRow}>
           <Text style={[styles.logoWordmark, { color: '#00e5ff' }]}>UNILINK</Text>
           <View style={styles.welcomeBadge}>
@@ -1817,6 +1786,38 @@ export default function CustomerDashboard() {
           </TouchableOpacity>
         </View>
       </View>
+
+      {showShareModal && (
+        <View style={styles.shareModalOverlay}>
+          <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={() => setShowShareModal(false)} />
+          <View style={styles.shareModalCard}>
+            <Text style={styles.shareModalTitle}>Share UniLink with friends</Text>
+            <View style={styles.shareModalOptions}>
+              <TouchableOpacity style={styles.shareOption} onPress={shareViaWhatsApp} activeOpacity={0.7}>
+                <Smartphone size={20} color="#25D366" />
+                <Text style={styles.shareOptionText}>WhatsApp</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.shareOption} onPress={shareViaSMS} activeOpacity={0.7}>
+                <MessageCircle size={20} color="#00e5ff" />
+                <Text style={styles.shareOptionText}>SMS</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.shareOption} onPress={shareViaEmail} activeOpacity={0.7}>
+                <Mail size={20} color="#F59E0B" />
+                <Text style={styles.shareOptionText}>Email</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.shareOption} onPress={tryNativeShare} activeOpacity={0.7}>
+                <Share2 size={20} color="#8B5CF6" />
+                <Text style={styles.shareOptionText}>More</Text>
+              </TouchableOpacity>
+            </View>
+            <TouchableOpacity style={styles.copyLinkRow} onPress={copyShareLink} activeOpacity={0.7}>
+              <Link2 size={14} color="#00e5ff" />
+              <Text style={styles.copyLinkText} numberOfLines={1}>unilinkbase.com</Text>
+              <Text style={styles.copyLinkAction}>{shareCopied ? 'Copied!' : 'Copy'}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
 
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
