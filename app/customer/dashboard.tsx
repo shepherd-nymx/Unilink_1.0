@@ -758,7 +758,7 @@ export default function CustomerDashboard() {
         fileData = await response.blob();
       }
 
-      const check = validateUpload({ blob: fileData, fileNameOrUri: itemImage });
+      const check = await validateUpload({ blob: fileData, fileNameOrUri: itemImage });
       if (!check.ok) {
         setError(check.reason);
         return null;

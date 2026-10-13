@@ -167,13 +167,9 @@ export default function DriverSettings() {
     try {
       setUploadingImage(true); setError('');
       const fileExt = originalFileName.split('.').pop()?.toLowerCase() || 'jpg';
-      if (!['jpg', 'jpeg', 'png', 'webp'].includes(fileExt)) {
-        setError('Only JPG, PNG, or WebP images are allowed.');
-        return;
-      }
       const fileName = `${driverId}/${Date.now()}.${fileExt}`;
       const blob = await fetch(base64).then(r => r.blob());
-      const check = validateUpload({ blob, fileNameOrUri: originalFileName });
+      const check = await validateUpload({ blob, fileNameOrUri: originalFileName });
       if (!check.ok) { setError(check.reason); return; }
       const { error: uploadError } = await supabase.storage.from('profile-pictures').upload(fileName, blob, { contentType: `image/${fileExt}`, upsert: true });
       if (uploadError) throw uploadError;
@@ -188,13 +184,9 @@ export default function DriverSettings() {
     try {
       setUploadingImage(true); setError('');
       const blob = await fetch(uri).then(r => r.blob());
-      const check = validateUpload({ blob, fileNameOrUri: uri });
+      const check = await validateUpload({ blob, fileNameOrUri: uri });
       if (!check.ok) { setError(check.reason); return; }
       const fileExt = uri.split('.').pop()?.toLowerCase() || 'jpg';
-      if (!['jpg', 'jpeg', 'png', 'webp'].includes(fileExt)) {
-        setError('Only JPG, PNG, or WebP images are allowed.');
-        return;
-      }
       const fileName = `${driverId}/${Date.now()}.${fileExt}`;
       const { error: uploadError } = await supabase.storage.from('profile-pictures').upload(fileName, blob, { contentType: `image/${fileExt}`, upsert: true });
       if (uploadError) throw uploadError;

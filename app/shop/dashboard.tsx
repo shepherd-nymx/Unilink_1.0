@@ -435,13 +435,10 @@ export default function ShopDashboard() {
       let imageUrl = editingProduct?.image_url || null;
       if (productImageUri) {
         const fileExt = productImageUri.split('.').pop()?.toLowerCase() || 'jpg';
-        if (!['jpg', 'jpeg', 'png', 'webp'].includes(fileExt)) {
-          throw new Error('Only JPG, PNG, or WebP images are allowed.');
-        }
         const fileName = `product-${Date.now()}.${fileExt}`;
         const response = await fetch(productImageUri);
         const blob = await response.blob();
-        const check = validateUpload({ blob, fileNameOrUri: productImageUri });
+        const check = await validateUpload({ blob, fileNameOrUri: productImageUri });
         if (!check.ok) throw new Error(check.reason);
         const { error: upErr } = await supabase.storage
           .from('shop-assets')

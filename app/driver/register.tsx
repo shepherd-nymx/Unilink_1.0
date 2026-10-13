@@ -194,9 +194,6 @@ export default function DriverRegister() {
         setIdPhotoUploading(true);
         try {
           const fileExt = idPhotoUri.split('.').pop()?.toLowerCase() || 'jpg';
-          if (!['jpg', 'jpeg', 'png', 'webp'].includes(fileExt)) {
-            throw new Error('Only JPG, PNG, or WebP images are allowed for the ID photo.');
-          }
           const fileName = `id-card-${Date.now()}.${fileExt}`;
           const filePath = `${fileName}`;
 
@@ -204,7 +201,7 @@ export default function DriverRegister() {
           const response = await fetch(idPhotoUri);
           const blob = await response.blob();
 
-          const check = validateUpload({ blob, fileNameOrUri: idPhotoUri });
+          const check = await validateUpload({ blob, fileNameOrUri: idPhotoUri });
           if (!check.ok) throw new Error(check.reason);
 
           const { error: uploadError } = await supabase.storage
