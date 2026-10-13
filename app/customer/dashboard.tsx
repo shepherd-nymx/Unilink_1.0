@@ -2319,7 +2319,7 @@ export default function CustomerDashboard() {
         activeOpacity={0.85}
       >
         <ShoppingBag size={20} color="#fff" strokeWidth={2.5} />
-        <Text style={styles.deliveryFabText}>Shop Groceries</Text>
+        <Text style={styles.deliveryFabText}>Nearby Shops</Text>
       </TouchableOpacity>
 
       {/* Bottom Navigation Bar */}
