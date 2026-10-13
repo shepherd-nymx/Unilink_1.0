@@ -13,7 +13,7 @@ import {
   Modal,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, Mail, Phone, MapPin, ChevronDown, ChevronUp, Search, Circle as HelpCircle, TriangleAlert as AlertTriangle, UserPlus, ShoppingCart, Truck, Lock, CreditCard, MessageCircle, ExternalLink, Send, Users, Share2, Code as Code2, Heart } from 'lucide-react-native';
+import { ArrowLeft, Mail, Phone, MapPin, ChevronDown, ChevronUp, Search, Circle as HelpCircle, TriangleAlert as AlertTriangle, UserPlus, ShoppingCart, Truck, Lock, CreditCard, MessageCircle, ExternalLink, Send, Users, Share2, Code as Code2, Heart, Shield, RefreshCcw } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useState, useRef, useEffect } from 'react';
 
@@ -539,6 +539,24 @@ export default function SupportPage() {
     },
     footerPad: { height: 48 },
 
+    policyCard: {
+      flexDirection: 'row' as any,
+      alignItems: 'center' as any,
+      gap: 14,
+      padding: 16,
+      borderRadius: 16,
+      borderWidth: 1.5,
+    },
+    policyIconWrap: {
+      width: 42,
+      height: 42,
+      borderRadius: 12,
+      justifyContent: 'center' as any,
+      alignItems: 'center' as any,
+    },
+    policyTitle: { fontSize: 15, fontWeight: '700' },
+    policySub: { fontSize: 12, marginTop: 2, lineHeight: 17 },
+
     communityCard: {
       borderRadius: 20,
       overflow: 'hidden',
@@ -885,6 +903,44 @@ export default function SupportPage() {
               ))}
             </View>
           )}
+        </View>
+
+        {/* Policies */}
+        <View style={[s.section, { paddingTop: 24 }]}>
+          <Text style={s.sectionLabel}>Legal</Text>
+          <Text style={s.sectionTitle}>Our Policies</Text>
+
+          <View style={{ gap: 10 }}>
+            <TouchableOpacity
+              style={[s.policyCard, { borderColor: isDark ? 'rgba(0,102,255,0.3)' : '#c7deff', backgroundColor: isDark ? 'rgba(0,102,255,0.08)' : '#f5f9ff' }]}
+              onPress={() => router.push('/policies?type=privacy')}
+              activeOpacity={0.8}
+            >
+              <View style={[s.policyIconWrap, { backgroundColor: isDark ? 'rgba(0,102,255,0.15)' : '#e8f0ff' }]}>
+                <Shield size={20} color="#0066ff" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[s.policyTitle, { color: colors.text }]}>Privacy Policy</Text>
+                <Text style={[s.policySub, { color: colors.textSecondary }]}>How we collect, use, and protect your information</Text>
+              </View>
+              <ExternalLink size={16} color="#0066ff" />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[s.policyCard, { borderColor: isDark ? 'rgba(245,158,11,0.3)' : '#fde9c8', backgroundColor: isDark ? 'rgba(245,158,11,0.08)' : '#fffaf0' }]}
+              onPress={() => router.push('/policies?type=refund')}
+              activeOpacity={0.8}
+            >
+              <View style={[s.policyIconWrap, { backgroundColor: isDark ? 'rgba(245,158,11,0.15)' : '#fff3e0' }]}>
+                <RefreshCcw size={20} color="#f59e0b" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[s.policyTitle, { color: colors.text }]}>Refund Policy</Text>
+                <Text style={[s.policySub, { color: colors.textSecondary }]}>When and how you can get your money back</Text>
+              </View>
+              <ExternalLink size={16} color="#f59e0b" />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Community & Share */}
