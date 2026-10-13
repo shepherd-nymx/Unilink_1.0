@@ -211,6 +211,7 @@ export default function CustomerDashboard() {
   const [showScrollHint, setShowScrollHint] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [shopUpdatesBaseline, setShopUpdatesBaseline] = useState(0);
   const scrollHintAnim = useRef(new Animated.Value(0)).current;
   const scrollHintTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -2372,20 +2373,23 @@ export default function CustomerDashboard() {
 
         <TouchableOpacity
           style={styles.bottomNavItem}
-          onPress={() => router.push({ pathname: '/customer/orders', params: { customerId } })}
+          onPress={() => {
+            setShopUpdatesBaseline(shopOrderUpdatesCount);
+            router.push({ pathname: '/customer/orders', params: { customerId } });
+          }}
           activeOpacity={0.6}
         >
           <View style={[
             styles.bottomNavIconWrap,
             {
-              backgroundColor: notificationDot || shopOrderUpdatesCount > 0
-                ? (notificationDot === 'yellow' || shopOrderUpdatesCount > 0 ? 'rgba(245,158,11,0.14)' : 'rgba(16,185,129,0.14)')
+              backgroundColor: notificationDot || shopOrderUpdatesCount > shopUpdatesBaseline
+                ? (notificationDot === 'yellow' || shopOrderUpdatesCount > shopUpdatesBaseline ? 'rgba(245,158,11,0.14)' : 'rgba(16,185,129,0.14)')
                 : isDark ? 'rgba(56,189,248,0.12)' : 'rgba(26,115,232,0.08)'
             }
           ]}>
             <History
               size={20}
-              color={notificationDot || shopOrderUpdatesCount > 0 ? (notificationDot === 'yellow' ? WARN : SUCCESS) : P}
+              color={notificationDot || shopOrderUpdatesCount > shopUpdatesBaseline ? (notificationDot === 'yellow' ? WARN : SUCCESS) : P}
               strokeWidth={2.2}
             />
             {notificationDot && (
@@ -2397,11 +2401,11 @@ export default function CustomerDashboard() {
                 }
               ]} />
             )}
-            <FlashingDot count={shopOrderUpdatesCount} color="#f59e0b" />
+            <FlashingDot count={Math.max(0, shopOrderUpdatesCount - shopUpdatesBaseline)} color="#f59e0b" />
           </View>
           <Text style={[
             styles.bottomNavLabel,
-            { color: notificationDot || shopOrderUpdatesCount > 0 ? (notificationDot === 'yellow' || shopOrderUpdatesCount > 0 ? WARN : SUCCESS) : P }
+            { color: notificationDot || shopOrderUpdatesCount > shopUpdatesBaseline ? (notificationDot === 'yellow' || shopOrderUpdatesCount > shopUpdatesBaseline ? WARN : SUCCESS) : P }
           ]}>Orders</Text>
         </TouchableOpacity>
 
