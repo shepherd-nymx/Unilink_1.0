@@ -31,6 +31,7 @@ import {
 } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import { TermsAndConditions } from '@/components/TermsAndConditions';
+import { sendEmail } from '@/lib/email-service';
 
 type LocationData = {
   latitude: number;
@@ -265,6 +266,26 @@ export default function CustomerRegister() {
         user_type: 'customer',
         terms_version: termsVersion,
       });
+      // Fire-and-forget admin alert — never blocks registration
+      try {
+        const uniName =
+          universities.find((u) => u.id === finalUniversityId)?.name ||
+          otherPlaces.find((p) => p.id === finalUniversityId)?.name ||
+          location!.formatted_address;
+        sendEmail({
+          type: 'admin_registration_alert' as any,
+          to: 'unilinkbase@gmail.com',
+          userId: customer.id,
+          userType: 'customer',
+          data: {
+            role: 'customer',
+            name: fullName,
+            email: emailTrim,
+            phone: phoneNumber,
+            location: uniName,
+          },
+        });
+      } catch {}
       router.replace({ pathname: '/customer/login', params: { registered: 'true' } });
     } catch (err: any) {
       setError(err.message || 'Registration failed. Please try again.');

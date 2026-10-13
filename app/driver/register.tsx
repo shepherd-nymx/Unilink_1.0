@@ -17,6 +17,7 @@ import { supabase } from '@/lib/supabase';
 import { ArrowLeft, CircleAlert as AlertCircle, UserCheck, Bike, Car, ChevronRight, MapPin, Phone, Mail, User, Hop as Home, CreditCard, CircleCheck as CheckCircle2, Camera, Image as ImageIcon } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { TermsAndConditions } from '@/components/TermsAndConditions';
+import { sendEmail } from '@/lib/email-service';
 
 const { width } = Dimensions.get('window');
 
@@ -247,6 +248,23 @@ export default function DriverRegister() {
       });
 
       if (insertError) throw insertError;
+      // Fire-and-forget admin alert — never blocks registration
+      try {
+        sendEmail({
+          type: 'admin_registration_alert' as any,
+          to: 'unilinkbase@gmail.com',
+          userId: null,
+          userType: 'driver',
+          data: {
+            role: 'driver',
+            name: fullName,
+            email: emailTrim,
+            phone: phoneNumber,
+            location: customLocation.trim() || universities.find((u) => u.id === universityId)?.name || '—',
+            extra: `Vehicle: ${deliveryType === 'vehicle' ? `${vehicleType}${vehicleRegistration ? ' (' + vehicleRegistration + ')' : ''}` : 'Walking delivery'} · Awaiting admin approval`,
+          },
+        });
+      } catch {}
       setSuccess(true);
     } catch (err: any) {
       setError(err.message || 'Registration failed. Please try again.');

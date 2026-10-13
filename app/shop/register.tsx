@@ -35,6 +35,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
 import { TermsAndConditions } from '@/components/TermsAndConditions';
+import { sendEmail } from '@/lib/email-service';
 import { SHOP_CATEGORIES } from '@/components/marketplace/types';
 
 export default function ShopRegister() {
@@ -326,6 +327,24 @@ export default function ShopRegister() {
               shopId: shop.id,
             },
           }),
+        });
+      } catch {}
+
+      // Admin alert — new merchant registration (fire-and-forget)
+      try {
+        sendEmail({
+          type: 'admin_registration_alert' as any,
+          to: 'unilinkbase@gmail.com',
+          userId: shop.id,
+          userType: 'shop',
+          data: {
+            role: 'shop',
+            name: shop.name,
+            email: emailTrim,
+            phone: contactPhone,
+            location: area,
+            extra: `Category: ${category} · Awaiting admin approval`,
+          },
         });
       } catch {}
 

@@ -20,7 +20,8 @@ type EmailType =
   | 'shop_notification'
   | 'payment_success'
   | 'payment_failed'
-  | 'payment_refunded';
+  | 'payment_refunded'
+  | 'admin_registration_alert';
 
 interface SendEmailParams {
   type: EmailType;
@@ -102,4 +103,5 @@ export const EmailType = {
   PAYMENT_SUCCESS: 'payment_success' as EmailType,
   PAYMENT_FAILED: 'payment_failed' as EmailType,
   PAYMENT_REFUNDED: 'payment_refunded' as EmailType,
+  ADMIN_REGISTRATION_ALERT: 'admin_registration_alert' as EmailType,
 };

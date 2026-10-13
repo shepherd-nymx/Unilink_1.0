@@ -41,7 +41,8 @@ type EmailType =
   | "shop_new_order"
   | "shop_order_status"
   | "shop_messenger_assigned"
-  | "new_dm";
+  | "new_dm"
+  | "admin_registration_alert";
 
 interface EmailRequest {
   type: EmailType;
@@ -472,6 +473,43 @@ function renderNewDm(d: Record<string, any>): { subject: string; html: string; t
   return { subject: `New message from ${senderName}`, html, text };
 }
 
+function renderAdminRegistrationAlert(d: Record<string, any>): { subject: string; html: string; text: string } {
+  const role = d.role || "user";
+  const name = d.name || "Unknown";
+  const email = d.email || "—";
+  const phone = d.phone || "—";
+  const location = d.location || "—";
+  const extra = d.extra || "";
+  const roleLabel =
+    role === "customer" ? "Shopper" :
+    role === "driver" ? "Messenger (pending approval)" :
+    role === "shop" ? "Merchant" : "User";
+  const accent =
+    role === "customer" ? "#0066ff" :
+    role === "driver" ? "#f59e0b" : "#16a34a";
+  const html = `
+    <h1>New ${escapeHtml(roleLabel)} registration</h1>
+    <p>A new user has just registered on UniLink.</p>
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width:100%;background:#f0f4f8;border-radius:10px;padding:4px 14px;margin:8px 0 16px 0;font-size:14px;">
+      <tr><td style="padding:8px 0;color:#64748b;">Type</td><td style="text-align:right;font-weight:700;color:${accent};">${escapeHtml(roleLabel)}</td></tr>
+      <tr><td style="padding:8px 0;color:#64748b;">Name</td><td style="text-align:right;font-weight:600;">${escapeHtml(name)}</td></tr>
+      <tr><td style="padding:8px 0;color:#64748b;">Email</td><td style="text-align:right;">${escapeHtml(email)}</td></tr>
+    </table>
+    ${extra ? `<p class="small">${escapeHtml(extra)}</p>` : ""}
+    ${ctaButton(`${APP_URL}/admin/dashboard`, "Open Admin Dashboard")}
+    <p class="small">You are receiving this because you are a UniLink administrator.</p>`;
+  const text = `New ${roleLabel} registration on UniLink
+
+Name: ${name}
+Email: ${email}
+Phone: ${phone}
+Location: ${location}
+${extra ? "\n" + extra : ""}
+
+Admin dashboard: ${APP_URL}/admin/dashboard`;
+  return { subject: `[UniLink] New ${roleLabel} registration — ${name}`, html, text }; 
+}
+
 function render(req: EmailRequest): { subject: string; html: string; text: string } {
   const d = req.data || {};
   switch (req.type) {
@@ -492,6 +530,7 @@ function render(req: EmailRequest): { subject: string; html: string; text: strin
     case "shop_order_status": return renderShopOrderStatus(d);
     case "shop_messenger_assigned": return renderShopMessengerAssigned(d);
     case "new_dm": return renderNewDm(d);
+    case "admin_registration_alert": return renderAdminRegistrationAlert(d);
     default: throw new Error(`Unknown email type: ${req.type}`);
   }
 }
