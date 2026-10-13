@@ -28,6 +28,7 @@ import AnnouncementPopup from '@/components/AnnouncementPopup';
 import DriverTutorial from '@/components/DriverTutorial';
 import { saveUserData, clearUserData, loadUserData } from '@/lib/storage-service';
 import NotificationPermissionModal from '@/components/NotificationPermissionModal';
+import { AppShareButton } from '@/components/AppShareButton';
 
 function FlashingDot({ count, color = '#00e5ff' }: { count: number; color?: string }) {
   const opacity = useRef(new Animated.Value(1)).current;
@@ -594,9 +595,12 @@ export default function DriverDashboard() {
             </View>
           )}
         </View>
-        <TouchableOpacity style={s.iconBtn} onPress={() => setShowTutorial(true)} activeOpacity={0.75}>
-          <HelpCircle size={18} color={CYAN} />
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <AppShareButton accent={CYAN} />
+          <TouchableOpacity style={s.iconBtn} onPress={() => setShowTutorial(true)} activeOpacity={0.75}>
+            <HelpCircle size={18} color={CYAN} />
+          </TouchableOpacity>
+        </View>
       </Animated.View>
 
       {error ? (

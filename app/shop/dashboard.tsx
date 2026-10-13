@@ -57,6 +57,7 @@ import {
   RefreshCw,
 } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
+import { AppShareButton } from '@/components/AppShareButton';
 
 type TabKey = 'orders' | 'products' | 'history' | 'analytics' | 'messages' | 'profile';
 
@@ -596,7 +597,8 @@ export default function ShopDashboard() {
             <Text style={styles.headerSub} numberOfLines={1}>{STATUS_LABELS[shop.status] || shop.status}</Text>
           </View>
         </View>
-        <View style={{ flexDirection: 'row', gap: 8 }}>
+        <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+          <AppShareButton accent={A.cyan} />
           <TouchableOpacity style={[styles.logoutBtn, { backgroundColor: A.cyanDim, borderColor: A.cyan }]} onPress={quickRefresh} disabled={refreshing}>
             {refreshing ? <ActivityIndicator size={14} color={A.cyan} /> : <RefreshCw size={16} color={A.cyan} />}
             <Text style={[styles.logoutText, { color: A.cyan }]}>Refresh</Text>
