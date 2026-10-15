@@ -10,13 +10,89 @@
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
 
-    <title>UNILINK - Grocery Delivery</title>
-    <meta name="description" content="Fast grocery delivery service - Order from your favorite stores" />
+    <title>UniLink — Grocery Delivery for Students in Zimbabwe | Fast Campus Delivery</title>
+    <meta name="description" content="UniLink delivers groceries and essentials to students across Zimbabwe. Order from local shops, track your delivery in real time, and chat with your messenger — fast, safe, affordable campus delivery in Bulawayo and beyond." />
+    <meta name="keywords" content="grocery delivery Zimbabwe, campus delivery, student grocery delivery, Bulawayo delivery service, UniLink, food delivery students, essentials delivery" />
+    <meta name="author" content="Future Pulse Investments" />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://unilinkbase.com/" />
 
     <meta name="theme-color" content="#2563eb" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="UNILINK" />
+
+    <!-- Open Graph (Facebook, WhatsApp, LinkedIn — crawlers do not run JavaScript) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="UniLink" />
+    <meta property="og:url" content="https://unilinkbase.com/" />
+    <meta property="og:title" content="UniLink — Grocery Delivery for Students in Zimbabwe" />
+    <meta property="og:description" content="Order groceries and essentials from local shops and get them delivered to your door by trusted messengers. Real-time tracking, in-app chat, fast campus delivery." />
+    <meta property="og:image" content="https://unilinkbase.com/icon-512.png" />
+    <meta property="og:image:width" content="512" />
+    <meta property="og:image:height" content="512" />
+    <meta property="og:image:alt" content="UniLink logo" />
+    <meta property="og:locale" content="en_ZW" />
+
+    <!-- Twitter / X card -->
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="UniLink — Grocery Delivery for Students in Zimbabwe" />
+    <meta name="twitter:description" content="Order from local shops, track your delivery in real time, and chat with your messenger. Fast, safe campus delivery." />
+    <meta name="twitter:image" content="https://unilinkbase.com/icon-512.png" />
+
+    <!-- Structured data for rich results -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "Organization",
+          "@id": "https://unilinkbase.com/#organization",
+          "name": "UniLink",
+          "alternateName": "UniLink Delivery",
+          "url": "https://unilinkbase.com/",
+          "logo": "https://unilinkbase.com/icon-512.png",
+          "parentOrganization": {
+            "@type": "Organization",
+            "name": "Future Pulse Investments",
+            "address": {
+              "@type": "PostalAddress",
+              "addressLocality": "Bulawayo",
+              "addressCountry": "ZW"
+            }
+          },
+          "contactPoint": {
+            "@type": "ContactPoint",
+            "telephone": "+263782627990",
+            "contactType": "customer support",
+            "email": "shepherdmutevedzi@gmail.com",
+            "areaServed": "ZW",
+            "availableLanguage": ["English"]
+          }
+        },
+        {
+          "@type": "WebSite",
+          "@id": "https://unilinkbase.com/#website",
+          "url": "https://unilinkbase.com/",
+          "name": "UniLink",
+          "description": "Grocery delivery for students in Zimbabwe",
+          "publisher": { "@id": "https://unilinkbase.com/#organization" },
+          "inLanguage": "en-ZW"
+        },
+        {
+          "@type": "WebApplication",
+          "@id": "https://unilinkbase.com/#app",
+          "name": "UniLink",
+          "url": "https://unilinkbase.com/",
+          "applicationCategory": "ShoppingApplication",
+          "operatingSystem": "Web, iOS, Android",
+          "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+          "description": "Order groceries and essentials from local shops and get them delivered by trusted messengers with real-time tracking.",
+          "publisher": { "@id": "https://unilinkbase.com/#organization" }
+        }
+      ]
+    }
+    </script>
 
     <link rel="manifest" href="/manifest.json" />
     <link rel="icon" href="/favicon.ico" />
@@ -36,6 +112,17 @@
         display: flex;
         height: 100%;
         flex: 1;
+      }
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
       }
     </style>
 
@@ -74,8 +161,36 @@
 
   <body>
     <noscript>
-      You need to enable JavaScript to run this app.
+      <h1>UniLink — Grocery Delivery for Students in Zimbabwe</h1>
+      <p>
+        UniLink connects students with trusted local messengers who deliver groceries
+        and everyday essentials from shops near campus straight to their door. Order
+        from your favourite shop, track your delivery in real time on a map, and chat
+        with your messenger inside the app.
+      </p>
+      <p>
+        <a href="/customer/login">Sign in</a> ·
+        <a href="/customer/register">Create an account</a> ·
+        <a href="/shop/register">Register your shop</a> ·
+        <a href="/driver/register">Become a messenger</a> ·
+        <a href="/support">Support</a>
+      </p>
+      <p>Please enable JavaScript to use UniLink.</p>
     </noscript>
-    <div id="root"></div>
+    <div id="root" aria-hidden="false">
+      <h1 class="sr-only">UniLink — Grocery Delivery for Students in Zimbabwe</h1>
+      <p class="sr-only">
+        UniLink delivers groceries and essentials to students across Zimbabwe. Order
+        from local shops, track your delivery in real time, and chat with your
+        messenger. Fast, safe, affordable campus delivery in Bulawayo and beyond.
+      </p>
+      <p class="sr-only">
+        <a href="/customer/login">Sign in</a> ·
+        <a href="/customer/register">Create an account</a> ·
+        <a href="/shop/register">Register your shop</a> ·
+        <a href="/driver/register">Become a messenger</a> ·
+        <a href="/support">Support</a>
+      </p>
+    </div>
   </body>
 </html>

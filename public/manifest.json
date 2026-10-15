@@ -1,7 +1,7 @@
 {
-  "name": "UNILINK - Grocery Delivery",
+  "name": "UniLink — Grocery Delivery for Students in Zimbabwe",
   "short_name": "UNILINK",
-  "description": "Fast grocery delivery service - Order from your favorite stores",
+  "description": "Order groceries and essentials from local shops and get them delivered to your door by trusted messengers. Fast campus delivery across Zimbabwe.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
