@@ -1,9 +1,17 @@
-[{
-      "relation": ["delegate_permission/common.handle_all_urls"],
-      "target": {
-        "namespace": "android_app",
-        "package_name": "com.unilinkbase.twa",
-        "sha256_cert_fingerprints": ["59:6C:87:41:5D:34:4A:B6:63:FF:AD:84:18:59:89:05:77:DE:1F:ED:9C:69:5E:75:10:2C:D4:C3:78:FC:A0:BA"]
-      }
-    }]
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.unilinkbase.twa",
+      "sha256_cert_fingerprints": [
+        "59:6C:87:41:5D:34:4A:B6:63:FF:AD:84:18:59:89:05:77:DE:1F:ED:9C:69:5E:75:10:2C:D4:C3:78:FC:A0:BA",
+        "75:64:A9:D6:2B:33:FA:63:69:E7:38:72:98:D2:32:56:97:BB:02:CF:C9:79:05:36:3C:C4:64:0D:C9:F5:0B:54",
+        "80:2E:B8:65:A8:E3:36:C5:C3:E2:39:51:6C:9A:4F:CF:08:9D:D4:68:5A:04:23:F6:78:4F:78:93:4D:85:E8:3A"
+      ]
+    }
+  }
+]
 
