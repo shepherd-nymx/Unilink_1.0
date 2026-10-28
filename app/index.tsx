@@ -30,6 +30,24 @@ function getOAuthTokens(url: string): OAuthTokens | null {
   return { access_token: accessToken, refresh_token: refreshToken };
 }
 
+function getOAuthCode(url: string): string | null {
+  return new URL(url).searchParams.get('code');
+}
+
+async function completeOAuthCallback(url: string): Promise<void> {
+  const code = getOAuthCode(url);
+  if (code) {
+    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    if (error) throw error;
+    return;
+  }
+
+  const tokens = getOAuthTokens(url);
+  if (!tokens) throw new Error('Google sign-in did not return a valid session.');
+  const { error } = await supabase.auth.setSession(tokens);
+  if (error) throw error;
+}
+
 export default function Home() {
   const router = useRouter();
   const { colors, isDark, toggleTheme } = useTheme();
@@ -42,10 +60,14 @@ export default function Home() {
 
     const restoreGoogleSession = async (): Promise<void> => {
       if (Platform.OS === 'web') {
-        const callbackParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+        const callbackUrl = window.location.href;
+        const callbackParams = new URLSearchParams(window.location.hash.replace(/^#/, '') || window.location.search.replace(/^\?/, ''));
         const callbackError = callbackParams.get('error_description') || callbackParams.get('error');
         if (callbackError) {
           setError(decodeURIComponent(callbackError.replace(/\\+/g, ' ')));
+          window.history.replaceState({}, document.title, window.location.pathname);
+        } else if (getOAuthCode(callbackUrl)) {
+          await completeOAuthCallback(callbackUrl);
           window.history.replaceState({}, document.title, window.location.pathname);
         }
       }
@@ -59,8 +81,10 @@ export default function Home() {
       setIsLoading(false);
     };
 
-    restoreGoogleSession().catch(() => {
-      if (mounted) setIsLoading(false);
+    restoreGoogleSession().catch((restoreError: unknown) => {
+      if (!mounted) return;
+      setError(restoreError instanceof Error ? restoreError.message : 'Google sign-in could not be completed. Please try again.');
+      setIsLoading(false);
     });
 
     const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
@@ -99,10 +123,7 @@ export default function Home() {
           return;
         }
 
-        const tokens = getOAuthTokens(result.url);
-        if (!tokens) throw new Error('Google sign-in did not return a valid session.');
-        const { error: sessionError } = await supabase.auth.setSession(tokens);
-        if (sessionError) throw sessionError;
+        await completeOAuthCallback(result.url);
       }
     } catch (signInError) {
       setError(signInError instanceof Error ? signInError.message : 'Google sign-in failed. Please try again.');
