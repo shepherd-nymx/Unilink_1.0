@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactElement } from 'react';
 import { ActivityIndicator, Image, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
-import { ArrowRight, CheckCircle2, Chrome, ShieldCheck, ShoppingCart, Zap } from 'lucide-react-native';
+import { CheckCircle2, ShieldCheck, ShoppingCart, Zap } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import { supabase } from '@/lib/supabase';
 
@@ -15,6 +15,10 @@ type OAuthTokens = {
   access_token: string;
   refresh_token: string;
 };
+
+function GoogleMark(): ReactElement {
+  return <Text style={styles.googleMark}>G</Text>;
+}
 
 function getOAuthTokens(url: string): OAuthTokens | null {
   const parsedUrl = new URL(url);
@@ -37,6 +41,15 @@ export default function Home() {
     let mounted = true;
 
     const restoreGoogleSession = async (): Promise<void> => {
+      if (Platform.OS === 'web') {
+        const callbackParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+        const callbackError = callbackParams.get('error_description') || callbackParams.get('error');
+        if (callbackError) {
+          setError(decodeURIComponent(callbackError.replace(/\\+/g, ' ')));
+          window.history.replaceState({}, document.title, window.location.pathname);
+        }
+      }
+
       const { data } = await supabase.auth.getSession();
       if (!mounted) return;
       if (data.session) {
@@ -158,9 +171,8 @@ export default function Home() {
             style={[styles.googleButton, { backgroundColor: colors.primary, opacity: isSigningIn ? 0.72 : 1 }]}
             activeOpacity={0.86}
           >
-            {isSigningIn ? <ActivityIndicator size="small" color="#fff" /> : <Chrome size={19} color="#fff" />}
+            {isSigningIn ? <ActivityIndicator size="small" color="#4285F4" /> : <GoogleMark />}
             <Text style={styles.googleButtonText}>{isSigningIn ? 'Connecting...' : 'Continue with Google'}</Text>
-            {!isSigningIn && <ArrowRight size={18} color="rgba(255,255,255,0.75)" />}
           </TouchableOpacity>
 
           <View style={styles.trustRow}>
@@ -199,8 +211,9 @@ const styles = StyleSheet.create({
   cardText: { fontSize: 13, lineHeight: 20, textAlign: 'center', marginBottom: 16 },
   errorBox: { width: '100%', borderWidth: 1, borderRadius: 10, padding: 10, marginBottom: 12 },
   errorText: { color: '#dc2626', fontSize: 12, lineHeight: 17, textAlign: 'center' },
-  googleButton: { width: '100%', minHeight: 52, borderRadius: 13, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
-  googleButtonText: { color: '#fff', fontSize: 15, fontWeight: '800', flex: 1, textAlign: 'center' },
+  googleButton: { width: '100%', minHeight: 52, borderRadius: 4, borderWidth: 1, borderColor: '#dadce0', backgroundColor: '#fff', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.12, shadowRadius: 2, elevation: 2 },
+  googleMark: { color: '#4285F4', fontSize: 21, lineHeight: 24, fontWeight: '800', width: 22, textAlign: 'center' },
+  googleButtonText: { color: '#202124', fontSize: 14, fontWeight: '600', textAlign: 'center' },
   trustRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 14 },
   trustText: { fontSize: 12, fontWeight: '600' },
   poweredLogo: { width: 36, height: 36, marginTop: 24, opacity: 0.8 },
