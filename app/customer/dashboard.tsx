@@ -2385,6 +2385,7 @@ export default function CustomerDashboard() {
         <TouchableOpacity
           style={styles.bottomNavItem}
           onPress={() => {
+            setNotificationDot(null);
             setShopUpdatesBaseline(shopOrderUpdatesCount);
             router.push({ pathname: '/customer/orders', params: { customerId } });
           }}
