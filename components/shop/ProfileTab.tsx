@@ -20,7 +20,7 @@ import {
   type OperatingHours,
   type DaySchedule,
 } from '@/lib/shop-types';
-import { Store, LogOut, MapPin, Navigation, Globe, Clock, CreditCard, DollarSign, BadgeCheck, TriangleAlert as AlertTriangle, X, Check, MessageCircle, Plus, Trash2, Ban, Search, Smartphone, Tag, ChevronDown, Camera, Image as ImageIcon } from 'lucide-react-native';
+import { Store, LogOut, MapPin, Navigation, Globe, Clock, CreditCard, DollarSign, BadgeCheck, TriangleAlert as AlertTriangle, X, Check, MessageCircle, Plus, Trash2, Ban, Search, Smartphone, Tag, ChevronDown, Camera, Image as ImageIcon, Truck } from 'lucide-react-native';
 import * as Location from 'expo-location';
 import * as ImagePicker from 'expo-image-picker';
 import { SHOP_CATEGORIES } from '@/components/marketplace/types';
@@ -75,6 +75,8 @@ export function ProfileTab({
   const [savingEcocash, setSavingEcocash] = useState(false);
   const [deliveryFee, setDeliveryFee] = useState(shop.delivery_fee != null ? String(shop.delivery_fee) : '0');
   const [savingFees, setSavingFees] = useState(false);
+  const [freeDelivery, setFreeDelivery] = useState(shop.offers_free_delivery === true);
+  const [savingFreeDelivery, setSavingFreeDelivery] = useState(false);
   const [whatsappInput, setWhatsappInput] = useState(shop.whatsapp_number || '');
   const [savingWhatsapp, setSavingWhatsapp] = useState(false);
   const [msg, setMsg] = useState('');
@@ -215,6 +217,21 @@ export function ProfileTab({
     }
     onShopUpdated({ ...shop, ecocash_fee: ecFee, delivery_fee: delFee });
     setMsg('Fees saved');
+  };
+
+  const toggleFreeDelivery = async () => {
+    setSavingFreeDelivery(true);
+    setMsg('');
+    const next = !freeDelivery;
+    const { error } = await supabase
+      .from('shops')
+      .update({ offers_free_delivery: next })
+      .eq('id', shop.id);
+    setSavingFreeDelivery(false);
+    if (error) { setMsg(error.message); return; }
+    setFreeDelivery(next);
+    onShopUpdated({ ...shop, offers_free_delivery: next });
+    setMsg('Free delivery setting saved');
   };
 
   const saveEcocashDetails = async () => {
@@ -843,6 +860,35 @@ export function ProfileTab({
         <TouchableOpacity style={[styles.saveBtn, { backgroundColor: A.amber }]} onPress={saveFees} disabled={savingFees}>
           {savingFees ? <ActivityIndicator size="small" color="#000" /> : <Text style={[styles.saveBtnText, { color: '#000' }]}>Save Fees</Text>}
         </TouchableOpacity>
+      </View>
+
+      {/* Free Delivery Toggle */}
+      <View style={styles.card}>
+        <View style={styles.cardHeader}>
+          <Truck size={16} color={A.green} />
+          <Text style={styles.cardTitle}>Free Delivery</Text>
+        </View>
+        <Text style={styles.whatsappDesc}>
+          Turn this on to advertise free delivery to customers. A "Free Delivery" label will appear on your shop in the marketplace, helping attract more customers.
+        </Text>
+        <TouchableOpacity
+          style={[styles.availToggle, { backgroundColor: freeDelivery ? A.greenDim : A.redDim, borderColor: freeDelivery ? A.green : A.red }]}
+          onPress={toggleFreeDelivery}
+          disabled={savingFreeDelivery}
+          activeOpacity={0.8}
+        >
+          {savingFreeDelivery ? (
+            <ActivityIndicator size="small" color={freeDelivery ? A.green : A.red} />
+          ) : (
+            <>
+              <View style={[styles.availDot, { backgroundColor: freeDelivery ? A.green : A.red }]} />
+              <Text style={[styles.availText, { color: freeDelivery ? A.green : A.red }]}>
+                {freeDelivery ? 'FREE DELIVERY ON' : 'FREE DELIVERY OFF'}
+              </Text>
+            </>
+          )}
+        </TouchableOpacity>
+        <Text style={styles.availHint}>Customers will see a "Free Delivery" label when browsing your shop.</Text>
       </View>
 
       {/* WhatsApp Number */}

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Modal, View, Text, ScrollView, TouchableOpacity, Platform, StyleSheet, ActivityIndicator } from 'react-native';
-import { X, MapPin, Store, CreditCard, Plus, Minus, BadgeCheck, Clock, PackageCheck, CircleAlert as AlertCircle, Star, Tag } from 'lucide-react-native';
+import { X, MapPin, Store, CreditCard, Plus, Minus, BadgeCheck, Clock, PackageCheck, CircleAlert as AlertCircle, Star, Tag, GraduationCap, Truck } from 'lucide-react-native';
 import { Linking } from 'react-native';
 import { supabase } from '@/lib/supabase';
 import { Shop, Product, ThemePalette, computeShopOpen, formatOperatingHours, formatPaymentMethod, getAcceptedMethods } from './types';
@@ -124,6 +124,18 @@ export function ShopProfileModal({ shop, visible, onClose, products, cartQty, on
                 <View style={[styles.verifiedPill, { backgroundColor: `${palette.accent}18` }]}>
                   <Tag size={13} color={palette.accent} />
                   <Text style={[styles.statusText, { color: palette.accent }]}>{shop.category}</Text>
+                </View>
+              ) : null}
+              {shop.offers_free_delivery ? (
+                <View style={[styles.verifiedPill, { backgroundColor: `${palette.success}18`, borderColor: palette.success, borderWidth: 1 }]}>
+                  <Truck size={13} color={palette.success} />
+                  <Text style={[styles.statusText, { color: palette.success }]}>Free Delivery</Text>
+                </View>
+              ) : null}
+              {shop.is_student_owned ? (
+                <View style={[styles.verifiedPill, { backgroundColor: `${palette.accent}15`, borderColor: palette.accent, borderWidth: 1 }]}>
+                  <GraduationCap size={13} color={palette.accent} />
+                  <Text style={[styles.statusText, { color: palette.accent }]}>Student Owned</Text>
                 </View>
               ) : null}
             </View>

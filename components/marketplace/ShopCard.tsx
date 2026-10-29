@@ -1,5 +1,5 @@
 import { TouchableOpacity, View, Text, Platform, StyleSheet, Linking } from 'react-native';
-import { Store, BadgeCheck, PackageCheck, MapPin, Star, Award } from 'lucide-react-native';
+import { Store, BadgeCheck, PackageCheck, MapPin, Star, Award, GraduationCap, Truck } from 'lucide-react-native';
 import { Shop, ThemePalette, computeShopOpen } from './types';
 
 type Props = {
@@ -43,6 +43,18 @@ export function ShopCard({ shop, palette, onPress }: Props) {
           <View style={[styles.verifiedBadge, { backgroundColor: `${palette.primary}18` }]}>
             <BadgeCheck size={11} color={palette.primary} />
             <Text style={[styles.badgeText, { color: palette.primary }]} numberOfLines={1}>Verified</Text>
+          </View>
+        ) : null}
+        {shop.offers_free_delivery ? (
+          <View style={[styles.freeDeliveryBadge, { backgroundColor: `${palette.success}18`, borderColor: palette.success }]}>
+            <Truck size={11} color={palette.success} />
+            <Text style={[styles.badgeText, { color: palette.success }]} numberOfLines={1}>Free Delivery</Text>
+          </View>
+        ) : null}
+        {shop.is_student_owned ? (
+          <View style={[styles.studentOwnedBadge, { backgroundColor: `${palette.accent}18`, borderColor: palette.accent }]}>
+            <GraduationCap size={11} color={palette.accent} />
+            <Text style={[styles.badgeText, { color: palette.accent }]} numberOfLines={1}>Student Owned</Text>
           </View>
         ) : null}
         {shop.premium_badge ? (
@@ -110,6 +122,8 @@ const styles = StyleSheet.create({
   badgeText: { fontSize: 9, fontWeight: '700', flexShrink: 1 },
   verifiedBadge: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 6, paddingVertical: 3, borderRadius: 8, flexShrink: 1 },
   premiumBadge: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 6, paddingVertical: 3, borderRadius: 8, borderWidth: 1, flexShrink: 1 },
+  freeDeliveryBadge: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 6, paddingVertical: 3, borderRadius: 8, borderWidth: 1, flexShrink: 1 },
+  studentOwnedBadge: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 6, paddingVertical: 3, borderRadius: 8, borderWidth: 1, flexShrink: 1 },
   shopName: { fontSize: 13, fontWeight: '600', flexShrink: 1 },
   ordersRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   ordersText: { fontSize: 10 },

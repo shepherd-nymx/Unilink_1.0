@@ -24,6 +24,8 @@ export type Shop = {
   ecocash_number?: string | null;
   contact_phone?: string | null;
   category?: string | null;
+  is_student_owned?: boolean;
+  offers_free_delivery?: boolean;
 };
 
 export const SHOP_CATEGORIES = [

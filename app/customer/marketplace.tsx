@@ -16,7 +16,7 @@ import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { loadUserData } from '@/lib/storage-service';
 import { A } from '@/lib/admin-theme';
-import { ArrowLeft, Store, Search, ShoppingCart, Plus, Minus, X, Package, CreditCard, CircleCheck as CheckCircle, CircleAlert as AlertCircle, Info, ChevronLeft, ChevronRight, MapPin, Lock, Award, Tag } from 'lucide-react-native';
+import { ArrowLeft, Store, Search, ShoppingCart, Plus, Minus, X, Package, CreditCard, CircleCheck as CheckCircle, CircleAlert as AlertCircle, Info, ChevronLeft, ChevronRight, MapPin, Lock, Award, Tag, GraduationCap, Truck } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Shop, Product, CartItem, CartByShop, ThemePalette, computeShopOpen, DeliveryFeeTier, computeTierDeliveryFee, SHOP_CATEGORIES } from '@/components/marketplace/types';
 import { ShopCard } from '@/components/marketplace/ShopCard';
@@ -167,7 +167,7 @@ export default function Marketplace() {
 
       const { data: shopData, error: shopErr } = await supabase
         .from('shops')
-        .select('id, name, logo_url, description, address, hours, slug, latitude, longitude, is_available, operating_hours, accepted_payment_methods, location_verified, completed_orders_count, location, ecocash_fee, delivery_fee, whatsapp_number, average_rating, total_ratings, premium_badge, ecocash_name, ecocash_number, contact_phone, category')
+        .select('id, name, logo_url, description, address, hours, slug, latitude, longitude, is_available, operating_hours, accepted_payment_methods, location_verified, completed_orders_count, location, ecocash_fee, delivery_fee, whatsapp_number, average_rating, total_ratings, premium_badge, ecocash_name, ecocash_number, contact_phone, category, is_student_owned, offers_free_delivery')
         .eq('status', 'active')
         .order('name');
       if (shopErr) throw shopErr;
@@ -697,6 +697,18 @@ export default function Marketplace() {
                                 }]} numberOfLines={1}>{shop.premium_badge === 'platinum' ? 'Platinum' : shop.premium_badge === 'blue' ? 'Blue' : 'Green'}</Text>
                               </View>
                             ) : null}
+                            {shop.offers_free_delivery ? (
+                              <View style={[styles.shopSelectBadge, { backgroundColor: `${palette.success}18`, borderColor: palette.success, borderWidth: 1 }]}>
+                                <Truck size={9} color={palette.success} />
+                                <Text style={[styles.shopSelectBadgeText, { color: palette.success }]} numberOfLines={1}>Free Delivery</Text>
+                              </View>
+                            ) : null}
+                            {shop.is_student_owned ? (
+                              <View style={[styles.shopSelectBadge, { backgroundColor: `${palette.accent}18`, borderColor: palette.accent, borderWidth: 1 }]}>
+                                <GraduationCap size={9} color={palette.accent} />
+                                <Text style={[styles.shopSelectBadgeText, { color: palette.accent }]} numberOfLines={1}>Student Owned</Text>
+                              </View>
+                            ) : null}
                           </View>
                         </View>
                         <ChevronRight size={20} color={palette.placeholderColor} />
@@ -731,6 +743,18 @@ export default function Marketplace() {
                   )}
                 </View>
                 <Text style={[styles.selectedShopName, { color: palette.textPrimary }]} numberOfLines={1}>{selectedShopData?.name}</Text>
+                {selectedShopData?.offers_free_delivery ? (
+                  <View style={[styles.shopSelectBadge, { backgroundColor: `${palette.success}18`, borderColor: palette.success, borderWidth: 1 }]}>
+                    <Truck size={9} color={palette.success} />
+                    <Text style={[styles.shopSelectBadgeText, { color: palette.success }]} numberOfLines={1}>Free Delivery</Text>
+                  </View>
+                ) : null}
+                {selectedShopData?.is_student_owned ? (
+                  <View style={[styles.shopSelectBadge, { backgroundColor: `${palette.accent}18`, borderColor: palette.accent, borderWidth: 1 }]}>
+                    <GraduationCap size={9} color={palette.accent} />
+                    <Text style={[styles.shopSelectBadgeText, { color: palette.accent }]} numberOfLines={1}>Student Owned</Text>
+                  </View>
+                ) : null}
               </View>
               <TouchableOpacity
                 style={[styles.shopInfoBtn, { backgroundColor: `${palette.primary}12`, borderColor: `${palette.primary}30` }]}

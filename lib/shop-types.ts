@@ -86,6 +86,8 @@ export type ShopData = {
   commission_deadline?: string | null;
   category?: string | null;
   logo_url?: string | null;
+  is_student_owned?: boolean;
+  offers_free_delivery?: boolean;
 };
 
 export const STATUS_FLOW = [

@@ -15,7 +15,7 @@ import {
 import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { A } from '@/lib/admin-theme';
-import { ArrowLeft, Store, CircleCheck as CheckCircle, Circle as XCircle, DollarSign, Clock, Ban, Eye, X, CircleAlert as AlertCircle, ShoppingBag, Settings, MapPin, Calendar, Smartphone, Award, Users, Truck } from 'lucide-react-native';
+import { ArrowLeft, Store, CircleCheck as CheckCircle, Circle as XCircle, DollarSign, Clock, Ban, Eye, X, CircleAlert as AlertCircle, ShoppingBag, Settings, MapPin, Calendar, Smartphone, Award, Users, Truck, GraduationCap } from 'lucide-react-native';
 import { SkeletonList } from '@/components/Skeleton';
 import { ConnectionBadge } from '@/components/ConnectionBadge';
 
@@ -37,6 +37,7 @@ type Shop = {
   approved_at: string | null;
   premium_badge: string | null;
   driver_assignment_mode?: string;
+  is_student_owned?: boolean;
 };
 
 type ShopOrder = {
@@ -455,6 +456,12 @@ export default function AdminShops() {
                           <Users size={13} color={A.cyan} />
                           <Text style={styles.shopDetailText}>{shopCustomerCounts[shop.id] ?? 0} customers</Text>
                         </View>
+                        {shop.is_student_owned && (
+                          <View style={[styles.studentOwnedBadge, { backgroundColor: `${A.green}18`, borderColor: A.green }]}>
+                            <GraduationCap size={11} color={A.green} />
+                            <Text style={[styles.studentOwnedBadgeText, { color: A.green }]}>Student Owned</Text>
+                          </View>
+                        )}
                         <TouchableOpacity
                           style={[styles.assignmentToggle, { borderColor: shop.driver_assignment_mode === 'customer_assigned' ? A.amber : A.cyan }]}
                           onPress={() => toggleAssignmentMode(shop)}
@@ -893,6 +900,32 @@ export default function AdminShops() {
                       );
                     })}
                   </View>
+
+                  <Text style={[styles.modalLabel, { marginTop: 20 }]}>STUDENT OWNED</Text>
+                  <Text style={{ fontSize: 12, color: A.textSub, marginTop: 4, marginBottom: 10 }}>Mark this shop as student-owned. A label will be shown to customers when viewing this shop.</Text>
+                  <TouchableOpacity
+                    style={{
+                      flexDirection: 'row', alignItems: 'center', gap: 8,
+                      paddingHorizontal: 14, paddingVertical: 10, borderRadius: 8, borderWidth: 1.5,
+                      backgroundColor: selectedShop.is_student_owned ? `${A.green}20` : A.card,
+                      borderColor: selectedShop.is_student_owned ? A.green : A.border,
+                      opacity: savingBadge ? 0.5 : 1,
+                    }}
+                    onPress={async () => {
+                      setSavingBadge(true);
+                      const next = !selectedShop.is_student_owned;
+                      await supabase.from('shops').update({ is_student_owned: next }).eq('id', selectedShop.id);
+                      setSavingBadge(false);
+                      setShops(prev => prev.map(s => s.id === selectedShop.id ? { ...s, is_student_owned: next } as Shop : s));
+                      setSelectedShop({ ...selectedShop, is_student_owned: next } as Shop);
+                    }}
+                    disabled={savingBadge}
+                  >
+                    <GraduationCap size={14} color={selectedShop.is_student_owned ? A.green : A.textSub} />
+                    <Text style={{ fontSize: 12, fontWeight: '700', color: selectedShop.is_student_owned ? A.green : A.textSub }}>
+                      {selectedShop.is_student_owned ? 'Student Owned' : 'Mark as Student Owned'}
+                    </Text>
+                  </TouchableOpacity>
                 </ScrollView>
               </>
             )}
@@ -975,6 +1008,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, borderWidth: 1,
   },
   assignmentToggleText: { fontSize: 11, fontWeight: '700' },
+  studentOwnedBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, borderWidth: 1 },
+  studentOwnedBadgeText: { fontSize: 10, fontWeight: '700' },
   statusBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, borderWidth: 1, flexShrink: 0 },
   statusText: { fontSize: 10, fontWeight: '600', flexShrink: 1 },
   shopActions: { flexDirection: 'row', gap: 8, marginTop: 12, flexWrap: 'wrap' as any },
