@@ -188,6 +188,7 @@ export default function CustomerDashboard() {
   const [preferredShops, setPreferredShops] = useState('');
   const [notificationDot, setNotificationDot] = useState<'yellow' | 'green' | null>(null);
   const [expiredNotification, setExpiredNotification] = useState<string | null>(null);
+  const expiredOrderIds = useRef<Set<string>>(new Set());
   const [customItems, setCustomItems] = useState<CustomItem[]>([]);
   const [showAddItemModal, setShowAddItemModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -495,20 +496,28 @@ export default function CustomerDashboard() {
         const expiredOrders = pendingOrders.filter(order => {
           const orderTime = new Date(order.created_at).getTime();
           const minutesPassed = (now - orderTime) / (1000 * 60);
-          return minutesPassed >= 10;
+          return minutesPassed >= 10 && !expiredOrderIds.current.has(order.id);
         });
 
         if (expiredOrders.length > 0) {
           for (const order of expiredOrders) {
-            await supabase
+            expiredOrderIds.current.add(order.id);
+            const { error: expiryError } = await supabase
               .from('deliveries')
-              .delete()
-              .eq('id', order.id);
+              .update({ status: 'cancelled' })
+              .eq('id', order.id)
+              .eq('status', 'pending');
+            if (expiryError) {
+              expiredOrderIds.current.delete(order.id);
+              continue;
+            }
           }
 
-          setExpiredNotification('Your order expired after 10 minutes without being accepted. Please place a new order.');
-          setTimeout(() => setExpiredNotification(null), 8000);
-          loadNotificationStatus();
+          if (expiredOrders.some(order => expiredOrderIds.current.has(order.id))) {
+            setExpiredNotification('Your order expired after 10 minutes without being accepted. Please place a new order.');
+            setTimeout(() => setExpiredNotification(null), 8000);
+            loadNotificationStatus();
+          }
         }
       }
     } catch (err: any) {
