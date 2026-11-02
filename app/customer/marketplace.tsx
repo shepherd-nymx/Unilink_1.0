@@ -329,7 +329,8 @@ export default function Marketplace() {
     paymentMethod: string,
     deliveryFee: number,
     ecocashFeeAmount: number,
-    ecocashPop: string | null
+    ecocashPop: string | null,
+    preferredMessengerByShop: Record<string, string | null>
   ) => {
     if (!customerId) {
       setError('Please login to place an order');
@@ -406,6 +407,7 @@ export default function Marketplace() {
             customer_email: customer?.email || null,
             customer_name: customer?.full_name || null,
             customer_phone: customer?.phone_number || null,
+            preferred_messenger_id: preferredMessengerByShop[shopCart.shopId] ?? null,
           })
           .select()
           .maybeSingle();

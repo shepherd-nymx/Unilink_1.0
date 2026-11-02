@@ -6,6 +6,7 @@ import {
   CircleAlert as AlertTriangle, FileText, ChevronRight, ChevronDown, ChevronUp, Crosshair, Home,
 } from 'lucide-react-native';
 import { CartByShop, Shop, ThemePalette, formatPaymentMethod, getAcceptedMethods, computeShopOpen, formatOperatingHours, DeliveryFeeTier, computeTierDeliveryFee } from './types';
+import { MessengerPicker } from './MessengerPicker';
 import * as Location from 'expo-location';
 
 type Props = {
@@ -17,7 +18,7 @@ type Props = {
   placingOrder: boolean;
   error: string;
   onClose: () => void;
-  onPlaceOrder: (deliveryLocation: string, lat: number | null, lng: number | null, paymentMethod: string, deliveryFee: number, ecocashFeeAmount: number, ecocashPop: string | null) => void;
+  onPlaceOrder: (deliveryLocation: string, lat: number | null, lng: number | null, paymentMethod: string, deliveryFee: number, ecocashFeeAmount: number, ecocashPop: string | null, preferredMessengerByShop: Record<string, string | null>) => void;
   customerId?: string;
   customerAddress?: { formatted_address: string | null; latitude: number | null; longitude: number | null } | null;
   deliveryFeeTiers?: Record<string, DeliveryFeeTier[]>;
@@ -41,9 +42,11 @@ export function CheckoutModal({
   const [ecocashPop, setEcocashPop] = useState('');
   const [locationMode, setLocationMode] = useState<'registered' | 'current' | 'manual'>('manual');
   const [detectingLocation, setDetectingLocation] = useState(false);
+  const [messengerByShop, setMessengerByShop] = useState<Record<string, string | null>>({});
 
   useEffect(() => {
     if (visible) {
+      setMessengerByShop({});
       setWhatsappConfirmed(false);
       setLocationConfirmed(false);
       setConfirmedLatitude(null);
@@ -192,7 +195,7 @@ export function CheckoutModal({
     if (!locationConfirmed) return;
     if (anyBlocked) return;
     if (requiresWhatsapp && !whatsappConfirmed) return;
-    onPlaceOrder(deliveryLocation.trim(), confirmedLatitude, confirmedLongitude, paymentMethod, parseFloat(effectiveDeliveryFee) || 0, totalEcocashFee, isEcocash ? ecocashPop.trim() || null : null);
+    onPlaceOrder(deliveryLocation.trim(), confirmedLatitude, confirmedLongitude, paymentMethod, parseFloat(effectiveDeliveryFee) || 0, totalEcocashFee, isEcocash ? ecocashPop.trim() || null : null, messengerByShop);
   };
 
   const canPlace = !!deliveryLocation.trim() && locationConfirmed && !placingOrder && !anyBlocked && (!requiresWhatsapp || whatsappConfirmed);
@@ -459,9 +462,23 @@ export function CheckoutModal({
           <View style={[styles.infoBox, { backgroundColor: `${palette.primary}10`, borderColor: `${palette.primary}30` }]}>
             <Truck size={16} color={palette.primary} />
             <Text style={[styles.infoText, { color: palette.textSecondary }]}>
-              The shop will assign a messenger to deliver your order. No need to select one yourself.
+              The shop assigns a messenger to deliver your order. You can optionally pick one below.
             </Text>
           </View>
+
+          {!anyBlocked ? cartByShop.map(sc => (
+            <View key={sc.shopId} style={{ marginTop: 12 }}>
+              <MessengerPicker
+                palette={palette}
+                shopId={sc.shopId}
+                shopName={sc.shopName}
+                customerLatitude={confirmedLatitude}
+                customerLongitude={confirmedLongitude}
+                selectedMessengerId={messengerByShop[sc.shopId] ?? null}
+                onSelect={(messengerId) => setMessengerByShop(prev => ({ ...prev, [sc.shopId]: messengerId }))}
+              />
+            </View>
+          )) : null}
 
           {requiresWhatsapp && !anyBlocked ? (
             <View style={{ marginTop: 12, gap: 6 }}>
