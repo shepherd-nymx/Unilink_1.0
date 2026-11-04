@@ -1,0 +1,37 @@
+{
+  "projectId": "63894063",
+  "functions": {
+    "admin-email-logs": {
+      "hasChanged": false,
+      "hash": "7b86d1f22014b60308dc214d625f2de70b632938e53fdb6eacdefd875cedda91"
+    },
+    "paynow-initiate": {
+      "hasChanged": false,
+      "hash": "20d728c6e8e039ae900a357b18b67a1318b67909627caffd44984191d568a7ce"
+    },
+    "paynow-result": {
+      "hasChanged": false,
+      "hash": "c66894a95718daa926e3702b74b77d87644c869d2391ef8b57919662a603979b"
+    },
+    "resend-email": {
+      "hasChanged": false,
+      "hash": "6c4ad3e4034bda0d13fa5a1234d195db7dd9487c8464740ab7f4bf6b6fc8f721"
+    },
+    "resend-webhook": {
+      "hasChanged": false,
+      "hash": "6a560b0d9a5c3c269909550109798ab3a2e613f299d2ef4e7c32a076ac948919"
+    },
+    "send-push-notification": {
+      "hasChanged": false,
+      "hash": "d40f12bb784fb16bba5e184e71c1e58be883f47d984272f33d38b78bf4efa283"
+    },
+    "send-whatsapp-notification": {
+      "hasChanged": false,
+      "hash": "376c24ccf1028f306c2fc659e19dede4c37500c4d251a40c80e01836672b3291"
+    },
+    "send-email-event": {
+      "hasChanged": false,
+      "hash": "eb7e985b4aa776e0448e10a4568fed8f9735067fbf48240fda2455a212cf7e6f"
+    }
+  }
+}
