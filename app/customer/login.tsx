@@ -31,7 +31,7 @@ export default function CustomerLogin() {
 
   useEffect(() => {
     if (registered === 'true') {
-      setSuccessMessage('Registration successful! A verification email has been sent. Please verify your email, then login to continue.');
+      setSuccessMessage('Registration successful! Your email is verified. You can now log in.');
     }
 
     Animated.parallel([

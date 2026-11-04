@@ -28,6 +28,8 @@ import {
   UserPlus,
   LocateFixed,
   CircleCheck as CheckCircle,
+  ShieldCheck,
+  RefreshCw,
 } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import { TermsAndConditions } from '@/components/TermsAndConditions';
@@ -68,11 +70,20 @@ export default function CustomerRegister() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  const [verificationStep, setVerificationStep] = useState<
+    | { stage: 'idle' }
+    | { stage: 'sending' }
+    | { stage: 'verifying'; authId: string; resendIn: number }
+  >({ stage: 'idle' });
+  const [otpCode, setOtpCode] = useState('');
+  const [resending, setResending] = useState(false);
+
   const [focused, setFocused] = useState<string | null>(null);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
+  const otpRefs = useRef<Array<TextInput | null>>([]);
 
   const primary = '#1A73E8';
   const primaryLight = '#4A9EFF';
@@ -102,6 +113,18 @@ export default function CustomerRegister() {
 
     loadUniversities();
   }, []);
+
+  useEffect(() => {
+    if (verificationStep.stage !== 'verifying' || verificationStep.resendIn <= 0) return;
+    const timer = setTimeout(() => {
+      setVerificationStep(prev =>
+        prev.stage === 'verifying' && prev.resendIn > 0
+          ? { ...prev, resendIn: prev.resendIn - 1 }
+          : prev
+      );
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [verificationStep]);
 
   const loadUniversities = async () => {
     try {
@@ -201,76 +224,134 @@ export default function CustomerRegister() {
   };
 
   const handleTermsAccept = async () => {
-    setLoading(true);
     setShowTermsModal(false);
-    try {
-      const emailTrim = email.trim().toLowerCase();
-      const authEmail = emailTrim;
-      let authId: string | null = null;
-      try {
-        const { data: authData, error: authError } = await supabase.auth.signUp({
-          email: authEmail,
-          password,
-        });
-        if (!authError && authData.user) {
-          authId = authData.user.id;
-        }
-        // Sign out immediately — the app manages its own session separately
-        // from Supabase Auth, so we don't want an active auth session here.
-        await supabase.auth.signOut();
-      } catch {
-        // Auth signup failure is non-fatal: the customer record is still
-        // created and the legacy btoa login continues to work.
-      }
+    await sendVerificationOtp();
+  };
 
-      const passwordHash = btoa(password);
-      const finalUniversityId = universityId === 'other' ? otherPlaceId : universityId;
-      const { data: customer, error: customerError } = await supabase
-        .from('customers')
-        .insert({
-          full_name: fullName,
-          phone_number: phoneNumber,
-          email: emailTrim,
-          username,
-          password_hash: passwordHash,
-          phone_verified: false,
-          latitude: location!.latitude,
-          longitude: location!.longitude,
-          university_id: finalUniversityId,
-          terms_accepted: true,
-          terms_version: termsVersion,
-          terms_accepted_at: new Date().toISOString(),
-          ...(authId ? { auth_id: authId } : {}),
-        })
-        .select()
-        .single();
-      if (customerError) {
-        // Clean up the orphaned auth account so the user can retry registration
-        if (authId) { try { await supabase.auth.signOut(); } catch {} }
-        throw customerError;
-      }
-      const { error: addressError } = await supabase.from('customer_addresses').insert({
-        customer_id: customer.id,
-        address_type: 'default',
-        latitude: location!.latitude,
-        longitude: location!.longitude,
-        formatted_address: location!.formatted_address,
-        is_default: true,
-        accuracy: location!.accuracy,
-        timestamp: new Date().toISOString(),
+  const sendVerificationOtp = async () => {
+    setError('');
+    setOtpCode('');
+    setVerificationStep({ stage: 'sending' });
+    const emailTrim = email.trim().toLowerCase();
+    try {
+      // Request a one-time code without creating a session. Supabase emails
+      // a 6-digit numeric OTP to the address; we verify it before creating
+      // any account so a fake/unreachable email never gets registered.
+      const { data, error: otpError } = await supabase.auth.signInWithOtp({
+        email: emailTrim,
+        options: { shouldCreateUser: false },
       });
-      if (addressError) throw addressError;
-      await supabase.from('terms_acceptance_log').insert({
-        user_id: customer.user_id,
-        user_type: 'customer',
-        terms_version: termsVersion,
-      });
-      router.replace({ pathname: '/customer/login', params: { registered: 'true' } });
+      if (otpError) throw otpError;
+      const authData = data as unknown as { user?: { id?: string } } | null;
+      const authId = authData?.user?.id ?? '';
+      setVerificationStep({ stage: 'verifying', authId, resendIn: 45 });
     } catch (err: any) {
-      setError(err.message || 'Registration failed. Please try again.');
+      setVerificationStep({ stage: 'idle' });
+      setError(
+        err?.message?.includes('rate limit')
+          ? 'Too many attempts. Please wait a minute and try again.'
+          : 'We could not send a verification email. Please check the address and try again.'
+      );
+    }
+  };
+
+  const resendOtp = async () => {
+    if (verificationStep.stage !== 'verifying') return;
+    setResending(true);
+    setError('');
+    const emailTrim = email.trim().toLowerCase();
+    try {
+      const { error: otpError } = await supabase.auth.signInWithOtp({
+        email: emailTrim,
+        options: { shouldCreateUser: false },
+      });
+      if (otpError) throw otpError;
+      setVerificationStep(prev =>
+        prev.stage === 'verifying' ? { ...prev, resendIn: 45 } : prev
+      );
+    } catch (err: any) {
+      setError('Could not resend the code. Please wait a moment and try again.');
+    } finally {
+      setResending(false);
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    if (verificationStep.stage !== 'verifying') return;
+    setError('');
+    const code = otpCode.trim();
+    if (!/^\d{6}$/.test(code)) {
+      setError('Please enter the 6-digit code from your email.');
+      return;
+    }
+    setLoading(true);
+    const emailTrim = email.trim().toLowerCase();
+    try {
+      // Verify the code. On success, Supabase issues a session — we discard it
+      // after capturing the auth id, since the app runs its own login flow.
+      const { data: verifyData, error: verifyError } = await supabase.auth.verifyOtp({
+        email: emailTrim,
+        token: code,
+        type: 'email',
+      });
+      if (verifyError) throw verifyError;
+      const authId = ((verifyData as unknown as { user?: { id?: string } } | null)?.user?.id) || verificationStep.authId || null;
+      await supabase.auth.signOut();
+      await createCustomerRecord(authId);
+    } catch (err: any) {
+      setError(
+        err?.message?.includes('invalid') || err?.message?.includes('expired')
+          ? 'That code is invalid or expired. Please try again or resend it.'
+          : 'Verification failed. Please try again.'
+      );
     } finally {
       setLoading(false);
     }
+  };
+
+  const createCustomerRecord = async (authId: string | null) => {
+    setError('');
+    const emailTrim = email.trim().toLowerCase();
+    const passwordHash = btoa(password);
+    const finalUniversityId = universityId === 'other' ? otherPlaceId : universityId;
+    const { data: customer, error: customerError } = await supabase
+      .from('customers')
+      .insert({
+        full_name: fullName,
+        phone_number: phoneNumber,
+        email: emailTrim,
+        username,
+        password_hash: passwordHash,
+        phone_verified: false,
+        latitude: location!.latitude,
+        longitude: location!.longitude,
+        university_id: finalUniversityId,
+        terms_accepted: true,
+        terms_version: termsVersion,
+        terms_accepted_at: new Date().toISOString(),
+        ...(authId ? { auth_id: authId } : {}),
+      })
+      .select()
+      .single();
+    if (customerError) throw customerError;
+    const { error: addressError } = await supabase.from('customer_addresses').insert({
+      customer_id: customer.id,
+      address_type: 'default',
+      latitude: location!.latitude,
+      longitude: location!.longitude,
+      formatted_address: location!.formatted_address,
+      is_default: true,
+      accuracy: location!.accuracy,
+      timestamp: new Date().toISOString(),
+    });
+    if (addressError) throw addressError;
+    await supabase.from('terms_acceptance_log').insert({
+      user_id: customer.user_id,
+      user_type: 'customer',
+      terms_version: termsVersion,
+    });
+    setVerificationStep({ stage: 'idle' });
+    router.replace({ pathname: '/customer/login', params: { registered: 'true' } });
   };
 
   const handleTermsDecline = () => {
@@ -635,6 +716,100 @@ export default function CustomerRegister() {
             <View style={styles.btnShine} />
           </TouchableOpacity>
 
+          {verificationStep.stage === 'sending' ? (
+            <View style={[styles.verifyCard, { backgroundColor: cardBg, borderColor: cardBorder }]}>
+              <ActivityIndicator color={primary} size="small" />
+              <Text style={[styles.verifyText, { color: textSecondary }]}>Sending a verification code to your email...</Text>
+            </View>
+          ) : null}
+
+          {verificationStep.stage === 'verifying' ? (
+            <View style={[styles.verifyCard, { backgroundColor: cardBg, borderColor: primary }]}>
+              <View style={styles.verifyHeader}>
+                <View style={[styles.verifyIcon, { backgroundColor: isDark ? 'rgba(26,115,232,0.15)' : '#EBF3FF' }]}>
+                  <ShieldCheck size={20} color={primary} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.verifyTitle, { color: textPrimary }]}>Verify your email</Text>
+                  <Text style={[styles.verifySubtitle, { color: textSecondary }]} numberOfLines={1}>
+                    A 6-digit code was sent to {email.trim().toLowerCase()}
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.otpRow}>
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <TextInput
+                    key={i}
+                    ref={(r) => { otpRefs.current[i] = r; }}
+                    style={[
+                      styles.otpBox,
+                      {
+                        backgroundColor: inputBg,
+                        borderColor: otpCode.length === i ? primary : inputBorder,
+                        color: textPrimary,
+                      },
+                    ]}
+                    value={otpCode[i] ?? ''}
+                    onChangeText={(text) => {
+                      const digit = text.replace(/\D/g, '').slice(-1);
+                      if (!digit && text === '') {
+                        setOtpCode(otpCode.slice(0, i));
+                        if (i > 0) otpRefs.current[i - 1]?.focus();
+                        return;
+                      }
+                      if (!digit) return;
+                      const next = otpCode.slice(0, i) + digit;
+                      setOtpCode(next.slice(0, 6));
+                      if (i < 5) otpRefs.current[i + 1]?.focus();
+                    }}
+                    onKeyPress={(e) => {
+                      if (e.nativeEvent.key === 'Backspace' && !otpCode[i] && i > 0) {
+                        otpRefs.current[i - 1]?.focus();
+                      }
+                    }}
+                    keyboardType="number-pad"
+                    maxLength={1}
+                    autoFocus={i === 0}
+                    selectTextOnFocus
+                  />
+                ))}
+              </View>
+
+              <View style={styles.verifyActions}>
+                <TouchableOpacity
+                  style={[styles.verifyBtn, { backgroundColor: primary, opacity: loading ? 0.7 : 1 }]}
+                  onPress={handleVerifyOtp}
+                  disabled={loading}
+                  activeOpacity={0.85}
+                >
+                  {loading ? (
+                    <ActivityIndicator color="#fff" size="small" />
+                  ) : (
+                    <Text style={styles.verifyBtnText}>Verify & Create Account</Text>
+                  )}
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.resendBtn, { borderColor: cardBorder, opacity: resending || verificationStep.resendIn > 0 ? 0.6 : 1 }]}
+                  onPress={resendOtp}
+                  disabled={resending || verificationStep.resendIn > 0}
+                  activeOpacity={0.7}
+                >
+                  <RefreshCw size={14} color={textSecondary} />
+                  <Text style={[styles.resendText, { color: textSecondary }]}>
+                    {verificationStep.resendIn > 0 ? `Resend in ${verificationStep.resendIn}s` : 'Resend code'}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => { setVerificationStep({ stage: 'idle' }); setOtpCode(''); setError(''); }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.cancelText, { color: '#EF4444' }]}>Cancel</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          ) : null}
+
           <TouchableOpacity style={styles.loginLink} onPress={() => router.push('/customer/login')} activeOpacity={0.7}>
             <Text style={[styles.loginLinkText, { color: textSecondary }]}>
               Already have an account?{'  '}
@@ -767,4 +942,25 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderRadius: 12, padding: 14,
   },
   contactNoticeText: { flex: 1, fontSize: 13, lineHeight: 19, fontWeight: '500' },
+  verifyCard: {
+    borderRadius: 16, borderWidth: 1.5, padding: 20, gap: 16,
+    shadowColor: '#1A73E8', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 4,
+  },
+  verifyHeader: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  verifyIcon: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center' },
+  verifyTitle: { fontSize: 15, fontWeight: '800' },
+  verifySubtitle: { fontSize: 12, marginTop: 2 },
+  verifyText: { fontSize: 13, lineHeight: 18 },
+  otpRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 8 },
+  otpBox: {
+    flex: 1, aspectRatio: 1, maxWidth: 48, borderRadius: 12, borderWidth: 1.5,
+    fontSize: 22, fontWeight: '800', textAlign: 'center',
+    ...(Platform.OS === 'web' ? { outlineStyle: 'none' } as any : {}),
+  },
+  verifyActions: { gap: 10 },
+  verifyBtn: { height: 48, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
+  verifyBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
+  resendBtn: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6, paddingVertical: 10, borderWidth: 1, borderRadius: 10 },
+  resendText: { fontSize: 13, fontWeight: '600' },
+  cancelText: { fontSize: 13, fontWeight: '600', textAlign: 'center' },
 });
