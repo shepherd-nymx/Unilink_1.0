@@ -21,6 +21,10 @@
       "hasChanged": false,
       "hash": "6a560b0d9a5c3c269909550109798ab3a2e613f299d2ef4e7c32a076ac948919"
     },
+    "send-email-event": {
+      "hasChanged": false,
+      "hash": "27c06fe04a4416f1a87cca61ab1e5f711edebb887a89f4399e001780d25a10cb"
+    },
     "send-push-notification": {
       "hasChanged": false,
       "hash": "d40f12bb784fb16bba5e184e71c1e58be883f47d984272f33d38b78bf4efa283"
@@ -28,10 +32,6 @@
     "send-whatsapp-notification": {
       "hasChanged": false,
       "hash": "376c24ccf1028f306c2fc659e19dede4c37500c4d251a40c80e01836672b3291"
-    },
-    "send-email-event": {
-      "hasChanged": false,
-      "hash": "eb7e985b4aa776e0448e10a4568fed8f9735067fbf48240fda2455a212cf7e6f"
     }
   }
 }

@@ -6,8 +6,17 @@ const sb = createClient(
 );
 const CUR = Deno.env.get("CURRENCY") ?? "USD";
 
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
+};
+
 const json = (b: unknown, s = 200) =>
-  new Response(JSON.stringify(b), { status: s, headers: { "Content-Type": "application/json" } });
+  new Response(JSON.stringify(b), {
+    status: s,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
 const shortId = (id: string) => String(id).slice(0, 8).toUpperCase();
 const mapItems = (arr: any) =>
   (Array.isArray(arr) ? arr : []).map((i: any) => ({
@@ -60,29 +69,43 @@ async function build(p: any) {
 }
 
 Deno.serve(async (req) => {
-  if (req.headers.get("x-webhook-secret") !== Deno.env.get("DB_WEBHOOK_SECRET"))
-    return json({ error: "unauthorized" }, 401);
-
-  const evt = await build(await req.json());
-  if (!evt) return json({ skipped: true });
-
-  const { error: dupErr } = await sb
-    .from("n8n_email_events")
-    .insert({ dedupe_key: evt.key, event: evt.body.event });
-  if (dupErr)
-    return dupErr.code === "23505" ? json({ duplicate: true }) : json({ error: dupErr.message }, 500);
-
-  const res = await fetch(Deno.env.get("N8N_WEBHOOK_URL")!, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      [Deno.env.get("N8N_AUTH_HEADER_NAME")!]: Deno.env.get("N8N_AUTH_HEADER_VALUE")!,
-    },
-    body: JSON.stringify(evt.body),
-  });
-  if (!res.ok) {
-    await sb.from("n8n_email_events").delete().eq("dedupe_key", evt.key);
-    return json({ error: `n8n ${res.status}` }, 502);
+  if (req.method === "OPTIONS") {
+    return new Response(null, { status: 200, headers: corsHeaders });
   }
-  return json({ sent: true });
+
+  const dbSecret = Deno.env.get("DB_WEBHOOK_SECRET");
+  const url = new URL(req.url);
+  const secretFromHeader = req.headers.get("x-webhook-secret");
+  const secretFromQuery = url.searchParams.get("secret");
+
+  if (secretFromHeader !== dbSecret && secretFromQuery !== dbSecret) {
+    return json({ error: "unauthorized" }, 401);
+  }
+
+  try {
+    const evt = await build(await req.json());
+    if (!evt) return json({ skipped: true });
+
+    const { error: dupErr } = await sb
+      .from("n8n_email_events")
+      .insert({ dedupe_key: evt.key, event: evt.body.event });
+    if (dupErr)
+      return dupErr.code === "23505" ? json({ duplicate: true }) : json({ error: dupErr.message }, 500);
+
+    const res = await fetch(Deno.env.get("N8N_WEBHOOK_URL")!, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        [Deno.env.get("N8N_AUTH_HEADER_NAME")!]: Deno.env.get("N8N_AUTH_HEADER_VALUE")!,
+      },
+      body: JSON.stringify(evt.body),
+    });
+    if (!res.ok) {
+      await sb.from("n8n_email_events").delete().eq("dedupe_key", evt.key);
+      return json({ error: `n8n ${res.status}` }, 502);
+    }
+    return json({ sent: true });
+  } catch (err) {
+    return json({ error: err instanceof Error ? err.message : "Internal error" }, 500);
+  }
 });
