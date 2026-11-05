@@ -33,6 +33,7 @@ import {
 } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import { TermsAndConditions } from '@/components/TermsAndConditions';
+import { sendEmail } from '@/lib/email-service';
 
 type LocationData = {
   latitude: number;
@@ -350,6 +351,14 @@ export default function CustomerRegister() {
       user_type: 'customer',
       terms_version: termsVersion,
     });
+    // Fire-and-forget welcome email — don't block registration if it fails
+    sendEmail({
+      type: 'welcome',
+      to: emailTrim,
+      userId: customer.id,
+      userType: 'customer',
+      data: { name: fullName },
+    }).catch(() => {});
     setVerificationStep({ stage: 'idle' });
     router.replace({ pathname: '/customer/login', params: { registered: 'true' } });
   };
