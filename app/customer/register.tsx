@@ -286,6 +286,16 @@ export default function CustomerRegister() {
           },
         });
       } catch {}
+      // Fire-and-forget welcome email to the new customer
+      try {
+        sendEmail({
+          type: 'welcome',
+          to: emailTrim,
+          userId: customer.id,
+          userType: 'customer',
+          data: { name: fullName },
+        });
+      } catch {}
       router.replace({ pathname: '/customer/login', params: { registered: 'true' } });
     } catch (err: any) {
       setError(err.message || 'Registration failed. Please try again.');
