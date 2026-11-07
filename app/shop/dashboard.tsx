@@ -55,6 +55,8 @@ import {
   ChevronRight,
   Star,
   RefreshCw,
+  Menu,
+  Share2,
 } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { AppShareButton } from '@/components/AppShareButton';
@@ -98,6 +100,7 @@ export default function ShopDashboard() {
   const [availableDrivers, setAvailableDrivers] = useState<Driver[]>([]);
   const [assigningDriver, setAssigningDriver] = useState(false);
   const [assignError, setAssignError] = useState('');
+  const [showQuickMenu, setShowQuickMenu] = useState(false);
 
   useEffect(() => {
     initDashboard();
@@ -241,6 +244,7 @@ export default function ShopDashboard() {
   };
 
   const quickRefresh = async () => {
+    setShowQuickMenu(false);
     if (!shop) return;
     setRefreshing(true);
     await Promise.all([loadOrders(shop.id), loadProducts(shop.id), loadShop(shop.id)]);
@@ -588,25 +592,26 @@ export default function ShopDashboard() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.menuButton}
+          onPress={() => setShowQuickMenu(true)}
+          activeOpacity={0.8}
+          accessibilityLabel="Open shop menu"
+        >
+          <Menu size={22} color={A.blue} />
+        </TouchableOpacity>
         <View style={styles.headerLeft}>
           <View style={styles.headerLogoBox}>
-            <Store size={20} color={A.cyan} />
+            <ShoppingBag size={20} color={A.blue} />
           </View>
           <View style={{ flex: 1, marginRight: 8 }}>
-            <Text style={styles.headerTitle} numberOfLines={1}>{shop.name}</Text>
-            <Text style={styles.headerSub} numberOfLines={1}>{STATUS_LABELS[shop.status] || shop.status}</Text>
+            <Text style={styles.headerTitle} numberOfLines={1}>UniLink</Text>
+            <Text style={styles.headerSub} numberOfLines={1}>Shop Portal · {shop.name}</Text>
           </View>
         </View>
-        <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
-          <AppShareButton accent={A.cyan} />
-          <TouchableOpacity style={[styles.logoutBtn, { backgroundColor: A.cyanDim, borderColor: A.cyan }]} onPress={quickRefresh} disabled={refreshing}>
-            {refreshing ? <ActivityIndicator size={14} color={A.cyan} /> : <RefreshCw size={16} color={A.cyan} />}
-            <Text style={[styles.logoutText, { color: A.cyan }]}>Refresh</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.logoutBtn} onPress={() => router.push('/shop/merchant-policy')}>
-            <ShieldCheck size={16} color={A.cyan} />
-            <Text style={[styles.logoutText, { color: A.cyan }]}>Policy</Text>
-          </TouchableOpacity>
+        <View style={styles.headerRightIcons}>
+          <Bell size={21} color={A.blue} />
+          <Store size={21} color={A.blue} />
         </View>
       </View>
 
@@ -683,23 +688,6 @@ export default function ShopDashboard() {
             ) : null}
           </View>
         )}
-
-        <View style={styles.tabBar}>
-          {TABS.map((tab) => {
-            const Icon = tab.icon;
-            const active = activeTab === tab.key;
-            return (
-              <TouchableOpacity
-                key={tab.key}
-                style={[styles.tab, active && { borderBottomColor: A.cyan, borderBottomWidth: 2 }]}
-                onPress={() => setActiveTab(tab.key)}
-              >
-                <Icon size={15} color={active ? A.cyan : A.textSub} />
-                <Text style={[styles.tabText, { color: active ? A.cyan : A.textSub }]}>{tab.label}</Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
 
         {error ? (
           <View style={styles.errorBar}>
@@ -865,6 +853,56 @@ export default function ShopDashboard() {
         </ScrollView>
       </Animated.View>
 
+      <View style={styles.bottomNav}>
+        {TABS.map((tab) => {
+          const Icon = tab.icon;
+          const active = activeTab === tab.key;
+          return (
+            <TouchableOpacity
+              key={tab.key}
+              style={styles.bottomTab}
+              onPress={() => setActiveTab(tab.key)}
+              activeOpacity={0.8}
+            >
+              <Icon size={18} color={active ? A.blue : A.textMuted} />
+              <Text style={[styles.bottomTabText, { color: active ? A.blue : A.textMuted }]}>{tab.label}</Text>
+              {active && <View style={styles.bottomTabActive} />}
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+
+      <Modal visible={showQuickMenu} transparent animationType="fade" onRequestClose={() => setShowQuickMenu(false)}>
+        <View style={styles.quickMenuOverlay}>
+          <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={() => setShowQuickMenu(false)} />
+          <View style={styles.quickMenuCard}>
+            <View style={styles.quickMenuHeader}>
+              <View>
+                <Text style={styles.quickMenuTitle}>Shop tools</Text>
+                <Text style={styles.quickMenuSub}>Quick actions for your portal</Text>
+              </View>
+              <TouchableOpacity onPress={() => setShowQuickMenu(false)}>
+                <X size={20} color={A.textSub} />
+              </TouchableOpacity>
+            </View>
+            <TouchableOpacity style={styles.quickMenuItem} onPress={quickRefresh} disabled={refreshing}>
+              {refreshing ? <ActivityIndicator size={18} color={A.blue} /> : <RefreshCw size={18} color={A.blue} />}
+              <Text style={styles.quickMenuItemText}>Refresh dashboard</Text>
+              <ChevronRight size={16} color={A.textMuted} />
+            </TouchableOpacity>
+            <View style={styles.quickMenuItem}>
+              <Share2 size={18} color={A.blue} />
+              <View style={{ flex: 1 }}><AppShareButton accent={A.blue} /></View>
+            </View>
+            <TouchableOpacity style={styles.quickMenuItem} onPress={() => { setShowQuickMenu(false); router.push('/shop/merchant-policy'); }}>
+              <ShieldCheck size={18} color={A.blue} />
+              <Text style={styles.quickMenuItemText}>Merchant policy</Text>
+              <ChevronRight size={16} color={A.textMuted} />
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
       <OrderDetailModal
         visible={showOrderModal}
         order={selectedOrder}
@@ -999,17 +1037,23 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: A.bg },
   loadingContainer: { flex: 1, backgroundColor: A.bg, justifyContent: 'center', alignItems: 'center' },
   header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 16, paddingVertical: 14, backgroundColor: A.surface,
-    borderBottomWidth: 1, borderBottomColor: A.border,
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    paddingHorizontal: 12, paddingVertical: 12, backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1, borderBottomColor: '#D9EAF8',
   },
-  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 },
+  menuButton: {
+    width: 38, height: 38, borderRadius: 10, justifyContent: 'center', alignItems: 'center',
+    backgroundColor: '#EEF8FF',
+  },
+  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 9, flex: 1 },
   headerLogoBox: {
-    width: 38, height: 38, borderRadius: 10, backgroundColor: A.cyanDim,
+    width: 38, height: 38, borderRadius: 11, backgroundColor: '#E6F5FF',
     justifyContent: 'center', alignItems: 'center',
   },
-  headerTitle: { fontSize: 15, fontWeight: '700', color: A.text },
-  headerSub: { fontSize: 11, color: A.textSub, marginTop: 1 },
+  headerRightIcons: { flexDirection: 'row', alignItems: 'center', gap: 15, paddingHorizontal: 3 },
+  headerTitle: { fontSize: 18, fontWeight: '800', color: '#113B75' },
+  headerSub: { fontSize: 11, color: '#4D83B6', marginTop: 1 },
+
   logoutBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8,
@@ -1047,14 +1091,28 @@ const styles = StyleSheet.create({
   },
   statValue: { fontSize: 18, fontWeight: '800', color: A.text },
   statLabel: { fontSize: 10, color: A.textSub },
-  tabBar: {
-    flexDirection: 'row', paddingHorizontal: 8, borderBottomWidth: 1, borderBottomColor: A.border,
+  bottomNav: {
+    flexDirection: 'row', alignItems: 'stretch', justifyContent: 'space-around',
+    paddingHorizontal: 4, paddingTop: 8, paddingBottom: Platform.OS === 'web' ? 8 : 22,
+    backgroundColor: '#FFFFFF', borderTopWidth: 1, borderTopColor: '#D9EAF8',
+    shadowColor: '#0A5FB4', shadowOpacity: 0.1, shadowRadius: 12, shadowOffset: { width: 0, height: -4 },
+    elevation: 10,
   },
-  tab: {
-    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5,
-    paddingVertical: 12,
+  bottomTab: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 4, minWidth: 54, position: 'relative' },
+  bottomTabText: { fontSize: 10, fontWeight: '700' },
+  bottomTabActive: { position: 'absolute', top: -8, width: 28, height: 3, borderRadius: 2, backgroundColor: A.blue },
+  quickMenuOverlay: { flex: 1, backgroundColor: 'rgba(7, 35, 70, 0.28)' },
+  quickMenuCard: {
+    position: 'absolute', top: 62, left: 12, width: 250, backgroundColor: '#FFFFFF',
+    borderRadius: 18, padding: 14, borderWidth: 1, borderColor: '#CDE7FA',
+    shadowColor: '#0A5FB4', shadowOpacity: 0.2, shadowRadius: 18, shadowOffset: { width: 0, height: 8 }, elevation: 12,
   },
-  tabText: { fontSize: 12, fontWeight: '600' },
+  quickMenuHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#E5F0F8' },
+  quickMenuTitle: { fontSize: 16, fontWeight: '800', color: '#113B75' },
+  quickMenuSub: { fontSize: 11, color: '#6B93B6', marginTop: 2 },
+  quickMenuItem: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 10, borderBottomWidth: 1, borderBottomColor: '#EEF5FA' },
+  quickMenuItemText: { flex: 1, fontSize: 13, fontWeight: '700', color: '#1B4D7A' },
+
   errorBar: {
     flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingVertical: 8,
     backgroundColor: A.redDim,
@@ -1156,4 +1214,5 @@ const styles = StyleSheet.create({
   },
   chatLinkTitle: { fontSize: 15, fontWeight: '700', color: A.text },
   chatLinkSub: { fontSize: 12, color: A.textSub, marginTop: 3 },
+
 });
