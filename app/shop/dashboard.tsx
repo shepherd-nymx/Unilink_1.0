@@ -439,6 +439,24 @@ export default function ShopDashboard() {
     setSavingProduct(true);
     setError('');
     try {
+      const trimmedName = productName.trim();
+
+      // Block duplicate product names within the same shop
+      const { data: existing } = await supabase
+        .from('shop_products')
+        .select('id, name')
+        .eq('shop_id', shop.id)
+        .ilike('name', trimmedName);
+      const duplicate = (existing || []).find((p: any) =>
+        p.name.trim().toLowerCase() === trimmedName.toLowerCase() &&
+        (!editingProduct || p.id !== editingProduct.id)
+      );
+      if (duplicate) {
+        setError(`A product named "${trimmedName}" already exists in your shop. Use a different name.`);
+        setSavingProduct(false);
+        return;
+      }
+
       let imageUrl = editingProduct?.image_url || null;
       if (productImageUri) {
         const fileExt = productImageUri.split('.').pop()?.toLowerCase() || 'jpg';
@@ -457,7 +475,7 @@ export default function ShopDashboard() {
 
       const payload = {
         shop_id: shop.id,
-        name: productName.trim(),
+        name: trimmedName,
         description: productDesc.trim() || null,
         image_url: imageUrl,
         price: parseFloat(productPrice) || 0,
