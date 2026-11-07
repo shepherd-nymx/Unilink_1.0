@@ -13,10 +13,11 @@ import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { saveShopSession } from '@/lib/shop-session-service';
 import { ArrowLeft, CircleAlert as AlertCircle, Store, Mail, CreditCard, Lock, CircleCheck as CheckCircle, X } from 'lucide-react-native';
-import { S } from '@/lib/shop-theme';
+import { useTheme } from '@/contexts/ThemeContext';
 
 export default function ShopLogin() {
   const router = useRouter();
+  const { colors, isDark } = useTheme();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(20)).current;
 
@@ -38,16 +39,16 @@ export default function ShopLogin() {
     ]).start();
   }, []);
 
-  const bg = '#050b16';
-  const cardBg = '#0a1220';
-  const cardBorder = '#1a2d4a';
-  const textPrimary = '#e0eeff';
-  const textSecondary = '#6a8fb0';
-  const inputBg = '#0d1828';
-  const inputBorder = '#1a2d4a';
-  const placeholderColor = '#3d5577';
-  const primary = '#00e5ff';
-  const errorColor = '#ff3366';
+  const bg = isDark ? '#050b16' : '#f0f4f8';
+  const cardBg = isDark ? '#0a1220' : '#ffffff';
+  const cardBorder = isDark ? '#1a2d4a' : '#e2e8f0';
+  const textPrimary = isDark ? '#e0eeff' : '#0a1929';
+  const textSecondary = isDark ? '#6a8fb0' : '#64748b';
+  const inputBg = isDark ? '#0d1828' : '#f8fafc';
+  const inputBorder = isDark ? '#1a2d4a' : '#cbd5e1';
+  const placeholderColor = isDark ? '#3d5577' : '#94a3b8';
+  const primary = '#0066ff';
+  const errorColor = '#ef4444';
 
   const handleResetPassword = async () => {
     if (!resetEmail.trim()) {
@@ -134,7 +135,7 @@ export default function ShopLogin() {
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <View style={[styles.headerLogo, { borderColor: primary }]}>
-            <View style={[styles.headerLogoInner, { backgroundColor: S.cyanDim, borderColor: S.borderBright }]}>
+            <View style={[styles.headerLogoInner, { backgroundColor: `${primary}15`, borderColor: '#3385ff' }]}>
               <Store size={22} color={primary} />
             </View>
           </View>
@@ -150,7 +151,7 @@ export default function ShopLogin() {
 
       <Animated.View style={[styles.body, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
         {error ? (
-          <View style={[styles.errorBox, { backgroundColor: 'rgba(255,51,102,0.12)', borderColor: errorColor }]}>
+          <View style={[styles.errorBox, { backgroundColor: isDark ? 'rgba(239,68,68,0.1)' : '#fff5f5', borderColor: errorColor }]}>
             <AlertCircle size={16} color={errorColor} />
             <Text style={[styles.errorText, { color: errorColor }]}>{error}</Text>
           </View>
@@ -255,9 +256,9 @@ export default function ShopLogin() {
               />
             </View>
             {resetMessage ? (
-              <View style={[styles.resetMessageBox, { backgroundColor: resetMessage.includes('sent') ? S.greenDim : S.redDim, borderColor: resetMessage.includes('sent') ? S.green : S.red }]}>
-                {resetMessage.includes('sent') ? <CheckCircle size={14} color={S.green} /> : <AlertCircle size={14} color={S.red} />}
-                <Text style={[styles.resetMessageText, { color: resetMessage.includes('sent') ? S.green : S.red }]}>{resetMessage}</Text>
+              <View style={[styles.resetMessageBox, { backgroundColor: resetMessage.includes('sent') ? (isDark ? 'rgba(16,185,129,0.1)' : '#f0fdf4') : (isDark ? 'rgba(239,68,68,0.1)' : '#fff5f5'), borderColor: resetMessage.includes('sent') ? '#10b981' : '#ef4444' }]}>
+                {resetMessage.includes('sent') ? <CheckCircle size={14} color="#10b981" /> : <AlertCircle size={14} color="#ef4444" />}
+                <Text style={[styles.resetMessageText, { color: resetMessage.includes('sent') ? '#10b981' : '#ef4444' }]}>{resetMessage}</Text>
               </View>
             ) : null}
             <TouchableOpacity
