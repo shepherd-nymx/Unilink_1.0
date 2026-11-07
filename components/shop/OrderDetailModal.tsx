@@ -9,7 +9,7 @@ import {
   Modal,
   Linking,
 } from 'react-native';
-import { A } from '@/lib/admin-theme';
+import { S } from '@/lib/shop-theme';
 import { STATUS_LABELS, STATUS_FLOW, type ShopOrder, type Driver } from '@/lib/shop-types';
 import {
   CircleCheck as CheckCircle,
@@ -28,10 +28,10 @@ import {
 } from 'lucide-react-native';
 
 const VEHICLE_BADGES: Record<string, { label: string; color: string }> = {
-  bicycle: { label: 'Bicycle', color: A.green },
-  motorcycle: { label: 'Motorbike', color: A.cyan },
-  car: { label: 'Car', color: A.blue },
-  scooter: { label: 'Scooter', color: A.orange },
+  bicycle: { label: 'Bicycle', color: S.green },
+  motorcycle: { label: 'Motorbike', color: S.cyan },
+  car: { label: 'Car', color: S.blue },
+  scooter: { label: 'Scooter', color: S.orange },
 };
 
 export function OrderDetailModal({
@@ -64,7 +64,7 @@ export function OrderDetailModal({
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Order #{order.id.slice(0, 8)}</Text>
             <TouchableOpacity onPress={onClose}>
-              <X size={22} color={A.textSub} />
+              <X size={22} color={S.textSub} />
             </TouchableOpacity>
           </View>
 
@@ -111,9 +111,9 @@ export function OrderDetailModal({
             {order.payment_method === 'ecocash' && order.ecocash_pop ? (
               <View style={{ marginTop: 10 }}>
                 <Text style={styles.modalSectionLabel}>Proof of Payment (Customer)</Text>
-                <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8, backgroundColor: A.greenDim, borderRadius: 8, padding: 10, borderWidth: 1, borderColor: A.green }}>
-                  <Smartphone size={14} color={A.green} />
-                  <Text style={{ fontSize: 13, color: A.text, flex: 1 }}>{order.ecocash_pop}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8, backgroundColor: S.greenDim, borderRadius: 8, padding: 10, borderWidth: 1, borderColor: S.green }}>
+                  <Smartphone size={14} color={S.green} />
+                  <Text style={{ fontSize: 13, color: S.text, flex: 1 }}>{order.ecocash_pop}</Text>
                 </View>
               </View>
             ) : null}
@@ -126,7 +126,7 @@ export function OrderDetailModal({
                 const isCancelled = order.status === 'cancelled';
                 const isActive = !isCancelled && i <= currentStepIndex;
                 const isCurrent = !isCancelled && i === currentStepIndex;
-                const stepColor = isActive ? (isCurrent ? A.cyan : A.green) : A.border;
+                const stepColor = isActive ? (isCurrent ? S.cyan : S.green) : S.border;
                 const isLast = i === STATUS_FLOW.length - 1;
                 const stepIcons: Record<string, any> = {
                   pending: Clock,
@@ -142,15 +142,15 @@ export function OrderDetailModal({
                 return (
                   <View key={step} style={styles.trackerStep}>
                     <View style={styles.trackerStepLeft}>
-                      <View style={[styles.trackerDot, { backgroundColor: isActive ? stepColor : A.inputBg, borderColor: stepColor }]}>
-                        <StepIcon size={10} color={isActive ? '#fff' : A.textMuted} />
+                      <View style={[styles.trackerDot, { backgroundColor: isActive ? stepColor : S.inputBg, borderColor: stepColor }]}>
+                        <StepIcon size={10} color={isActive ? '#fff' : S.textMuted} />
                       </View>
                       {!isLast && (
-                        <View style={[styles.trackerLine, { backgroundColor: !isCancelled && i < currentStepIndex ? A.green : A.border }]} />
+                        <View style={[styles.trackerLine, { backgroundColor: !isCancelled && i < currentStepIndex ? S.green : S.border }]} />
                       )}
                     </View>
                     <View style={styles.trackerStepRight}>
-                      <Text style={[styles.trackerLabel, { color: isActive ? A.text : A.textMuted, fontWeight: isCurrent ? '700' as any : '500' }]}>
+                      <Text style={[styles.trackerLabel, { color: isActive ? S.text : S.textMuted, fontWeight: isCurrent ? '700' as any : '500' }]}>
                         {STATUS_LABELS[step] || step}
                       </Text>
                       {isCurrent && (
@@ -161,9 +161,9 @@ export function OrderDetailModal({
                 );
               })}
               {order.status === 'cancelled' && (
-                <View style={[styles.cancelledBox, { backgroundColor: A.redDim, borderColor: A.red }]}>
-                  <XCircle size={14} color={A.red} />
-                  <Text style={[styles.cancelledText, { color: A.red }]}>This order was cancelled</Text>
+                <View style={[styles.cancelledBox, { backgroundColor: S.redDim, borderColor: S.red }]}>
+                  <XCircle size={14} color={S.red} />
+                  <Text style={[styles.cancelledText, { color: S.red }]}>This order was cancelled</Text>
                 </View>
               )}
             </View>
@@ -171,7 +171,7 @@ export function OrderDetailModal({
 
           {onChat && order.customer_id && (
             <TouchableOpacity
-              style={[styles.actionBtn, { backgroundColor: A.blue, marginBottom: 10 }]}
+              style={[styles.actionBtn, { backgroundColor: S.blue, marginBottom: 10 }]}
               onPress={() => onChat(order)}
               activeOpacity={0.8}
             >
@@ -184,14 +184,14 @@ export function OrderDetailModal({
             {order.status === 'pending' && (
               <>
                 <TouchableOpacity
-                  style={[styles.actionBtn, { backgroundColor: A.green }]}
+                  style={[styles.actionBtn, { backgroundColor: S.green }]}
                   onPress={() => onUpdateStatus(order, 'confirmed')}
                 >
                   <CheckCircle size={16} color="#fff" />
                   <Text style={styles.actionBtnText}>Accept</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={[styles.actionBtn, { backgroundColor: A.red }]}
+                  style={[styles.actionBtn, { backgroundColor: S.red }]}
                   onPress={() => onUpdateStatus(order, 'cancelled')}
                 >
                   <XCircle size={16} color="#fff" />
@@ -201,7 +201,7 @@ export function OrderDetailModal({
             )}
             {order.status === 'confirmed' && (
               <TouchableOpacity
-                style={[styles.actionBtn, { backgroundColor: A.blue }]}
+                style={[styles.actionBtn, { backgroundColor: S.blue }]}
                 onPress={() => onUpdateStatus(order, 'preparing')}
               >
                 <Text style={styles.actionBtnText}>Start Preparing</Text>
@@ -209,7 +209,7 @@ export function OrderDetailModal({
             )}
             {order.status === 'preparing' && (
               <TouchableOpacity
-                style={[styles.actionBtn, { backgroundColor: A.cyan }]}
+                style={[styles.actionBtn, { backgroundColor: S.cyan }]}
                 onPress={() => onUpdateStatus(order, 'ready')}
               >
                 <Text style={styles.actionBtnText}>Mark Ready</Text>
@@ -220,18 +220,18 @@ export function OrderDetailModal({
                 <Text style={styles.assignLabel}>Assign a Messenger (Required):</Text>
                 {assignError ? (
                   <View style={styles.assignErrorBox}>
-                    <AlertCircle size={14} color={A.red} />
-                    <Text style={{ color: A.red, fontSize: 12, flex: 1 }}>{assignError}</Text>
+                    <AlertCircle size={14} color={S.red} />
+                    <Text style={{ color: S.red, fontSize: 12, flex: 1 }}>{assignError}</Text>
                   </View>
                 ) : null}
                 {assigningDriver ? (
                   <View style={styles.driverLoadingRow}>
-                    <ActivityIndicator size="small" color={A.cyan} />
+                    <ActivityIndicator size="small" color={S.cyan} />
                     <Text style={styles.driverLoadingText}>Assigning driver…</Text>
                   </View>
                 ) : drivers.length === 0 ? (
                   <View style={styles.noDriversBox}>
-                    <Truck size={20} color={A.textMuted} />
+                    <Truck size={20} color={S.textMuted} />
                     <Text style={styles.noDriversTitle}>No eligible drivers</Text>
                     <Text style={styles.noDriversSub}>
                       All approved drivers are currently unavailable, suspended, or lack an active subscription. Please check back shortly.
@@ -251,7 +251,7 @@ export function OrderDetailModal({
                         >
                           <View style={styles.driverRowLeft}>
                             <View style={styles.driverRowIcon}>
-                              <Truck size={16} color={A.cyan} />
+                              <Truck size={16} color={S.cyan} />
                             </View>
                             <View style={{ flex: 1 }}>
                               <Text style={styles.driverName}>{d.full_name}</Text>
@@ -259,16 +259,16 @@ export function OrderDetailModal({
                               <View style={styles.driverBadges}>
                                 {d.rating != null && Number(d.rating) > 0 && (
                                   <View style={styles.driverBadge}>
-                                    <Star size={9} color={A.amber} fill={A.amber} />
-                                    <Text style={[styles.driverBadgeText, { color: A.amber }]}>
+                                    <Star size={9} color={S.amber} fill={S.amber} />
+                                    <Text style={[styles.driverBadgeText, { color: S.amber }]}>
                                       {Number(d.rating).toFixed(1)}
                                     </Text>
                                   </View>
                                 )}
                                 {d.completed_deliveries != null && (
                                   <View style={styles.driverBadge}>
-                                    <CheckCircle size={9} color={A.green} />
-                                    <Text style={[styles.driverBadgeText, { color: A.green }]}>
+                                    <CheckCircle size={9} color={S.green} />
+                                    <Text style={[styles.driverBadgeText, { color: S.green }]}>
                                       {d.completed_deliveries} done
                                     </Text>
                                   </View>
@@ -319,7 +319,7 @@ export function OrderDetailModal({
             )}
             {order.status === 'picked_up' && (
               <TouchableOpacity
-                style={[styles.actionBtn, { backgroundColor: A.orange }]}
+                style={[styles.actionBtn, { backgroundColor: S.orange }]}
                 onPress={() => onUpdateStatus(order, 'out_for_delivery')}
               >
                 <Text style={styles.actionBtnText}>Out for Delivery</Text>
@@ -327,7 +327,7 @@ export function OrderDetailModal({
             )}
             {order.status === 'out_for_delivery' && (
               <TouchableOpacity
-                style={[styles.actionBtn, { backgroundColor: A.green }]}
+                style={[styles.actionBtn, { backgroundColor: S.green }]}
                 onPress={() => onUpdateStatus(order, 'delivered')}
               >
                 <CheckCircle size={16} color="#fff" />
@@ -342,61 +342,61 @@ export function OrderDetailModal({
 }
 
 const styles = StyleSheet.create({
-  modalOverlay: { flex: 1, backgroundColor: A.overlay, justifyContent: 'flex-end' },
+  modalOverlay: { flex: 1, backgroundColor: S.overlay, justifyContent: 'flex-end' },
   modalContent: {
-    backgroundColor: A.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20,
+    backgroundColor: S.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20,
     padding: 20, maxHeight: '85%',
   },
   modalHeader: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16,
   },
-  modalTitle: { fontSize: 18, fontWeight: '700', color: A.text },
-  modalSectionLabel: { fontSize: 11, fontWeight: '700', color: A.textSub, textTransform: 'uppercase' as any, letterSpacing: 0.5, marginTop: 14, marginBottom: 4 },
-  modalText: { fontSize: 14, color: A.text, lineHeight: 20 },
+  modalTitle: { fontSize: 18, fontWeight: '700', color: S.text },
+  modalSectionLabel: { fontSize: 11, fontWeight: '700', color: S.textSub, textTransform: 'uppercase' as any, letterSpacing: 0.5, marginTop: 14, marginBottom: 4 },
+  modalText: { fontSize: 14, color: S.text, lineHeight: 20 },
   modalItemRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6 },
-  modalItemName: { fontSize: 13, color: A.text, flex: 1 },
-  modalItemPrice: { fontSize: 13, color: A.green, fontWeight: '600' },
+  modalItemName: { fontSize: 13, color: S.text, flex: 1 },
+  modalItemPrice: { fontSize: 13, color: S.green, fontWeight: '600' },
   modalTotalRow: {
     flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 10,
-    borderTopWidth: 1, borderTopColor: A.border, marginTop: 8,
+    borderTopWidth: 1, borderTopColor: S.border, marginTop: 8,
   },
-  modalTotalLabel: { fontSize: 15, fontWeight: '700', color: A.text },
-  modalTotalValue: { fontSize: 17, fontWeight: '800', color: A.green },
+  modalTotalLabel: { fontSize: 15, fontWeight: '700', color: S.text },
+  modalTotalValue: { fontSize: 17, fontWeight: '800', color: S.green },
   modalActions: {
-    flexDirection: 'row', gap: 10, paddingTop: 16, borderTopWidth: 1, borderTopColor: A.border, marginTop: 10,
+    flexDirection: 'row', gap: 10, paddingTop: 16, borderTopWidth: 1, borderTopColor: S.border, marginTop: 10,
   },
   actionBtn: {
     flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
     borderRadius: 10, paddingVertical: 14,
   },
   actionBtnText: { color: '#fff', fontSize: 14, fontWeight: '700' },
-  assignLabel: { fontSize: 13, fontWeight: '600', color: A.text, marginBottom: 8 },
+  assignLabel: { fontSize: 13, fontWeight: '600', color: S.text, marginBottom: 8 },
   assignErrorBox: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
-    backgroundColor: A.redDim, borderRadius: 8, padding: 10, marginBottom: 8,
-    borderWidth: 1, borderColor: A.red,
+    backgroundColor: S.redDim, borderRadius: 8, padding: 10, marginBottom: 8,
+    borderWidth: 1, borderColor: S.red,
   },
   driverLoadingRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 16, justifyContent: 'center' },
-  driverLoadingText: { color: A.cyan, fontSize: 13, fontWeight: '600' },
+  driverLoadingText: { color: S.cyan, fontSize: 13, fontWeight: '600' },
   noDriversBox: { alignItems: 'center', gap: 8, paddingVertical: 20, paddingHorizontal: 12 },
-  noDriversTitle: { fontSize: 14, fontWeight: '700', color: A.text },
-  noDriversSub: { fontSize: 12, color: A.textSub, textAlign: 'center', lineHeight: 18 },
+  noDriversTitle: { fontSize: 14, fontWeight: '700', color: S.text },
+  noDriversSub: { fontSize: 12, color: S.textSub, textAlign: 'center', lineHeight: 18 },
   driverRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingVertical: 12, paddingHorizontal: 14, backgroundColor: A.card,
-    borderRadius: 10, marginBottom: 6, borderWidth: 1, borderColor: A.border,
+    paddingVertical: 12, paddingHorizontal: 14, backgroundColor: S.card,
+    borderRadius: 10, marginBottom: 6, borderWidth: 1, borderColor: S.border,
   },
   driverRowProminent: {
-    borderWidth: 1.5, borderColor: A.cyan,
+    borderWidth: 1.5, borderColor: S.cyan,
     ...(Platform.OS === 'web' ? { boxShadow: '0 1px 4px rgba(0,0,0,0.06)' } : { elevation: 2 }),
   },
   driverRowLeft: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 },
   driverRowIcon: {
-    width: 36, height: 36, borderRadius: 10, backgroundColor: A.cyanDim,
+    width: 36, height: 36, borderRadius: 10, backgroundColor: S.cyanDim,
     justifyContent: 'center', alignItems: 'center',
   },
   driverRowAssignBtn: {
-    backgroundColor: A.cyan, borderRadius: 8, paddingHorizontal: 14, paddingVertical: 8,
+    backgroundColor: S.cyan, borderRadius: 8, paddingHorizontal: 14, paddingVertical: 8,
   },
   driverRowAssignBtnText: { color: '#fff', fontSize: 13, fontWeight: '700' },
   driverRowWhatsAppBtn: {
@@ -404,13 +404,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#25D366', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 8,
   },
   driverRowWhatsAppBtnText: { color: '#fff', fontSize: 12, fontWeight: '700' },
-  driverName: { fontSize: 14, fontWeight: '600', color: A.text },
-  driverPhone: { fontSize: 12, color: A.textSub, marginTop: 2 },
+  driverName: { fontSize: 14, fontWeight: '600', color: S.text },
+  driverPhone: { fontSize: 12, color: S.textSub, marginTop: 2 },
   driverBadges: { flexDirection: 'row', gap: 6, marginTop: 6, flexWrap: 'wrap' },
   driverBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 3,
     paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4,
-    backgroundColor: A.inputBg, borderWidth: 1, borderColor: A.border,
+    backgroundColor: S.inputBg, borderWidth: 1, borderColor: S.border,
   },
   driverBadgeText: { fontSize: 9, fontWeight: '700' },
   trackerContainer: { marginTop: 4, marginBottom: 8 },
@@ -420,7 +420,7 @@ const styles = StyleSheet.create({
   trackerLine: { flex: 1, width: 2, minHeight: 24, marginTop: 2 },
   trackerStepRight: { flex: 1, paddingBottom: 12 },
   trackerLabel: { fontSize: 13 },
-  trackerCurrent: { fontSize: 10, color: A.cyan, fontWeight: '600', marginTop: 2 },
+  trackerCurrent: { fontSize: 10, color: S.cyan, fontWeight: '600', marginTop: 2 },
   cancelledBox: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 10, borderRadius: 8, borderWidth: 1, marginTop: 8 },
   cancelledText: { fontSize: 12, fontWeight: '600' },
 });

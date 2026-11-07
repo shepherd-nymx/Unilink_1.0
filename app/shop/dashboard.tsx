@@ -18,7 +18,7 @@ import { supabase } from '@/lib/supabase';
 import { validateUpload } from '@/lib/upload-validation';
 import { loadShopSession, clearShopSession } from '@/lib/shop-session-service';
 import { useHardwareBackExit } from '@/hooks/useHardwareBackExit';
-import { A } from '@/lib/admin-theme';
+import { S } from '@/lib/shop-theme';
 import { SkeletonList } from '@/components/Skeleton';
 import { HistoryTab } from '@/components/shop/HistoryTab';
 import { AnalyticsTab } from '@/components/shop/AnalyticsTab';
@@ -549,7 +549,7 @@ export default function ShopDashboard() {
   if (!shop) {
     return (
       <View style={styles.loadingContainer}>
-        <Text style={{ color: A.textSub }}>No shop found</Text>
+        <Text style={{ color: S.textSub }}>No shop found</Text>
       </View>
     );
   }
@@ -563,11 +563,11 @@ export default function ShopDashboard() {
   const renderStatusBanner = () => {
     const s = shop.status as ShopStatus;
     const banners: Record<string, { color: string; bg: string; text: string; icon: any }> = {
-      pending_approval: { color: A.amber, bg: A.amberDim, text: 'Your shop is pending admin approval. You will be notified by email once reviewed.', icon: Clock },
-      payment_required: { color: A.amber, bg: A.amberDim, text: `Registration fee of $${registrationFee.toFixed(2)} is required to activate your shop.`, icon: DollarSign },
-      payment_submitted: { color: A.cyan, bg: A.cyanDim, text: 'Payment submitted. Waiting for admin verification.', icon: Clock },
-      suspended: { color: A.red, bg: A.redDim, text: 'Your shop has been suspended. Please contact admin.', icon: XCircle },
-      rejected: { color: A.red, bg: A.redDim, text: shop.rejection_reason ? `Application rejected: ${shop.rejection_reason}` : 'Your application was rejected. Please contact admin.', icon: XCircle },
+      pending_approval: { color: S.amber, bg: S.amberDim, text: 'Your shop is pending admin approval. You will be notified by email once reviewed.', icon: Clock },
+      payment_required: { color: S.amber, bg: S.amberDim, text: `Registration fee of $${registrationFee.toFixed(2)} is required to activate your shop.`, icon: DollarSign },
+      payment_submitted: { color: S.cyan, bg: S.cyanDim, text: 'Payment submitted. Waiting for admin verification.', icon: Clock },
+      suspended: { color: S.red, bg: S.redDim, text: 'Your shop has been suspended. Please contact admin.', icon: XCircle },
+      rejected: { color: S.red, bg: S.redDim, text: shop.rejection_reason ? `Application rejected: ${shop.rejection_reason}` : 'Your application was rejected. Please contact admin.', icon: XCircle },
     };
     const banner = banners[s];
     if (!banner) return null;
@@ -598,11 +598,11 @@ export default function ShopDashboard() {
           activeOpacity={0.8}
           accessibilityLabel="Open shop menu"
         >
-          <Menu size={22} color={A.blue} />
+          <Menu size={22} color={S.blue} />
         </TouchableOpacity>
         <View style={styles.headerLeft}>
           <View style={styles.headerLogoBox}>
-            <ShoppingBag size={20} color={A.blue} />
+            <ShoppingBag size={20} color={S.blue} />
           </View>
           <View style={{ flex: 1, marginRight: 8 }}>
             <Text style={styles.headerTitle} numberOfLines={1}>UniLink</Text>
@@ -610,8 +610,8 @@ export default function ShopDashboard() {
           </View>
         </View>
         <View style={styles.headerRightIcons}>
-          <Bell size={21} color={A.blue} />
-          <Store size={21} color={A.blue} />
+          <Bell size={21} color={S.blue} />
+          <Store size={21} color={S.blue} />
         </View>
       </View>
 
@@ -642,7 +642,7 @@ export default function ShopDashboard() {
 
         {shop.status === 'payment_required' && (
           <View style={styles.paymentCard}>
-            <DollarSign size={24} color={A.amber} />
+            <DollarSign size={24} color={S.amber} />
             <View style={{ flex: 1 }}>
               <Text style={styles.paymentTitle}>Registration Fee: ${registrationFee.toFixed(2)}</Text>
               <Text style={styles.paymentSub}>Pay via Paynow (EcoCash, OneMoney, Card, Bank Transfer)</Text>
@@ -660,22 +660,22 @@ export default function ShopDashboard() {
         {canManageShop && (
           <View style={styles.statsRow}>
             <View style={styles.statCard}>
-              <ShoppingBag size={18} color={A.cyan} />
+              <ShoppingBag size={18} color={S.cyan} />
               <Text style={styles.statValue}>{pendingOrders.length}</Text>
               <Text style={styles.statLabel}>Pending</Text>
             </View>
             <View style={styles.statCard}>
-              <Truck size={18} color={A.orange} />
+              <Truck size={18} color={S.orange} />
               <Text style={styles.statValue}>{activeOrders.length}</Text>
               <Text style={styles.statLabel}>Active</Text>
             </View>
             <View style={styles.statCard}>
-              <TrendingUp size={18} color={A.green} />
+              <TrendingUp size={18} color={S.green} />
               <Text style={styles.statValue}>${totalSales.toFixed(2)}</Text>
               <Text style={styles.statLabel}>Sales</Text>
             </View>
             <View style={styles.statCard}>
-              <Package size={18} color={A.blue} />
+              <Package size={18} color={S.blue} />
               <Text style={styles.statValue}>{products.length}</Text>
               <Text style={styles.statLabel}>Products</Text>
             </View>
@@ -691,10 +691,10 @@ export default function ShopDashboard() {
 
         {error ? (
           <View style={styles.errorBar}>
-            <AlertCircle size={14} color={A.red} />
-            <Text style={{ color: A.red, fontSize: 12, flex: 1 }}>{error}</Text>
+            <AlertCircle size={14} color={S.red} />
+            <Text style={{ color: S.red, fontSize: 12, flex: 1 }}>{error}</Text>
             <TouchableOpacity onPress={() => setError('')}>
-              <X size={14} color={A.red} />
+              <X size={14} color={S.red} />
             </TouchableOpacity>
           </View>
         ) : null}
@@ -702,18 +702,18 @@ export default function ShopDashboard() {
         <ScrollView
           style={{ flex: 1 }}
           contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={A.cyan} />}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={S.cyan} />}
         >
           {activeTab === 'orders' && (
             <View style={{ gap: 10 }}>
               {orders.length === 0 ? (
                 <View style={styles.emptyState}>
-                  <ShoppingBag size={40} color={A.textMuted} />
+                  <ShoppingBag size={40} color={S.textMuted} />
                   <Text style={styles.emptyText}>No orders yet</Text>
                 </View>
               ) : (
                 orders.map((order) => {
-                  const statusColor = STATUS_COLORS[order.status] || A.textSub;
+                  const statusColor = STATUS_COLORS[order.status] || S.textSub;
                   return (
                     <TouchableOpacity
                       key={order.id}
@@ -743,12 +743,12 @@ export default function ShopDashboard() {
                       </View>
                       {canManageShop && order.status !== 'cancelled' && (
                         <TouchableOpacity
-                          style={[styles.trackBtn, { backgroundColor: A.cyanDim, borderColor: A.cyan }]}
+                          style={[styles.trackBtn, { backgroundColor: S.cyanDim, borderColor: S.cyan }]}
                           onPress={(e) => { e.stopPropagation?.(); openOrderDetail(order); }}
                           activeOpacity={0.8}
                         >
-                          <Truck size={13} color={A.cyan} />
-                          <Text style={[styles.trackBtnText, { color: A.cyan }]}>Track Order</Text>
+                          <Truck size={13} color={S.cyan} />
+                          <Text style={[styles.trackBtnText, { color: S.cyan }]}>Track Order</Text>
                         </TouchableOpacity>
                       )}
                     </TouchableOpacity>
@@ -762,13 +762,13 @@ export default function ShopDashboard() {
             <View style={{ gap: 10 }}>
               {canManageShop && (
                 <TouchableOpacity style={styles.addProductBtn} onPress={openAddProduct}>
-                  <Plus size={18} color={A.cyan} />
+                  <Plus size={18} color={S.cyan} />
                   <Text style={styles.addProductText}>Add Product</Text>
                 </TouchableOpacity>
               )}
               {products.length === 0 ? (
                 <View style={styles.emptyState}>
-                  <Package size={40} color={A.textMuted} />
+                  <Package size={40} color={S.textMuted} />
                   <Text style={styles.emptyText}>No products yet</Text>
                 </View>
               ) : (
@@ -796,7 +796,7 @@ export default function ShopDashboard() {
                         </View>
                         <Text style={styles.productPrice}>${Number(p.price).toFixed(2)}</Text>
                         <View style={styles.productMeta}>
-                          <Text style={[styles.productStock, { color: outOfStock ? A.red : A.green }]}>
+                          <Text style={[styles.productStock, { color: outOfStock ? S.red : S.green }]}>
                             Stock: {p.stock}
                           </Text>
                           {p.category ? <Text style={styles.productCategory}>{p.category}</Text> : null}
@@ -805,11 +805,11 @@ export default function ShopDashboard() {
                       {canManageShop && (
                         <View style={{ gap: 8, alignItems: 'flex-end' }}>
                           <TouchableOpacity
-                            style={[styles.availToggleSmall, { backgroundColor: avail ? A.greenDim : A.inputBg, borderColor: avail ? A.green : A.border }]}
+                            style={[styles.availToggleSmall, { backgroundColor: avail ? S.greenDim : S.inputBg, borderColor: avail ? S.green : S.border }]}
                             onPress={() => toggleProductAvailability(p)}
           >
-                            <View style={[styles.availDotSmall, { backgroundColor: avail ? A.green : A.textMuted }]} />
-                            <Text style={[styles.availToggleText, { color: avail ? A.green : A.textSub }]}>
+                            <View style={[styles.availDotSmall, { backgroundColor: avail ? S.green : S.textMuted }]} />
+                            <Text style={[styles.availToggleText, { color: avail ? S.green : S.textSub }]}>
                               {avail ? 'On' : 'Off'}
                             </Text>
                           </TouchableOpacity>
@@ -818,7 +818,7 @@ export default function ShopDashboard() {
                               <Text style={styles.editBtnText}>Edit</Text>
                             </TouchableOpacity>
                             <TouchableOpacity style={styles.deleteBtn} onPress={() => deleteProduct(p.id)}>
-                              <Trash2 size={16} color={A.red} />
+                              <Trash2 size={16} color={S.red} />
                             </TouchableOpacity>
                           </View>
                         </View>
@@ -837,13 +837,13 @@ export default function ShopDashboard() {
           {activeTab === 'messages' && (
             <TouchableOpacity style={styles.chatLinkCard} onPress={() => router.push('/shop/chat')} activeOpacity={0.8}>
               <View style={styles.chatLinkIcon}>
-                <MessageSquare size={22} color={A.cyan} />
+                <MessageSquare size={22} color={S.cyan} />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.chatLinkTitle}>Customer Messages</Text>
                 <Text style={styles.chatLinkSub}>Chat with customers about their orders</Text>
               </View>
-              <ChevronRight size={18} color={A.textSub} />
+              <ChevronRight size={18} color={S.textSub} />
             </TouchableOpacity>
           )}
 
@@ -864,8 +864,8 @@ export default function ShopDashboard() {
               onPress={() => setActiveTab(tab.key)}
               activeOpacity={0.8}
             >
-              <Icon size={18} color={active ? A.blue : A.textMuted} />
-              <Text style={[styles.bottomTabText, { color: active ? A.blue : A.textMuted }]}>{tab.label}</Text>
+              <Icon size={18} color={active ? S.blue : S.textMuted} />
+              <Text style={[styles.bottomTabText, { color: active ? S.blue : S.textMuted }]}>{tab.label}</Text>
               {active && <View style={styles.bottomTabActive} />}
             </TouchableOpacity>
           );
@@ -882,22 +882,22 @@ export default function ShopDashboard() {
                 <Text style={styles.quickMenuSub}>Quick actions for your portal</Text>
               </View>
               <TouchableOpacity onPress={() => setShowQuickMenu(false)}>
-                <X size={20} color={A.textSub} />
+                <X size={20} color={S.textSub} />
               </TouchableOpacity>
             </View>
             <TouchableOpacity style={styles.quickMenuItem} onPress={quickRefresh} disabled={refreshing}>
-              {refreshing ? <ActivityIndicator size={18} color={A.blue} /> : <RefreshCw size={18} color={A.blue} />}
+              {refreshing ? <ActivityIndicator size={18} color={S.blue} /> : <RefreshCw size={18} color={S.blue} />}
               <Text style={styles.quickMenuItemText}>Refresh dashboard</Text>
-              <ChevronRight size={16} color={A.textMuted} />
+              <ChevronRight size={16} color={S.textMuted} />
             </TouchableOpacity>
             <View style={styles.quickMenuItem}>
-              <Share2 size={18} color={A.blue} />
-              <View style={{ flex: 1 }}><AppShareButton accent={A.blue} /></View>
+              <Share2 size={18} color={S.blue} />
+              <View style={{ flex: 1 }}><AppShareButton accent={S.blue} /></View>
             </View>
             <TouchableOpacity style={styles.quickMenuItem} onPress={() => { setShowQuickMenu(false); router.push('/shop/merchant-policy'); }}>
-              <ShieldCheck size={18} color={A.blue} />
+              <ShieldCheck size={18} color={S.blue} />
               <Text style={styles.quickMenuItemText}>Merchant policy</Text>
-              <ChevronRight size={16} color={A.textMuted} />
+              <ChevronRight size={16} color={S.textMuted} />
             </TouchableOpacity>
           </View>
         </View>
@@ -926,7 +926,7 @@ export default function ShopDashboard() {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>{editingProduct ? 'Edit Product' : 'Add Product'}</Text>
               <TouchableOpacity onPress={() => setShowProductModal(false)}>
-                <X size={22} color={A.textSub} />
+                <X size={22} color={S.textSub} />
               </TouchableOpacity>
             </View>
 
@@ -938,7 +938,7 @@ export default function ShopDashboard() {
                   value={productName}
                   onChangeText={setProductName}
                   placeholder="e.g. Bread"
-                  placeholderTextColor={A.textMuted}
+                  placeholderTextColor={S.textMuted}
                 />
               </View>
               <View style={styles.inputRow}>
@@ -949,7 +949,7 @@ export default function ShopDashboard() {
                     value={productPrice}
                     onChangeText={setProductPrice}
                     placeholder="0.00"
-                    placeholderTextColor={A.textMuted}
+                    placeholderTextColor={S.textMuted}
                     keyboardType="decimal-pad"
                   />
                 </View>
@@ -960,7 +960,7 @@ export default function ShopDashboard() {
                     value={productStock}
                     onChangeText={setProductStock}
                     placeholder="0"
-                    placeholderTextColor={A.textMuted}
+                    placeholderTextColor={S.textMuted}
                     keyboardType="number-pad"
                   />
                 </View>
@@ -972,7 +972,7 @@ export default function ShopDashboard() {
                   value={productCategory}
                   onChangeText={setProductCategory}
                   placeholder="e.g. Groceries"
-                  placeholderTextColor={A.textMuted}
+                  placeholderTextColor={S.textMuted}
                 />
               </View>
               <View style={styles.inputGroup}>
@@ -982,18 +982,18 @@ export default function ShopDashboard() {
                   value={productDesc}
                   onChangeText={setProductDesc}
                   placeholder="Product description"
-                  placeholderTextColor={A.textMuted}
+                  placeholderTextColor={S.textMuted}
                   multiline
                 />
               </View>
               <View style={styles.inputGroup}>
                 <Text style={styles.inputLabel}>Availability</Text>
                 <TouchableOpacity
-                  style={[styles.availRow, { backgroundColor: productAvailable ? A.greenDim : A.inputBg, borderColor: productAvailable ? A.green : A.border }]}
+                  style={[styles.availRow, { backgroundColor: productAvailable ? S.greenDim : S.inputBg, borderColor: productAvailable ? S.green : S.border }]}
                   onPress={() => setProductAvailable((v) => !v)}
                 >
-                  <View style={[styles.availDotSmall, { backgroundColor: productAvailable ? A.green : A.textMuted }]} />
-                  <Text style={[styles.availToggleText, { color: productAvailable ? A.green : A.textSub }]}>
+                  <View style={[styles.availDotSmall, { backgroundColor: productAvailable ? S.green : S.textMuted }]} />
+                  <Text style={[styles.availToggleText, { color: productAvailable ? S.green : S.textSub }]}>
                     {productAvailable ? 'Available for sale' : 'Hidden from customers'}
                   </Text>
                 </TouchableOpacity>
@@ -1009,7 +1009,7 @@ export default function ShopDashboard() {
                     )
                   ) : (
                     <>
-                      <ImageIcon size={24} color={A.cyan} />
+                      <ImageIcon size={24} color={S.cyan} />
                       <Text style={styles.imagePickerText}>Choose Image</Text>
                     </>
                   )}
@@ -1034,8 +1034,8 @@ export default function ShopDashboard() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: A.bg },
-  loadingContainer: { flex: 1, backgroundColor: A.bg, justifyContent: 'center', alignItems: 'center' },
+  container: { flex: 1, backgroundColor: S.bg },
+  loadingContainer: { flex: 1, backgroundColor: S.bg, justifyContent: 'center', alignItems: 'center' },
   header: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
     paddingHorizontal: 12, paddingVertical: 12, backgroundColor: '#FFFFFF',
@@ -1057,9 +1057,9 @@ const styles = StyleSheet.create({
   logoutBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8,
-    backgroundColor: A.redDim, borderWidth: 1, borderColor: A.red,
+    backgroundColor: S.redDim, borderWidth: 1, borderColor: S.red,
   },
-  logoutText: { color: A.red, fontSize: 12, fontWeight: '600' },
+  logoutText: { color: S.red, fontSize: 12, fontWeight: '600' },
   statusBanner: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
     paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1,
@@ -1068,29 +1068,29 @@ const styles = StyleSheet.create({
   newOrderBanner: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
     paddingHorizontal: 16, paddingVertical: 12,
-    backgroundColor: A.cyan, borderBottomWidth: 1, borderBottomColor: A.cyan,
+    backgroundColor: S.cyan, borderBottomWidth: 1, borderBottomColor: S.cyan,
   },
   newOrderText: { color: '#000', fontSize: 13, fontWeight: '700', flex: 1 },
   paymentCard: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
-    margin: 16, padding: 16, backgroundColor: A.card, borderRadius: 12,
-    borderWidth: 1, borderColor: A.border,
+    margin: 16, padding: 16, backgroundColor: S.card, borderRadius: 12,
+    borderWidth: 1, borderColor: S.border,
   },
-  paymentTitle: { fontSize: 15, fontWeight: '700', color: A.text },
-  paymentSub: { fontSize: 12, color: A.textSub, marginTop: 2 },
+  paymentTitle: { fontSize: 15, fontWeight: '700', color: S.text },
+  paymentSub: { fontSize: 12, color: S.textSub, marginTop: 2 },
   payBtn: {
-    backgroundColor: A.amber, borderRadius: 8, paddingHorizontal: 16, paddingVertical: 10,
+    backgroundColor: S.amber, borderRadius: 8, paddingHorizontal: 16, paddingVertical: 10,
   },
   payBtnText: { color: '#000', fontSize: 13, fontWeight: '700' },
   statsRow: {
     flexDirection: 'row', paddingHorizontal: 16, paddingVertical: 12, gap: 8,
   },
   statCard: {
-    flex: 1, backgroundColor: A.card, borderRadius: 10, padding: 12,
-    alignItems: 'center', gap: 4, borderWidth: 1, borderColor: A.border,
+    flex: 1, backgroundColor: S.card, borderRadius: 10, padding: 12,
+    alignItems: 'center', gap: 4, borderWidth: 1, borderColor: S.border,
   },
-  statValue: { fontSize: 18, fontWeight: '800', color: A.text },
-  statLabel: { fontSize: 10, color: A.textSub },
+  statValue: { fontSize: 18, fontWeight: '800', color: S.text },
+  statLabel: { fontSize: 10, color: S.textSub },
   bottomNav: {
     flexDirection: 'row', alignItems: 'stretch', justifyContent: 'space-around',
     paddingHorizontal: 4, paddingTop: 8, paddingBottom: Platform.OS === 'web' ? 8 : 22,
@@ -1100,7 +1100,7 @@ const styles = StyleSheet.create({
   },
   bottomTab: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 4, minWidth: 54, position: 'relative' },
   bottomTabText: { fontSize: 10, fontWeight: '700' },
-  bottomTabActive: { position: 'absolute', top: -8, width: 28, height: 3, borderRadius: 2, backgroundColor: A.blue },
+  bottomTabActive: { position: 'absolute', top: -8, width: 28, height: 3, borderRadius: 2, backgroundColor: S.blue },
   quickMenuOverlay: { flex: 1, backgroundColor: 'rgba(7, 35, 70, 0.28)' },
   quickMenuCard: {
     position: 'absolute', top: 62, left: 12, width: 250, backgroundColor: '#FFFFFF',
@@ -1115,47 +1115,47 @@ const styles = StyleSheet.create({
 
   errorBar: {
     flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingVertical: 8,
-    backgroundColor: A.redDim,
+    backgroundColor: S.redDim,
   },
   emptyState: { alignItems: 'center', justifyContent: 'center', paddingVertical: 60, gap: 12 },
-  emptyText: { color: A.textSub, fontSize: 14 },
+  emptyText: { color: S.textSub, fontSize: 14 },
   orderCard: {
-    backgroundColor: A.card, borderRadius: 12, padding: 14, borderWidth: 1, borderColor: A.border,
+    backgroundColor: S.card, borderRadius: 12, padding: 14, borderWidth: 1, borderColor: S.border,
   },
   orderHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  orderId: { fontSize: 14, fontWeight: '700', color: A.text },
+  orderId: { fontSize: 14, fontWeight: '700', color: S.text },
   orderStatusBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, borderWidth: 1 },
   orderStatusText: { fontSize: 10, fontWeight: '600' },
-  orderCustomer: { fontSize: 13, color: A.textSub, marginTop: 6 },
-  orderItems: { fontSize: 12, color: A.textMuted, marginTop: 2 },
+  orderCustomer: { fontSize: 13, color: S.textSub, marginTop: 6 },
+  orderItems: { fontSize: 12, color: S.textMuted, marginTop: 2 },
   orderFooter: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 },
-  orderTotal: { fontSize: 15, fontWeight: '700', color: A.green },
-  orderTime: { fontSize: 11, color: A.textMuted },
+  orderTotal: { fontSize: 15, fontWeight: '700', color: S.green },
+  orderTime: { fontSize: 11, color: S.textMuted },
   trackBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 8, borderRadius: 8, borderWidth: 1, marginTop: 10 },
   trackBtnText: { fontSize: 12, fontWeight: '700' },
   addProductBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-    backgroundColor: A.cyanDim, borderRadius: 10, paddingVertical: 14,
-    borderWidth: 1, borderColor: A.cyan, borderStyle: 'dashed' as any,
+    backgroundColor: S.cyanDim, borderRadius: 10, paddingVertical: 14,
+    borderWidth: 1, borderColor: S.cyan, borderStyle: 'dashed' as any,
   },
-  addProductText: { color: A.cyan, fontSize: 14, fontWeight: '600' },
+  addProductText: { color: S.cyan, fontSize: 14, fontWeight: '600' },
   productCard: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: A.card,
-    borderRadius: 12, padding: 14, borderWidth: 1, borderColor: A.border, gap: 12,
+    flexDirection: 'row', alignItems: 'center', backgroundColor: S.card,
+    borderRadius: 12, padding: 14, borderWidth: 1, borderColor: S.border, gap: 12,
   },
   productThumb: { width: 48, height: 48, borderRadius: 8, objectFit: 'cover' as any, flexShrink: 0 },
   productThumbNative: { width: 48, height: 48, borderRadius: 8, flexShrink: 0 },
   productNameRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 },
-  productName: { fontSize: 14, fontWeight: '600', color: A.text, flexShrink: 1 },
+  productName: { fontSize: 14, fontWeight: '600', color: S.text, flexShrink: 1 },
   oosBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 3,
-    backgroundColor: A.red, borderRadius: 4, paddingHorizontal: 5, paddingVertical: 2,
+    backgroundColor: S.red, borderRadius: 4, paddingHorizontal: 5, paddingVertical: 2,
   },
   oosText: { color: '#fff', fontSize: 8, fontWeight: '700' },
-  productPrice: { fontSize: 15, fontWeight: '700', color: A.green, marginTop: 4 },
+  productPrice: { fontSize: 15, fontWeight: '700', color: S.green, marginTop: 4 },
   productMeta: { flexDirection: 'row', gap: 12, marginTop: 6 },
   productStock: { fontSize: 11, fontWeight: '500' },
-  productCategory: { fontSize: 11, color: A.textSub },
+  productCategory: { fontSize: 11, color: S.textSub },
   availToggleSmall: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
     paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, borderWidth: 1,
@@ -1164,30 +1164,30 @@ const styles = StyleSheet.create({
   availToggleText: { fontSize: 10, fontWeight: '700' },
   editBtn: {
     paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6,
-    backgroundColor: A.cyanDim, borderWidth: 1, borderColor: A.cyan,
+    backgroundColor: S.cyanDim, borderWidth: 1, borderColor: S.cyan,
   },
-  editBtnText: { color: A.cyan, fontSize: 12, fontWeight: '600' },
+  editBtnText: { color: S.cyan, fontSize: 12, fontWeight: '600' },
   deleteBtn: {
-    width: 32, height: 32, borderRadius: 6, backgroundColor: A.redDim,
-    borderWidth: 1, borderColor: A.red, justifyContent: 'center', alignItems: 'center',
+    width: 32, height: 32, borderRadius: 6, backgroundColor: S.redDim,
+    borderWidth: 1, borderColor: S.red, justifyContent: 'center', alignItems: 'center',
   },
   modalOverlay: {
-    flex: 1, backgroundColor: A.overlay, justifyContent: 'flex-end',
+    flex: 1, backgroundColor: S.overlay, justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: A.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20,
+    backgroundColor: S.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20,
     padding: 20, maxHeight: '85%',
   },
   modalHeader: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16,
   },
-  modalTitle: { fontSize: 18, fontWeight: '700', color: A.text },
+  modalTitle: { fontSize: 18, fontWeight: '700', color: S.text },
   inputGroup: { marginBottom: 14 },
   inputRow: { flexDirection: 'row', gap: 12 },
-  inputLabel: { fontSize: 12, fontWeight: '600', color: A.textSub, marginBottom: 6 },
+  inputLabel: { fontSize: 12, fontWeight: '600', color: S.textSub, marginBottom: 6 },
   textInput: {
-    backgroundColor: A.inputBg, borderRadius: 10, borderWidth: 1, borderColor: A.inputBorder,
-    paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, color: A.text,
+    backgroundColor: S.inputBg, borderRadius: 10, borderWidth: 1, borderColor: S.inputBorder,
+    paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, color: S.text,
   },
   availRow: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
@@ -1195,24 +1195,24 @@ const styles = StyleSheet.create({
   },
   imagePickerBtn: {
     alignItems: 'center', justifyContent: 'center', gap: 8,
-    backgroundColor: A.inputBg, borderRadius: 10, borderWidth: 1.5, borderColor: A.inputBorder,
+    backgroundColor: S.inputBg, borderRadius: 10, borderWidth: 1.5, borderColor: S.inputBorder,
     paddingVertical: 24, borderStyle: 'dashed' as any,
   },
-  imagePickerText: { color: A.cyan, fontSize: 13, fontWeight: '600' },
+  imagePickerText: { color: S.cyan, fontSize: 13, fontWeight: '600' },
   saveBtn: {
-    backgroundColor: A.cyan, borderRadius: 12, paddingVertical: 16,
+    backgroundColor: S.cyan, borderRadius: 12, paddingVertical: 16,
     alignItems: 'center', justifyContent: 'center', marginTop: 8,
   },
   saveBtnText: { color: '#000', fontSize: 15, fontWeight: '700' },
   chatLinkCard: {
     flexDirection: 'row', alignItems: 'center', gap: 14, padding: 18,
-    backgroundColor: A.card, borderRadius: 14, borderWidth: 1, borderColor: A.border,
+    backgroundColor: S.card, borderRadius: 14, borderWidth: 1, borderColor: S.border,
   },
   chatLinkIcon: {
-    width: 48, height: 48, borderRadius: 14, backgroundColor: A.cyanDim,
+    width: 48, height: 48, borderRadius: 14, backgroundColor: S.cyanDim,
     justifyContent: 'center', alignItems: 'center',
   },
-  chatLinkTitle: { fontSize: 15, fontWeight: '700', color: A.text },
-  chatLinkSub: { fontSize: 12, color: A.textSub, marginTop: 3 },
+  chatLinkTitle: { fontSize: 15, fontWeight: '700', color: S.text },
+  chatLinkSub: { fontSize: 12, color: S.textSub, marginTop: 3 },
 
 });

@@ -12,7 +12,7 @@ import {
   ActivityIndicator,
   Image,
 } from 'react-native';
-import { A } from '@/lib/admin-theme';
+import { S } from '@/lib/shop-theme';
 import { supabase } from '@/lib/supabase';
 import {
   DAYS,
@@ -529,10 +529,10 @@ export function ProfileTab({
   return (
     <View style={{ gap: 16 }}>
       {msg ? (
-        <View style={[styles.msgBar, { backgroundColor: msg.includes('saved') ? A.greenDim : A.redDim }]}>
-          <Text style={{ color: msg.includes('saved') ? A.green : A.red, fontSize: 12, flex: 1 }}>{msg}</Text>
+        <View style={[styles.msgBar, { backgroundColor: msg.includes('saved') ? S.greenDim : S.redDim }]}>
+          <Text style={{ color: msg.includes('saved') ? S.green : S.red, fontSize: 12, flex: 1 }}>{msg}</Text>
           <TouchableOpacity onPress={() => setMsg('')}>
-            <X size={14} color={msg.includes('saved') ? A.green : A.red} />
+            <X size={14} color={msg.includes('saved') ? S.green : S.red} />
           </TouchableOpacity>
         </View>
       ) : null}
@@ -540,11 +540,11 @@ export function ProfileTab({
       {/* Shop Information */}
       <View style={styles.card}>
         <View style={styles.cardHeader}>
-          <Store size={16} color={A.cyan} />
+          <Store size={16} color={S.cyan} />
           <Text style={styles.cardTitle}>Shop Information</Text>
           {shop.location_verified && (
             <View style={styles.verifiedBadge}>
-              <BadgeCheck size={12} color={A.green} />
+              <BadgeCheck size={12} color={S.green} />
               <Text style={styles.verifiedText}>Verified</Text>
             </View>
           )}
@@ -555,17 +555,17 @@ export function ProfileTab({
           {shop.logo_url ? (
             <Image source={{ uri: shop.logo_url }} style={{ width: 80, height: 80, borderRadius: 16, marginBottom: 8 }} />
           ) : (
-            <View style={{ width: 80, height: 80, borderRadius: 16, backgroundColor: A.inputBg, borderWidth: 1, borderColor: A.border, justifyContent: 'center', alignItems: 'center', marginBottom: 8 }}>
-              <Store size={28} color={A.textMuted} />
+            <View style={{ width: 80, height: 80, borderRadius: 16, backgroundColor: S.inputBg, borderWidth: 1, borderColor: S.border, justifyContent: 'center', alignItems: 'center', marginBottom: 8 }}>
+              <Store size={28} color={S.textMuted} />
             </View>
           )}
           <TouchableOpacity
-            style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 8, paddingHorizontal: 14, borderRadius: 8, backgroundColor: A.cyanDim, borderWidth: 1, borderColor: A.cyan }}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 8, paddingHorizontal: 14, borderRadius: 8, backgroundColor: S.cyanDim, borderWidth: 1, borderColor: S.cyan }}
             onPress={pickLogo}
             disabled={logoUploading}
           >
-            {logoUploading ? <ActivityIndicator size="small" color={A.cyan} /> : <Camera size={14} color={A.cyan} />}
-            <Text style={{ fontSize: 12, fontWeight: '600', color: A.cyan }}>{logoUploading ? 'Uploading...' : 'Change Logo'}</Text>
+            {logoUploading ? <ActivityIndicator size="small" color={S.cyan} /> : <Camera size={14} color={S.cyan} />}
+            <Text style={{ fontSize: 12, fontWeight: '600', color: S.cyan }}>{logoUploading ? 'Uploading...' : 'Change Logo'}</Text>
           </TouchableOpacity>
         </View>
 
@@ -577,7 +577,7 @@ export function ProfileTab({
             value={editName}
             onChangeText={setEditName}
             placeholder="Shop name"
-            placeholderTextColor={A.textMuted}
+            placeholderTextColor={S.textMuted}
           />
         </View>
         <View style={styles.fieldGroup}>
@@ -587,7 +587,7 @@ export function ProfileTab({
             value={editDescription}
             onChangeText={setEditDescription}
             placeholder="Tell customers about your shop..."
-            placeholderTextColor={A.textMuted}
+            placeholderTextColor={S.textMuted}
             multiline
           />
         </View>
@@ -598,7 +598,7 @@ export function ProfileTab({
             value={editPhone}
             onChangeText={setEditPhone}
             placeholder="e.g. +263771234567"
-            placeholderTextColor={A.textMuted}
+            placeholderTextColor={S.textMuted}
             keyboardType="phone-pad"
           />
         </View>
@@ -606,7 +606,7 @@ export function ProfileTab({
           <Text style={styles.label}>Email (not editable)</Text>
           <Text style={styles.value}>{shop.contact_email}</Text>
         </View>
-        <TouchableOpacity style={[styles.saveBtn, { backgroundColor: A.cyan }]} onPress={saveShopInfo} disabled={savingInfo}>
+        <TouchableOpacity style={[styles.saveBtn, { backgroundColor: S.cyan }]} onPress={saveShopInfo} disabled={savingInfo}>
           {savingInfo ? <ActivityIndicator size="small" color="#000" /> : <Text style={[styles.saveBtnText, { color: '#000' }]}>Save Shop Info</Text>}
         </TouchableOpacity>
         <View style={[styles.row, { flexDirection: 'column', alignItems: 'flex-start', gap: 6 }]}>
@@ -615,9 +615,9 @@ export function ProfileTab({
             style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 4 }}
             onPress={() => setShowCategoryPicker(!showCategoryPicker)}
           >
-            <Tag size={14} color={A.cyan} />
-            <Text style={[styles.value, { color: category ? A.text : A.textMuted }]}>{category || 'Select a category'}</Text>
-            <ChevronDown size={14} color={A.textSub} />
+            <Tag size={14} color={S.cyan} />
+            <Text style={[styles.value, { color: category ? S.text : S.textMuted }]}>{category || 'Select a category'}</Text>
+            <ChevronDown size={14} color={S.textSub} />
           </TouchableOpacity>
           {showCategoryPicker && (
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
@@ -628,19 +628,19 @@ export function ProfileTab({
                     paddingVertical: 4,
                     paddingHorizontal: 10,
                     borderRadius: 6,
-                    backgroundColor: category === cat ? A.cyan : A.inputBg,
+                    backgroundColor: category === cat ? S.cyan : S.inputBg,
                     borderWidth: 1,
-                    borderColor: category === cat ? A.cyan : A.border,
+                    borderColor: category === cat ? S.cyan : S.border,
                   }}
                   onPress={() => { setCategory(cat); setShowCategoryPicker(false); }}
                 >
-                  <Text style={{ fontSize: 11, fontWeight: '600', color: category === cat ? '#000' : A.text }}>{cat}</Text>
+                  <Text style={{ fontSize: 11, fontWeight: '600', color: category === cat ? '#000' : S.text }}>{cat}</Text>
                 </TouchableOpacity>
               ))}
             </View>
           )}
           <TouchableOpacity
-            style={[styles.saveBtn, { backgroundColor: A.cyan, marginTop: 8, paddingVertical: 8, paddingHorizontal: 16, borderRadius: 6, alignSelf: 'flex-start' }]}
+            style={[styles.saveBtn, { backgroundColor: S.cyan, marginTop: 8, paddingVertical: 8, paddingHorizontal: 16, borderRadius: 6, alignSelf: 'flex-start' }]}
             onPress={async () => {
               setSavingCategory(true);
               setMsg('');
@@ -660,13 +660,13 @@ export function ProfileTab({
       {/* Business Location */}
       <View style={styles.card}>
         <View style={styles.cardHeader}>
-          <MapPin size={16} color={A.orange} />
+          <MapPin size={16} color={S.orange} />
           <Text style={styles.cardTitle}>Business Location</Text>
         </View>
         {locIncomplete && (
-          <View style={[styles.warnBox, { borderColor: A.amber }]}>
-            <AlertTriangle size={14} color={A.amber} />
-            <Text style={[styles.warnText, { color: A.amber }]}>Location setup incomplete — add your address and coordinates.</Text>
+          <View style={[styles.warnBox, { borderColor: S.amber }]}>
+            <AlertTriangle size={14} color={S.amber} />
+            <Text style={[styles.warnText, { color: S.amber }]}>Location setup incomplete — add your address and coordinates.</Text>
           </View>
         )}
         <View style={styles.row}>
@@ -682,13 +682,13 @@ export function ProfileTab({
           <Text style={styles.value}>{shop.longitude != null ? shop.longitude.toFixed(6) : 'Not set'}</Text>
         </View>
         <View style={styles.btnRow}>
-          <TouchableOpacity style={[styles.btn, { borderColor: A.cyan }]} onPress={() => setShowLocationEditor(true)}>
-            <Text style={[styles.btnText, { color: A.cyan }]}>Edit Location</Text>
+          <TouchableOpacity style={[styles.btn, { borderColor: S.cyan }]} onPress={() => setShowLocationEditor(true)}>
+            <Text style={[styles.btnText, { color: S.cyan }]}>Edit Location</Text>
           </TouchableOpacity>
           {!locIncomplete && (
-            <TouchableOpacity style={[styles.btn, { borderColor: A.blue }]} onPress={openMaps}>
-              <Globe size={14} color={A.blue} />
-              <Text style={[styles.btnText, { color: A.blue }]}>View on Maps</Text>
+            <TouchableOpacity style={[styles.btn, { borderColor: S.blue }]} onPress={openMaps}>
+              <Globe size={14} color={S.blue} />
+              <Text style={[styles.btnText, { color: S.blue }]}>View on Maps</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -697,21 +697,21 @@ export function ProfileTab({
       {/* Availability */}
       <View style={styles.card}>
         <View style={styles.cardHeader}>
-          <Store size={16} color={shop.is_available ? A.green : A.red} />
+          <Store size={16} color={shop.is_available ? S.green : S.red} />
           <Text style={styles.cardTitle}>Shop Availability</Text>
         </View>
         <TouchableOpacity
-          style={[styles.availToggle, { backgroundColor: shop.is_available ? A.greenDim : A.redDim, borderColor: shop.is_available ? A.green : A.red }]}
+          style={[styles.availToggle, { backgroundColor: shop.is_available ? S.greenDim : S.redDim, borderColor: shop.is_available ? S.green : S.red }]}
           onPress={toggleAvailability}
           disabled={savingAvail}
           activeOpacity={0.8}
         >
           {savingAvail ? (
-            <ActivityIndicator size="small" color={shop.is_available ? A.green : A.red} />
+            <ActivityIndicator size="small" color={shop.is_available ? S.green : S.red} />
           ) : (
             <>
-              <View style={[styles.availDot, { backgroundColor: shop.is_available ? A.green : A.red }]} />
-              <Text style={[styles.availText, { color: shop.is_available ? A.green : A.red }]}>
+              <View style={[styles.availDot, { backgroundColor: shop.is_available ? S.green : S.red }]} />
+              <Text style={[styles.availText, { color: shop.is_available ? S.green : S.red }]}>
                 {shop.is_available ? 'AVAILABLE' : 'UNAVAILABLE'}
               </Text>
             </>
@@ -723,7 +723,7 @@ export function ProfileTab({
       {/* Operating Hours */}
       <View style={styles.card}>
         <View style={styles.cardHeader}>
-          <Clock size={16} color={A.blue} />
+          <Clock size={16} color={S.blue} />
           <Text style={styles.cardTitle}>Operating Hours</Text>
         </View>
         {DAYS.map((day) => {
@@ -734,10 +734,10 @@ export function ProfileTab({
                 style={styles.dayCheck}
                 onPress={() => updateDay(day, { closed: !sch.closed })}
               >
-                <View style={[styles.checkbox, sch.closed && { backgroundColor: A.red, borderColor: A.red }]}>
+                <View style={[styles.checkbox, sch.closed && { backgroundColor: S.red, borderColor: S.red }]}>
                   {!sch.closed && <Check size={12} color="#000" />}
                 </View>
-                <Text style={[styles.dayLabel, { color: sch.closed ? A.textSub : A.text }]}>{DAY_LABELS[day]}</Text>
+                <Text style={[styles.dayLabel, { color: sch.closed ? S.textSub : S.text }]}>{DAY_LABELS[day]}</Text>
               </TouchableOpacity>
               {sch.closed ? (
                 <Text style={styles.closedText}>Closed</Text>
@@ -748,7 +748,7 @@ export function ProfileTab({
                     value={sch.open}
                     onChangeText={(v) => updateDay(day, { open: v })}
                     placeholder="HH:MM"
-                    placeholderTextColor={A.textMuted}
+                    placeholderTextColor={S.textMuted}
                     keyboardType={Platform.OS === 'web' ? ('default' as any) : ('number-pad' as any)}
                   />
                   <Text style={styles.timeDash}>–</Text>
@@ -757,7 +757,7 @@ export function ProfileTab({
                     value={sch.close}
                     onChangeText={(v) => updateDay(day, { close: v })}
                     placeholder="HH:MM"
-                    placeholderTextColor={A.textMuted}
+                    placeholderTextColor={S.textMuted}
                     keyboardType={Platform.OS === 'web' ? ('default' as any) : ('number-pad' as any)}
                   />
                 </View>
@@ -765,7 +765,7 @@ export function ProfileTab({
             </View>
           );
         })}
-        <TouchableOpacity style={[styles.saveBtn, { backgroundColor: A.blue }]} onPress={saveHours} disabled={savingHours}>
+        <TouchableOpacity style={[styles.saveBtn, { backgroundColor: S.blue }]} onPress={saveHours} disabled={savingHours}>
           {savingHours ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.saveBtnText}>Save Hours</Text>}
         </TouchableOpacity>
       </View>
@@ -773,21 +773,21 @@ export function ProfileTab({
       {/* Payment Methods */}
       <View style={styles.card}>
         <View style={styles.cardHeader}>
-          <CreditCard size={16} color={A.cyan} />
+          <CreditCard size={16} color={S.cyan} />
           <Text style={styles.cardTitle}>Accepted Payment Methods</Text>
         </View>
         {PAYMENT_OPTIONS.map((opt) => {
           const on = payMethods.includes(opt.key);
           return (
             <TouchableOpacity key={opt.key} style={styles.payRow} onPress={() => togglePay(opt.key)} activeOpacity={0.7}>
-              <View style={[styles.checkbox, on && { backgroundColor: A.cyan, borderColor: A.cyan }]}>
+              <View style={[styles.checkbox, on && { backgroundColor: S.cyan, borderColor: S.cyan }]}>
                 {on && <Check size={12} color="#000" />}
               </View>
-              <Text style={[styles.payLabel, { color: on ? A.text : A.textSub }]}>{opt.label}</Text>
+              <Text style={[styles.payLabel, { color: on ? S.text : S.textSub }]}>{opt.label}</Text>
             </TouchableOpacity>
           );
         })}
-        <TouchableOpacity style={[styles.saveBtn, { backgroundColor: A.cyan }]} onPress={savePay} disabled={savingPay}>
+        <TouchableOpacity style={[styles.saveBtn, { backgroundColor: S.cyan }]} onPress={savePay} disabled={savingPay}>
           {savingPay ? <ActivityIndicator size="small" color="#000" /> : <Text style={[styles.saveBtnText, { color: '#000' }]}>Save Payment Methods</Text>}
         </TouchableOpacity>
       </View>
@@ -795,7 +795,7 @@ export function ProfileTab({
       {/* EcoCash Payment Details */}
       <View style={styles.card}>
         <View style={styles.cardHeader}>
-          <Smartphone size={16} color={A.amber} />
+          <Smartphone size={16} color={S.amber} />
           <Text style={styles.cardTitle}>EcoCash Payment Details</Text>
         </View>
         <Text style={styles.whatsappDesc}>
@@ -808,7 +808,7 @@ export function ProfileTab({
             value={ecocashName}
             onChangeText={setEcocashName}
             placeholder="e.g. John Doe"
-            placeholderTextColor={A.textMuted}
+            placeholderTextColor={S.textMuted}
           />
         </View>
         <View style={styles.fieldGroup}>
@@ -818,11 +818,11 @@ export function ProfileTab({
             value={ecocashNumber}
             onChangeText={setEcocashNumber}
             placeholder="e.g. +263771234567"
-            placeholderTextColor={A.textMuted}
+            placeholderTextColor={S.textMuted}
             keyboardType="phone-pad"
           />
         </View>
-        <TouchableOpacity style={[styles.saveBtn, { backgroundColor: A.amber }]} onPress={saveEcocashDetails} disabled={savingEcocash}>
+        <TouchableOpacity style={[styles.saveBtn, { backgroundColor: S.amber }]} onPress={saveEcocashDetails} disabled={savingEcocash}>
           {savingEcocash ? <ActivityIndicator size="small" color="#000" /> : <Text style={[styles.saveBtnText, { color: '#000' }]}>Save EcoCash Details</Text>}
         </TouchableOpacity>
       </View>
@@ -830,7 +830,7 @@ export function ProfileTab({
       {/* Fees */}
       <View style={styles.card}>
         <View style={styles.cardHeader}>
-          <DollarSign size={16} color={A.amber} />
+          <DollarSign size={16} color={S.amber} />
           <Text style={styles.cardTitle}>Fees & Surcharges</Text>
         </View>
         <View style={styles.fieldGroup}>
@@ -840,7 +840,7 @@ export function ProfileTab({
             value={ecocashFee}
             onChangeText={setEcocashFee}
             placeholder="0.00"
-            placeholderTextColor={A.textMuted}
+            placeholderTextColor={S.textMuted}
             keyboardType="decimal-pad"
           />
           <Text style={styles.feeHint}>Extra fee added to customer's total when they pay via EcoCash.</Text>
@@ -852,12 +852,12 @@ export function ProfileTab({
             value={deliveryFee}
             onChangeText={setDeliveryFee}
             placeholder="0.00"
-            placeholderTextColor={A.textMuted}
+            placeholderTextColor={S.textMuted}
             keyboardType="decimal-pad"
           />
           <Text style={styles.feeHint}>Default delivery fee charged to customers based on their GPS location.</Text>
         </View>
-        <TouchableOpacity style={[styles.saveBtn, { backgroundColor: A.amber }]} onPress={saveFees} disabled={savingFees}>
+        <TouchableOpacity style={[styles.saveBtn, { backgroundColor: S.amber }]} onPress={saveFees} disabled={savingFees}>
           {savingFees ? <ActivityIndicator size="small" color="#000" /> : <Text style={[styles.saveBtnText, { color: '#000' }]}>Save Fees</Text>}
         </TouchableOpacity>
       </View>
@@ -865,24 +865,24 @@ export function ProfileTab({
       {/* Free Delivery Toggle */}
       <View style={styles.card}>
         <View style={styles.cardHeader}>
-          <Truck size={16} color={A.green} />
+          <Truck size={16} color={S.green} />
           <Text style={styles.cardTitle}>Free Delivery</Text>
         </View>
         <Text style={styles.whatsappDesc}>
           Turn this on to advertise free delivery to customers. A "Free Delivery" label will appear on your shop in the marketplace, helping attract more customers.
         </Text>
         <TouchableOpacity
-          style={[styles.availToggle, { backgroundColor: freeDelivery ? A.greenDim : A.redDim, borderColor: freeDelivery ? A.green : A.red }]}
+          style={[styles.availToggle, { backgroundColor: freeDelivery ? S.greenDim : S.redDim, borderColor: freeDelivery ? S.green : S.red }]}
           onPress={toggleFreeDelivery}
           disabled={savingFreeDelivery}
           activeOpacity={0.8}
         >
           {savingFreeDelivery ? (
-            <ActivityIndicator size="small" color={freeDelivery ? A.green : A.red} />
+            <ActivityIndicator size="small" color={freeDelivery ? S.green : S.red} />
           ) : (
             <>
-              <View style={[styles.availDot, { backgroundColor: freeDelivery ? A.green : A.red }]} />
-              <Text style={[styles.availText, { color: freeDelivery ? A.green : A.red }]}>
+              <View style={[styles.availDot, { backgroundColor: freeDelivery ? S.green : S.red }]} />
+              <Text style={[styles.availText, { color: freeDelivery ? S.green : S.red }]}>
                 {freeDelivery ? 'FREE DELIVERY ON' : 'FREE DELIVERY OFF'}
               </Text>
             </>
@@ -907,7 +907,7 @@ export function ProfileTab({
             value={whatsappInput}
             onChangeText={setWhatsappInput}
             placeholder="e.g. +263771234567"
-            placeholderTextColor={A.textMuted}
+            placeholderTextColor={S.textMuted}
             keyboardType="phone-pad"
           />
           <Text style={styles.feeHint}>Include country code. Leave empty to disable WhatsApp order confirmation.</Text>
@@ -920,7 +920,7 @@ export function ProfileTab({
       {/* Service Locations — choose which customer locations can see this shop */}
       <View style={styles.card}>
         <View style={styles.cardHeader}>
-          <MapPin size={16} color={A.green} />
+          <MapPin size={16} color={S.green} />
           <Text style={styles.cardTitle}>Service Locations</Text>
         </View>
         <Text style={styles.whatsappDesc}>
@@ -931,23 +931,23 @@ export function ProfileTab({
           <View style={{ gap: 8, marginBottom: 12 }}>
             {serviceLocations.map(sl => (
               <View key={sl.id} style={[styles.payRow, { borderBottomWidth: 0 }]}>
-                <View style={[styles.checkbox, { backgroundColor: sl.location_type === 'university' ? A.greenDim : A.cyanDim || A.cyan + '22', borderColor: sl.location_type === 'university' ? A.green : A.cyan }]}>
-                  <MapPin size={10} color={sl.location_type === 'university' ? A.green : A.cyan} />
+                <View style={[styles.checkbox, { backgroundColor: sl.location_type === 'university' ? S.greenDim : S.cyanDim || S.cyan + '22', borderColor: sl.location_type === 'university' ? S.green : S.cyan }]}>
+                  <MapPin size={10} color={sl.location_type === 'university' ? S.green : S.cyan} />
                 </View>
-                <Text style={[styles.payLabel, { color: A.text, flex: 1 }]}>{sl.location_name}</Text>
-                <Text style={{ fontSize: 9, color: A.textSub, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                <Text style={[styles.payLabel, { color: S.text, flex: 1 }]}>{sl.location_name}</Text>
+                <Text style={{ fontSize: 9, color: S.textSub, textTransform: 'uppercase', letterSpacing: 0.5 }}>
                   {sl.location_type === 'university' ? 'Uni' : 'Custom'}
                 </Text>
                 <TouchableOpacity onPress={() => removeServiceLocation(sl.id)} disabled={savingLocations}>
-                  <Trash2 size={15} color={A.red} />
+                  <Trash2 size={15} color={S.red} />
                 </TouchableOpacity>
               </View>
             ))}
           </View>
         ) : (
-          <View style={[styles.warnBox, { borderColor: A.amber, marginBottom: 12 }]}>
-            <AlertTriangle size={14} color={A.amber} />
-            <Text style={[styles.warnText, { color: A.amber }]}>No locations set — your shop is visible to all customers.</Text>
+          <View style={[styles.warnBox, { borderColor: S.amber, marginBottom: 12 }]}>
+            <AlertTriangle size={14} color={S.amber} />
+            <Text style={[styles.warnText, { color: S.amber }]}>No locations set — your shop is visible to all customers.</Text>
           </View>
         )}
 
@@ -962,12 +962,12 @@ export function ProfileTab({
                     .map(u => (
                       <TouchableOpacity
                         key={u.id}
-                        style={[styles.payRow, { borderBottomWidth: 1, borderBottomColor: A.border }]}
+                        style={[styles.payRow, { borderBottomWidth: 1, borderBottomColor: S.border }]}
                         onPress={() => addServiceLocation(u.name, 'university')}
                         disabled={savingLocations}
                       >
-                        <Plus size={14} color={A.green} />
-                        <Text style={[styles.payLabel, { color: A.text }]}>{u.name}</Text>
+                        <Plus size={14} color={S.green} />
+                        <Text style={[styles.payLabel, { color: S.text }]}>{u.name}</Text>
                       </TouchableOpacity>
                     ))}
                 </ScrollView>
@@ -983,12 +983,12 @@ export function ProfileTab({
                     .map(a => (
                       <TouchableOpacity
                         key={a}
-                        style={[styles.payRow, { borderBottomWidth: 1, borderBottomColor: A.border }]}
+                        style={[styles.payRow, { borderBottomWidth: 1, borderBottomColor: S.border }]}
                         onPress={() => addServiceLocation(a, 'custom')}
                         disabled={savingLocations}
                       >
-                        <Plus size={14} color={A.cyan} />
-                        <Text style={[styles.payLabel, { color: A.text }]}>{a}</Text>
+                        <Plus size={14} color={S.cyan} />
+                        <Text style={[styles.payLabel, { color: S.text }]}>{a}</Text>
                       </TouchableOpacity>
                     ))}
                 </ScrollView>
@@ -1002,10 +1002,10 @@ export function ProfileTab({
                   value={customLocationInput}
                   onChangeText={setCustomLocationInput}
                   placeholder="e.g. CBD, Belgravia..."
-                  placeholderTextColor={A.textMuted}
+                  placeholderTextColor={S.textMuted}
                 />
                 <TouchableOpacity
-                  style={[styles.saveBtn, { backgroundColor: A.green, marginTop: 0, paddingHorizontal: 16, paddingVertical: 12 }]}
+                  style={[styles.saveBtn, { backgroundColor: S.green, marginTop: 0, paddingHorizontal: 16, paddingVertical: 12 }]}
                   onPress={() => addServiceLocation(customLocationInput, 'custom')}
                   disabled={savingLocations || !customLocationInput.trim()}
                 >
@@ -1014,11 +1014,11 @@ export function ProfileTab({
               </View>
             </View>
             <TouchableOpacity onPress={() => setShowLocationPicker(false)}>
-              <Text style={{ color: A.textSub, fontSize: 12, textAlign: 'center' }}>Cancel</Text>
+              <Text style={{ color: S.textSub, fontSize: 12, textAlign: 'center' }}>Cancel</Text>
             </TouchableOpacity>
           </View>
         ) : (
-          <TouchableOpacity style={[styles.saveBtn, { backgroundColor: A.green }]} onPress={() => setShowLocationPicker(true)}>
+          <TouchableOpacity style={[styles.saveBtn, { backgroundColor: S.green }]} onPress={() => setShowLocationPicker(true)}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
               <Plus size={16} color="#000" />
               <Text style={[styles.saveBtnText, { color: '#000' }]}>Add Service Location</Text>
@@ -1030,7 +1030,7 @@ export function ProfileTab({
       {/* Customer Blacklist */}
       <View style={styles.card}>
         <View style={styles.cardHeader}>
-          <Ban size={16} color={A.red} />
+          <Ban size={16} color={S.red} />
           <Text style={styles.cardTitle}>Customer Blacklist</Text>
         </View>
         <Text style={styles.whatsappDesc}>
@@ -1040,38 +1040,38 @@ export function ProfileTab({
         {blacklist.length > 0 ? (
           <View style={{ gap: 8, marginBottom: 12 }}>
             {blacklist.map(b => (
-              <View key={b.id} style={[styles.payRow, { borderBottomWidth: 1, borderBottomColor: A.border }]}>
-                <View style={[styles.checkbox, { backgroundColor: A.redDim, borderColor: A.red }]}>
-                  <Ban size={10} color={A.red} />
+              <View key={b.id} style={[styles.payRow, { borderBottomWidth: 1, borderBottomColor: S.border }]}>
+                <View style={[styles.checkbox, { backgroundColor: S.redDim, borderColor: S.red }]}>
+                  <Ban size={10} color={S.red} />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={[styles.payLabel, { color: A.text }]}>{b.customer_name || 'Unknown'}</Text>
-                  {b.customer_phone ? <Text style={{ fontSize: 11, color: A.textSub }}>{b.customer_phone}</Text> : null}
-                  {b.reason ? <Text style={{ fontSize: 11, color: A.amber, marginTop: 2 }}>Reason: {b.reason}</Text> : null}
+                  <Text style={[styles.payLabel, { color: S.text }]}>{b.customer_name || 'Unknown'}</Text>
+                  {b.customer_phone ? <Text style={{ fontSize: 11, color: S.textSub }}>{b.customer_phone}</Text> : null}
+                  {b.reason ? <Text style={{ fontSize: 11, color: S.amber, marginTop: 2 }}>Reason: {b.reason}</Text> : null}
                 </View>
                 <TouchableOpacity onPress={() => removeBlacklist(b.id)} disabled={savingBlacklist}>
-                  <Trash2 size={15} color={A.red} />
+                  <Trash2 size={15} color={S.red} />
                 </TouchableOpacity>
               </View>
             ))}
           </View>
         ) : (
-          <View style={[styles.warnBox, { borderColor: A.amber, marginBottom: 12 }]}>
-            <AlertTriangle size={14} color={A.amber} />
-            <Text style={[styles.warnText, { color: A.amber }]}>No blacklisted customers. Your shop accepts orders from all customers.</Text>
+          <View style={[styles.warnBox, { borderColor: S.amber, marginBottom: 12 }]}>
+            <AlertTriangle size={14} color={S.amber} />
+            <Text style={[styles.warnText, { color: S.amber }]}>No blacklisted customers. Your shop accepts orders from all customers.</Text>
           </View>
         )}
 
         <View style={styles.fieldGroup}>
           <Text style={styles.label}>ADD CUSTOMER TO BLACKLIST</Text>
-          <View style={[styles.searchRow, { borderColor: A.inputBorder }]}>
-            <Search size={14} color={A.textSub} />
+          <View style={[styles.searchRow, { borderColor: S.inputBorder }]}>
+            <Search size={14} color={S.textSub} />
             <TextInput
               style={[styles.feeInput, { flex: 1, minHeight: 44 }]}
               value={blacklistSearch}
               onChangeText={setBlacklistSearch}
               placeholder="Phone or email"
-              placeholderTextColor={A.textMuted}
+              placeholderTextColor={S.textMuted}
               keyboardType="phone-pad"
             />
           </View>
@@ -1080,9 +1080,9 @@ export function ProfileTab({
             value={blacklistReason}
             onChangeText={setBlacklistReason}
             placeholder="Reason (optional)"
-            placeholderTextColor={A.textMuted}
+            placeholderTextColor={S.textMuted}
           />
-          <TouchableOpacity style={[styles.saveBtn, { backgroundColor: A.red }]} onPress={addBlacklist} disabled={savingBlacklist || !blacklistSearch.trim()}>
+          <TouchableOpacity style={[styles.saveBtn, { backgroundColor: S.red }]} onPress={addBlacklist} disabled={savingBlacklist || !blacklistSearch.trim()}>
             {savingBlacklist ? <ActivityIndicator size="small" color="#fff" /> : <Text style={[styles.saveBtnText, { color: '#fff' }]}>Blacklist Customer</Text>}
           </TouchableOpacity>
         </View>
@@ -1091,7 +1091,7 @@ export function ProfileTab({
       {/* Delivery Fee Tiers */}
       <View style={styles.card}>
         <View style={styles.cardHeader}>
-          <DollarSign size={16} color={A.cyan} />
+          <DollarSign size={16} color={S.cyan} />
           <Text style={styles.cardTitle}>Delivery Fee Tiers (by Order Cost)</Text>
         </View>
         <Text style={styles.whatsappDesc}>
@@ -1101,64 +1101,64 @@ export function ProfileTab({
         {feeTiers.length > 0 ? (
           <View style={{ gap: 8, marginBottom: 12 }}>
             {feeTiers.map((tier, idx) => (
-              <View key={idx} style={[styles.tierRow, { borderColor: A.inputBorder }]}>
+              <View key={idx} style={[styles.tierRow, { borderColor: S.inputBorder }]}>
                 <View style={styles.tierInputs}>
                   <View style={styles.tierField}>
                     <Text style={styles.tierLabel}>Min ($)</Text>
                     <TextInput
-                      style={[styles.tierInput, { borderColor: A.inputBorder, color: A.text }]}
+                      style={[styles.tierInput, { borderColor: S.inputBorder, color: S.text }]}
                       value={tier.min_amount}
                       onChangeText={v => updateTier(idx, 'min_amount', v)}
                       placeholder="0"
-                      placeholderTextColor={A.textMuted}
+                      placeholderTextColor={S.textMuted}
                       keyboardType="decimal-pad"
                     />
                   </View>
                   <View style={styles.tierField}>
                     <Text style={styles.tierLabel}>Max ($)</Text>
                     <TextInput
-                      style={[styles.tierInput, { borderColor: A.inputBorder, color: A.text }]}
+                      style={[styles.tierInput, { borderColor: S.inputBorder, color: S.text }]}
                       value={tier.max_amount}
                       onChangeText={v => updateTier(idx, 'max_amount', v)}
                       placeholder="empty = above"
-                      placeholderTextColor={A.textMuted}
+                      placeholderTextColor={S.textMuted}
                       keyboardType="decimal-pad"
                     />
                   </View>
                   <View style={styles.tierField}>
                     <Text style={styles.tierLabel}>Fee ($)</Text>
                     <TextInput
-                      style={[styles.tierInput, { borderColor: A.inputBorder, color: A.text }]}
+                      style={[styles.tierInput, { borderColor: S.inputBorder, color: S.text }]}
                       value={tier.fee}
                       onChangeText={v => updateTier(idx, 'fee', v)}
                       placeholder="0.00"
-                      placeholderTextColor={A.textMuted}
+                      placeholderTextColor={S.textMuted}
                       keyboardType="decimal-pad"
                     />
                   </View>
                 </View>
                 <TouchableOpacity onPress={() => removeTier(idx)}>
-                  <Trash2 size={15} color={A.red} />
+                  <Trash2 size={15} color={S.red} />
                 </TouchableOpacity>
               </View>
             ))}
           </View>
         ) : (
-          <View style={[styles.warnBox, { borderColor: A.amber, marginBottom: 12 }]}>
-            <AlertTriangle size={14} color={A.amber} />
-            <Text style={[styles.warnText, { color: A.amber }]}>No tiers set — the flat delivery fee above will be used.</Text>
+          <View style={[styles.warnBox, { borderColor: S.amber, marginBottom: 12 }]}>
+            <AlertTriangle size={14} color={S.amber} />
+            <Text style={[styles.warnText, { color: S.amber }]}>No tiers set — the flat delivery fee above will be used.</Text>
           </View>
         )}
 
         <View style={{ flexDirection: 'row', gap: 8 }}>
-          <TouchableOpacity style={[styles.saveBtn, { backgroundColor: A.cyan, flex: 1, marginTop: 0 }]} onPress={addTier}>
+          <TouchableOpacity style={[styles.saveBtn, { backgroundColor: S.cyan, flex: 1, marginTop: 0 }]} onPress={addTier}>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
               <Plus size={14} color="#000" />
               <Text style={[styles.saveBtnText, { color: '#000' }]}>Add Tier</Text>
             </View>
           </TouchableOpacity>
           {feeTiers.length > 0 && (
-            <TouchableOpacity style={[styles.saveBtn, { backgroundColor: A.blue, flex: 1, marginTop: 0 }]} onPress={saveTiers} disabled={savingTiers}>
+            <TouchableOpacity style={[styles.saveBtn, { backgroundColor: S.blue, flex: 1, marginTop: 0 }]} onPress={saveTiers} disabled={savingTiers}>
               {savingTiers ? <ActivityIndicator size="small" color="#fff" /> : <Text style={[styles.saveBtnText, { color: '#fff' }]}>Save Tiers</Text>}
             </TouchableOpacity>
           )}
@@ -1166,8 +1166,8 @@ export function ProfileTab({
       </View>
 
       <TouchableOpacity style={styles.logoutCard} onPress={onLogout}>
-        <LogOut size={18} color={A.red} />
-        <Text style={{ color: A.red, fontSize: 15, fontWeight: '600' }}>Logout</Text>
+        <LogOut size={18} color={S.red} />
+        <Text style={{ color: S.red, fontSize: 15, fontWeight: '600' }}>Logout</Text>
       </TouchableOpacity>
 
       {/* Location Editor Modal */}
@@ -1177,7 +1177,7 @@ export function ProfileTab({
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Edit Location</Text>
               <TouchableOpacity onPress={() => setShowLocationEditor(false)}>
-                <X size={22} color={A.textSub} />
+                <X size={22} color={S.textSub} />
               </TouchableOpacity>
             </View>
             <ScrollView>
@@ -1187,7 +1187,7 @@ export function ProfileTab({
                 value={addrInput}
                 onChangeText={setAddrInput}
                 placeholder="Shop street address"
-                placeholderTextColor={A.textMuted}
+                placeholderTextColor={S.textMuted}
                 multiline
               />
               <View style={styles.inputRow}>
@@ -1198,7 +1198,7 @@ export function ProfileTab({
                     value={latInput}
                     onChangeText={setLatInput}
                     placeholder="e.g. -17.8252"
-                    placeholderTextColor={A.textMuted}
+                    placeholderTextColor={S.textMuted}
                     keyboardType="decimal-pad"
                   />
                 </View>
@@ -1209,22 +1209,22 @@ export function ProfileTab({
                     value={lngInput}
                     onChangeText={setLngInput}
                     placeholder="e.g. 31.0335"
-                    placeholderTextColor={A.textMuted}
+                    placeholderTextColor={S.textMuted}
                     keyboardType="decimal-pad"
                   />
                 </View>
               </View>
               <TouchableOpacity style={styles.gpsBtn} onPress={useGps} disabled={locating}>
                 {locating ? (
-                  <ActivityIndicator size="small" color={A.green} />
+                  <ActivityIndicator size="small" color={S.green} />
                 ) : (
                   <>
-                    <Navigation size={16} color={A.green} />
-                    <Text style={[styles.btnText, { color: A.green }]}>Use GPS</Text>
+                    <Navigation size={16} color={S.green} />
+                    <Text style={[styles.btnText, { color: S.green }]}>Use GPS</Text>
                   </>
                 )}
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.saveBtn, { backgroundColor: A.cyan, marginTop: 16 }]} onPress={saveLocation} disabled={savingLoc}>
+              <TouchableOpacity style={[styles.saveBtn, { backgroundColor: S.cyan, marginTop: 16 }]} onPress={saveLocation} disabled={savingLoc}>
                 {savingLoc ? <ActivityIndicator size="small" color="#000" /> : <Text style={[styles.saveBtnText, { color: '#000' }]}>Save Location</Text>}
               </TouchableOpacity>
             </ScrollView>
@@ -1236,53 +1236,53 @@ export function ProfileTab({
 }
 
 const styles = StyleSheet.create({
-  card: { backgroundColor: A.card, borderRadius: 12, padding: 18, borderWidth: 1, borderColor: A.border },
+  card: { backgroundColor: S.card, borderRadius: 12, padding: 18, borderWidth: 1, borderColor: S.border },
   cardHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
-  cardTitle: { fontSize: 15, fontWeight: '700', color: A.text, flex: 1 },
-  verifiedBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: A.greenDim, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, borderWidth: 1, borderColor: A.green },
-  verifiedText: { fontSize: 10, fontWeight: '700', color: A.green },
-  row: { paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: A.border },
-  label: { fontSize: 11, color: A.textSub, fontWeight: '600', textTransform: 'uppercase' as any, letterSpacing: 0.5 },
-  value: { fontSize: 14, color: A.text, marginTop: 4 },
-  warnBox: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: A.amberDim, borderRadius: 8, padding: 10, marginBottom: 10, borderWidth: 1 },
+  cardTitle: { fontSize: 15, fontWeight: '700', color: S.text, flex: 1 },
+  verifiedBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: S.greenDim, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, borderWidth: 1, borderColor: S.green },
+  verifiedText: { fontSize: 10, fontWeight: '700', color: S.green },
+  row: { paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: S.border },
+  label: { fontSize: 11, color: S.textSub, fontWeight: '600', textTransform: 'uppercase' as any, letterSpacing: 0.5 },
+  value: { fontSize: 14, color: S.text, marginTop: 4 },
+  warnBox: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: S.amberDim, borderRadius: 8, padding: 10, marginBottom: 10, borderWidth: 1 },
   warnText: { fontSize: 12, flex: 1, lineHeight: 16 },
   btnRow: { flexDirection: 'row', gap: 10, marginTop: 12 },
-  btn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 8, borderWidth: 1, backgroundColor: A.card },
+  btn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 8, borderWidth: 1, backgroundColor: S.card },
   btnText: { fontSize: 13, fontWeight: '600' },
   availToggle: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, borderRadius: 12, paddingVertical: 18, borderWidth: 1.5 },
   availDot: { width: 12, height: 12, borderRadius: 6 },
   availText: { fontSize: 18, fontWeight: '800', letterSpacing: 1 },
-  availHint: { fontSize: 12, color: A.textSub, marginTop: 8, textAlign: 'center' },
-  dayRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: A.border },
+  availHint: { fontSize: 12, color: S.textSub, marginTop: 8, textAlign: 'center' },
+  dayRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: S.border },
   dayCheck: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 },
-  checkbox: { width: 20, height: 20, borderRadius: 5, borderWidth: 1.5, borderColor: A.border, justifyContent: 'center', alignItems: 'center' },
+  checkbox: { width: 20, height: 20, borderRadius: 5, borderWidth: 1.5, borderColor: S.border, justifyContent: 'center', alignItems: 'center' },
   dayLabel: { fontSize: 13, fontWeight: '600' },
-  closedText: { fontSize: 12, color: A.red, fontWeight: '600' },
+  closedText: { fontSize: 12, color: S.red, fontWeight: '600' },
   timeRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  timeInput: { width: 64, backgroundColor: A.inputBg, borderRadius: 6, borderWidth: 1, borderColor: A.inputBorder, paddingHorizontal: 8, paddingVertical: 6, fontSize: 13, color: A.text, textAlign: 'center' },
-  timeDash: { color: A.textSub, fontSize: 14 },
+  timeInput: { width: 64, backgroundColor: S.inputBg, borderRadius: 6, borderWidth: 1, borderColor: S.inputBorder, paddingHorizontal: 8, paddingVertical: 6, fontSize: 13, color: S.text, textAlign: 'center' },
+  timeDash: { color: S.textSub, fontSize: 14 },
   saveBtn: { borderRadius: 10, paddingVertical: 14, alignItems: 'center', justifyContent: 'center', marginTop: 14 },
   saveBtnText: { fontSize: 14, fontWeight: '700' },
-  payRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: A.border },
+  payRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: S.border },
   payLabel: { fontSize: 14, flex: 1 },
   fieldGroup: { gap: 6, marginBottom: 14 },
-  feeInput: { backgroundColor: A.inputBg, borderRadius: 10, borderWidth: 1, borderColor: A.inputBorder, paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, color: A.text, minHeight: 48 },
-  feeHint: { fontSize: 11, color: A.textSub, marginTop: 4, lineHeight: 16 },
-  whatsappDesc: { fontSize: 12, color: A.textSub, lineHeight: 17, marginBottom: 14 },
-  logoutCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, backgroundColor: A.redDim, borderRadius: 12, paddingVertical: 16, borderWidth: 1, borderColor: A.red },
+  feeInput: { backgroundColor: S.inputBg, borderRadius: 10, borderWidth: 1, borderColor: S.inputBorder, paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, color: S.text, minHeight: 48 },
+  feeHint: { fontSize: 11, color: S.textSub, marginTop: 4, lineHeight: 16 },
+  whatsappDesc: { fontSize: 12, color: S.textSub, lineHeight: 17, marginBottom: 14 },
+  logoutCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, backgroundColor: S.redDim, borderRadius: 12, paddingVertical: 16, borderWidth: 1, borderColor: S.red },
   msgBar: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 8 },
-  modalOverlay: { flex: 1, backgroundColor: A.overlay, justifyContent: 'flex-end' },
-  modalContent: { backgroundColor: A.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, maxHeight: '85%' },
+  modalOverlay: { flex: 1, backgroundColor: S.overlay, justifyContent: 'flex-end' },
+  modalContent: { backgroundColor: S.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, maxHeight: '85%' },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-  modalTitle: { fontSize: 18, fontWeight: '700', color: A.text },
-  inputLabel: { fontSize: 12, fontWeight: '600', color: A.textSub, marginBottom: 6, marginTop: 12 },
-  textInput: { backgroundColor: A.inputBg, borderRadius: 10, borderWidth: 1, borderColor: A.inputBorder, paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, color: A.text, minHeight: 48 },
+  modalTitle: { fontSize: 18, fontWeight: '700', color: S.text },
+  inputLabel: { fontSize: 12, fontWeight: '600', color: S.textSub, marginBottom: 6, marginTop: 12 },
+  textInput: { backgroundColor: S.inputBg, borderRadius: 10, borderWidth: 1, borderColor: S.inputBorder, paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, color: S.text, minHeight: 48 },
   inputRow: { flexDirection: 'row', gap: 12 },
-  gpsBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: A.greenDim, borderRadius: 10, paddingVertical: 14, borderWidth: 1, borderColor: A.green, marginTop: 16 },
-  searchRow: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: A.inputBg, borderRadius: 10, borderWidth: 1, paddingHorizontal: 12, marginBottom: 8 },
+  gpsBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: S.greenDim, borderRadius: 10, paddingVertical: 14, borderWidth: 1, borderColor: S.green, marginTop: 16 },
+  searchRow: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: S.inputBg, borderRadius: 10, borderWidth: 1, paddingHorizontal: 12, marginBottom: 8 },
   tierRow: { borderWidth: 1, borderRadius: 10, padding: 10, flexDirection: 'row', alignItems: 'center', gap: 8 },
   tierInputs: { flex: 1, flexDirection: 'row', gap: 6 },
   tierField: { flex: 1 },
-  tierLabel: { fontSize: 10, fontWeight: '600', color: A.textSub, marginBottom: 3 },
-  tierInput: { backgroundColor: A.inputBg, borderRadius: 6, borderWidth: 1, paddingHorizontal: 8, paddingVertical: 8, fontSize: 13, minHeight: 40 },
+  tierLabel: { fontSize: 10, fontWeight: '600', color: S.textSub, marginBottom: 3 },
+  tierInput: { backgroundColor: S.inputBg, borderRadius: 6, borderWidth: 1, paddingHorizontal: 8, paddingVertical: 8, fontSize: 13, minHeight: 40 },
 });

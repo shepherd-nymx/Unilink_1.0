@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
-import { A } from '@/lib/admin-theme';
+import { S } from '@/lib/shop-theme';
 import {
   STATUS_COLORS,
   PAYMENT_METHOD_LABELS,
@@ -53,7 +53,7 @@ function RevenueBar({
     <View style={styles.barCol}>
       <View style={styles.barTrack}>
         <Animated.View
-          style={[styles.barFill, { height: `${heightPct}%`, backgroundColor: amount > 0 ? A.cyan : A.border }]}
+          style={[styles.barFill, { height: `${heightPct}%`, backgroundColor: amount > 0 ? S.cyan : S.border }]}
         />
       </View>
       <Text style={styles.barLabel}>{label}</Text>
@@ -196,18 +196,18 @@ export function AnalyticsTab({ orders, products, commissionRate, commissionDeadl
         <View style={styles.statsRow}>
           <View style={styles.revCard}>
             <View style={styles.revTop}>
-              <TrendingUp size={16} color={A.green} />
+              <TrendingUp size={16} color={S.green} />
               <Text style={styles.revLabel}>Today</Text>
             </View>
             <Text style={styles.revValue}>{fmtMoney(a.todayRev)}</Text>
             {a.yesterdayRev > 0 && (
               <View style={styles.trendRow}>
                 {a.dayTrend >= 0 ? (
-                  <TrendingUp size={11} color={A.green} />
+                  <TrendingUp size={11} color={S.green} />
                 ) : (
-                  <TrendingDown size={11} color={A.red} />
+                  <TrendingDown size={11} color={S.red} />
                 )}
-                <Text style={[styles.trendText, { color: a.dayTrend >= 0 ? A.green : A.red }]}>
+                <Text style={[styles.trendText, { color: a.dayTrend >= 0 ? S.green : S.red }]}>
                   {a.dayTrend >= 0 ? '+' : ''}
                   {a.dayTrend.toFixed(0)}% vs yesterday
                 </Text>
@@ -216,14 +216,14 @@ export function AnalyticsTab({ orders, products, commissionRate, commissionDeadl
           </View>
           <View style={styles.revCard}>
             <View style={styles.revTop}>
-              <TrendingUp size={16} color={A.cyan} />
+              <TrendingUp size={16} color={S.cyan} />
               <Text style={styles.revLabel}>This Week</Text>
             </View>
             <Text style={styles.revValue}>{fmtMoney(a.weekRev)}</Text>
           </View>
           <View style={styles.revCard}>
             <View style={styles.revTop}>
-              <TrendingUp size={16} color={A.blue} />
+              <TrendingUp size={16} color={S.blue} />
               <Text style={styles.revLabel}>This Month</Text>
             </View>
             <Text style={styles.revValue}>{fmtMoney(a.monthRev)}</Text>
@@ -245,10 +245,10 @@ export function AnalyticsTab({ orders, products, commissionRate, commissionDeadl
       <View>
         <Text style={styles.sectionTitle}>Orders</Text>
         <View style={styles.statsRow}>
-          <StatCard label="Total" value={String(a.totalOrders)} color={A.cyan} icon={<ShoppingBag size={16} color={A.cyan} />} />
-          <StatCard label="Completed" value={String(a.completedCount)} color={A.green} icon={<ShoppingBag size={16} color={A.green} />} />
-          <StatCard label="Pending" value={String(a.pendingCount)} color={A.amber} icon={<ShoppingBag size={16} color={A.amber} />} />
-          <StatCard label="Cancelled" value={String(a.cancelledCount)} color={A.red} icon={<ShoppingBag size={16} color={A.red} />} />
+          <StatCard label="Total" value={String(a.totalOrders)} color={S.cyan} icon={<ShoppingBag size={16} color={S.cyan} />} />
+          <StatCard label="Completed" value={String(a.completedCount)} color={S.green} icon={<ShoppingBag size={16} color={S.green} />} />
+          <StatCard label="Pending" value={String(a.pendingCount)} color={S.amber} icon={<ShoppingBag size={16} color={S.amber} />} />
+          <StatCard label="Cancelled" value={String(a.cancelledCount)} color={S.red} icon={<ShoppingBag size={16} color={S.red} />} />
         </View>
       </View>
 
@@ -256,9 +256,9 @@ export function AnalyticsTab({ orders, products, commissionRate, commissionDeadl
       <View>
         <Text style={styles.sectionTitle}>Customers</Text>
         <View style={styles.statsRow}>
-          <StatCard label="Total Served" value={String(a.totalCustomers)} color={A.cyan} icon={<Users size={16} color={A.cyan} />} />
-          <StatCard label="Returning" value={String(a.returning)} color={A.green} icon={<Users size={16} color={A.green} />} />
-          <StatCard label="New" value={String(a.newCust)} color={A.blue} icon={<Users size={16} color={A.blue} />} />
+          <StatCard label="Total Served" value={String(a.totalCustomers)} color={S.cyan} icon={<Users size={16} color={S.cyan} />} />
+          <StatCard label="Returning" value={String(a.returning)} color={S.green} icon={<Users size={16} color={S.green} />} />
+          <StatCard label="New" value={String(a.newCust)} color={S.blue} icon={<Users size={16} color={S.blue} />} />
         </View>
       </View>
 
@@ -266,9 +266,9 @@ export function AnalyticsTab({ orders, products, commissionRate, commissionDeadl
       <View>
         <Text style={styles.sectionTitle}>Delivery</Text>
         <View style={styles.statsRow}>
-          <StatCard label="Avg Time" value={a.avgDeliveryMin > 0 ? `${Math.round(a.avgDeliveryMin)}m` : '—'} color={A.orange} icon={<Truck size={16} color={A.orange} />} />
-          <StatCard label="Completed" value={String(a.deliveredCount)} color={A.green} icon={<Truck size={16} color={A.green} />} />
-          <StatCard label="In Transit" value={String(a.pendingDelivery)} color={A.amber} icon={<Truck size={16} color={A.amber} />} />
+          <StatCard label="Avg Time" value={a.avgDeliveryMin > 0 ? `${Math.round(a.avgDeliveryMin)}m` : '—'} color={S.orange} icon={<Truck size={16} color={S.orange} />} />
+          <StatCard label="Completed" value={String(a.deliveredCount)} color={S.green} icon={<Truck size={16} color={S.green} />} />
+          <StatCard label="In Transit" value={String(a.pendingDelivery)} color={S.amber} icon={<Truck size={16} color={S.amber} />} />
         </View>
       </View>
 
@@ -276,22 +276,22 @@ export function AnalyticsTab({ orders, products, commissionRate, commissionDeadl
       <View>
         <Text style={styles.sectionTitle}>Products</Text>
         <View style={styles.productInsightRow}>
-          <View style={[styles.insightCard, { borderColor: `${A.green}40` }]}>
-            <Package size={16} color={A.green} />
+          <View style={[styles.insightCard, { borderColor: `${S.green}40` }]}>
+            <Package size={16} color={S.green} />
             <Text style={styles.insightTitle}>Best-Selling</Text>
             <Text style={styles.insightValue}>{a.bestSelling ? a.bestSelling[0] : '—'}</Text>
             {a.bestSelling && <Text style={styles.insightSub}>{a.bestSelling[1]} sold</Text>}
           </View>
-          <View style={[styles.insightCard, { borderColor: `${A.cyan}40` }]}>
-            <Package size={16} color={A.cyan} />
+          <View style={[styles.insightCard, { borderColor: `${S.cyan}40` }]}>
+            <Package size={16} color={S.cyan} />
             <Text style={styles.insightTitle}>Most Revenue</Text>
             <Text style={styles.insightValue}>{a.mostRevenue ? a.mostRevenue[0] : '—'}</Text>
             {a.mostRevenue && <Text style={styles.insightSub}>{fmtMoney(a.mostRevenue[1])}</Text>}
           </View>
         </View>
         {a.lowStock.length > 0 && (
-          <View style={[styles.lowStockCard, { borderColor: A.amber }]}>
-            <AlertTriangle size={16} color={A.amber} />
+          <View style={[styles.lowStockCard, { borderColor: S.amber }]}>
+            <AlertTriangle size={16} color={S.amber} />
             <Text style={[styles.insightValue, { flex: 1 }]}>
               {a.lowStock.length} product(s) low on stock:{' '}
               {a.lowStock.slice(0, 4).map((p) => `${p.name} (${p.stock})`).join(', ')}
@@ -303,78 +303,78 @@ export function AnalyticsTab({ orders, products, commissionRate, commissionDeadl
 
       {/* Commission owed */}
       {commissionRate != null && commissionRate > 0 && (
-        <View style={[styles.chartCard, { borderColor: `${A.amber}40` }]}>
+        <View style={[styles.chartCard, { borderColor: `${S.amber}40` }]}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-            <DollarSign size={18} color={A.amber} />
+            <DollarSign size={18} color={S.amber} />
             <Text style={styles.sectionTitle}>UniLink Delivery Commission</Text>
           </View>
           <View style={{ flexDirection: 'row', gap: 8 }}>
             <View style={[styles.revCard, { flex: 1 }]}>
               <View style={styles.revTop}>
-                <TrendingUp size={14} color={A.cyan} />
+                <TrendingUp size={14} color={S.cyan} />
                 <Text style={styles.revLabel}>Revenue</Text>
               </View>
               <Text style={styles.revValue}>{fmtMoney(a.confirmedRevenue)}</Text>
             </View>
-            <View style={[styles.revCard, { flex: 1, borderColor: `${A.amber}40` }]}>
+            <View style={[styles.revCard, { flex: 1, borderColor: `${S.amber}40` }]}>
               <View style={styles.revTop}>
-                <DollarSign size={14} color={A.amber} />
+                <DollarSign size={14} color={S.amber} />
                 <Text style={styles.revLabel}>Rate</Text>
               </View>
               <Text style={styles.revValue}>{commissionRate.toFixed(0)}%</Text>
             </View>
-            <View style={[styles.revCard, { flex: 1, borderColor: A.amber, backgroundColor: A.amberDim }]}>
+            <View style={[styles.revCard, { flex: 1, borderColor: S.amber, backgroundColor: S.amberDim }]}>
               <View style={styles.revTop}>
-                <DollarSign size={14} color={A.amber} />
+                <DollarSign size={14} color={S.amber} />
                 <Text style={styles.revLabel}>Owed</Text>
               </View>
-              <Text style={[styles.revValue, { color: A.amber }]}>{fmtMoney(a.confirmedRevenue * (commissionRate / 100))}</Text>
+              <Text style={[styles.revValue, { color: S.amber }]}>{fmtMoney(a.confirmedRevenue * (commissionRate / 100))}</Text>
             </View>
           </View>
           <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
-            <View style={[styles.revCard, { flex: 1, borderColor: `${A.green}40` }]}>
+            <View style={[styles.revCard, { flex: 1, borderColor: `${S.green}40` }]}>
               <View style={styles.revTop}>
-                <CheckCircle size={14} color={A.green} />
+                <CheckCircle size={14} color={S.green} />
                 <Text style={styles.revLabel}>Paid</Text>
               </View>
-              <Text style={[styles.revValue, { color: A.green }]}>{fmtMoney(commissionPaid || 0)}</Text>
+              <Text style={[styles.revValue, { color: S.green }]}>{fmtMoney(commissionPaid || 0)}</Text>
             </View>
-            <View style={[styles.revCard, { flex: 1, borderColor: A.red, backgroundColor: A.redDim }]}>
+            <View style={[styles.revCard, { flex: 1, borderColor: S.red, backgroundColor: S.redDim }]}>
               <View style={styles.revTop}>
-                <DollarSign size={14} color={A.red} />
+                <DollarSign size={14} color={S.red} />
                 <Text style={styles.revLabel}>Balance</Text>
               </View>
-              <Text style={[styles.revValue, { color: A.red }]}>{fmtMoney(Math.max(a.confirmedRevenue * (commissionRate / 100) - (commissionPaid || 0), 0))}</Text>
+              <Text style={[styles.revValue, { color: S.red }]}>{fmtMoney(Math.max(a.confirmedRevenue * (commissionRate / 100) - (commissionPaid || 0), 0))}</Text>
             </View>
           </View>
           {commissionDeadline && (
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 12 }}>
-              <Calendar size={13} color={A.amber} />
-              <Text style={{ fontSize: 12, color: A.amber, fontWeight: '600' }}>
+              <Calendar size={13} color={S.amber} />
+              <Text style={{ fontSize: 12, color: S.amber, fontWeight: '600' }}>
                 Payment due by {new Date(commissionDeadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
               </Text>
             </View>
           )}
-          <Text style={{ fontSize: 11, color: A.textSub, marginTop: 8, lineHeight: 16 }}>
+          <Text style={{ fontSize: 11, color: S.textSub, marginTop: 8, lineHeight: 16 }}>
             {commissionRate.toFixed(0)}% of revenue from confirmed orders is owed to UniLink Delivery as platform commission.
           </Text>
           {ecocashNumber && (
-            <View style={{ marginTop: 12, backgroundColor: A.surface, borderRadius: 10, borderWidth: 1, borderColor: `${A.green}40`, padding: 14, gap: 8 }}>
+            <View style={{ marginTop: 12, backgroundColor: S.surface, borderRadius: 10, borderWidth: 1, borderColor: `${S.green}40`, padding: 14, gap: 8 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <Smartphone size={16} color={A.green} />
-                <Text style={{ fontSize: 13, fontWeight: '700', color: A.green }}>Send Payment via Ecocash</Text>
+                <Smartphone size={16} color={S.green} />
+                <Text style={{ fontSize: 13, fontWeight: '700', color: S.green }}>Send Payment via Ecocash</Text>
               </View>
               <View>
-                <Text style={{ fontSize: 10, fontWeight: '600', color: A.textSub }}>ECOCASH NUMBER</Text>
-                <Text style={{ fontSize: 15, fontWeight: '700', color: A.text }}>{ecocashNumber}</Text>
+                <Text style={{ fontSize: 10, fontWeight: '600', color: S.textSub }}>ECOCASH NUMBER</Text>
+                <Text style={{ fontSize: 15, fontWeight: '700', color: S.text }}>{ecocashNumber}</Text>
               </View>
               {ecocashName && (
                 <View>
-                  <Text style={{ fontSize: 10, fontWeight: '600', color: A.textSub }}>ACCOUNT NAME</Text>
-                  <Text style={{ fontSize: 15, fontWeight: '700', color: A.text }}>{ecocashName}</Text>
+                  <Text style={{ fontSize: 10, fontWeight: '600', color: S.textSub }}>ACCOUNT NAME</Text>
+                  <Text style={{ fontSize: 15, fontWeight: '700', color: S.text }}>{ecocashName}</Text>
                 </View>
               )}
-              <Text style={{ fontSize: 11, color: A.textSub, marginTop: 4 }}>
+              <Text style={{ fontSize: 11, color: S.textSub, marginTop: 4 }}>
                 Use this Ecocash number to send your commission payment to UniLink Delivery.
               </Text>
             </View>
@@ -391,7 +391,7 @@ export function AnalyticsTab({ orders, products, commissionRate, commissionDeadl
           a.payEntries.map(([method, count]) => {
             const pct = (count / a.totalOrdersForPay) * 100;
             const label = PAYMENT_METHOD_LABELS[method] || method;
-            const color = method === 'paynow' ? A.cyan : method === 'pay_on_delivery' ? A.green : A.blue;
+            const color = method === 'paynow' ? S.cyan : method === 'pay_on_delivery' ? S.green : S.blue;
             return (
               <View key={method} style={styles.payRow}>
                 <View style={styles.payRowTop}>
@@ -413,12 +413,12 @@ export function AnalyticsTab({ orders, products, commissionRate, commissionDeadl
       {hasData && insights.length > 0 && (
         <View style={styles.insightsCard}>
           <View style={styles.insightsHeader}>
-            <Lightbulb size={18} color={A.amber} />
+            <Lightbulb size={18} color={S.amber} />
             <Text style={styles.insightsTitle}>Insights</Text>
           </View>
           {insights.map((t, i) => (
             <View key={i} style={styles.insightBulletRow}>
-              <View style={[styles.insightDot, { backgroundColor: A.amber }]} />
+              <View style={[styles.insightDot, { backgroundColor: S.amber }]} />
               <Text style={styles.insightBulletText}>{t}</Text>
             </View>
           ))}
@@ -427,7 +427,7 @@ export function AnalyticsTab({ orders, products, commissionRate, commissionDeadl
 
       {!hasData && (
         <View style={styles.empty}>
-          <ShoppingBag size={40} color={A.textMuted} />
+          <ShoppingBag size={40} color={S.textMuted} />
           <Text style={styles.emptyText}>No data yet — insights appear once you have orders</Text>
         </View>
       )}
@@ -441,78 +441,78 @@ function inRange(orderDate: string, start: Date, end: Date): boolean {
 }
 
 const styles = StyleSheet.create({
-  sectionTitle: { fontSize: 15, fontWeight: '700', color: A.text, marginBottom: 10 },
+  sectionTitle: { fontSize: 15, fontWeight: '700', color: S.text, marginBottom: 10 },
   statsRow: { flexDirection: 'row', gap: 8 },
   statCard: {
     flex: 1,
-    backgroundColor: A.card,
+    backgroundColor: S.card,
     borderRadius: 10,
     padding: 12,
     alignItems: 'center',
     gap: 4,
     borderWidth: 1,
-    borderColor: A.border,
+    borderColor: S.border,
   },
-  statValue: { fontSize: 18, fontWeight: '800', color: A.text },
-  statLabel: { fontSize: 10, color: A.textSub },
+  statValue: { fontSize: 18, fontWeight: '800', color: S.text },
+  statLabel: { fontSize: 10, color: S.textSub },
   revCard: {
     flex: 1,
-    backgroundColor: A.card,
+    backgroundColor: S.card,
     borderRadius: 10,
     padding: 12,
     borderWidth: 1,
-    borderColor: A.border,
+    borderColor: S.border,
     gap: 6,
   },
   revTop: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  revLabel: { fontSize: 11, color: A.textSub, fontWeight: '600' },
-  revValue: { fontSize: 17, fontWeight: '800', color: A.text },
+  revLabel: { fontSize: 11, color: S.textSub, fontWeight: '600' },
+  revValue: { fontSize: 17, fontWeight: '800', color: S.text },
   trendRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   trendText: { fontSize: 10, fontWeight: '600' },
-  chartCard: { backgroundColor: A.card, borderRadius: 12, padding: 16, borderWidth: 1, borderColor: A.border },
+  chartCard: { backgroundColor: S.card, borderRadius: 12, padding: 16, borderWidth: 1, borderColor: S.border },
   barChart: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', height: 120, marginTop: 10, gap: 6 },
   barCol: { flex: 1, alignItems: 'center', gap: 4, height: '100%' },
-  barTrack: { flex: 1, width: '100%', backgroundColor: A.inputBg, borderRadius: 4, justifyContent: 'flex-end', overflow: 'hidden' },
+  barTrack: { flex: 1, width: '100%', backgroundColor: S.inputBg, borderRadius: 4, justifyContent: 'flex-end', overflow: 'hidden' },
   barFill: { width: '100%', borderRadius: 4 },
-  barLabel: { fontSize: 9, color: A.textSub, fontWeight: '600' },
-  barAmt: { fontSize: 8, color: A.textMuted },
+  barLabel: { fontSize: 9, color: S.textSub, fontWeight: '600' },
+  barAmt: { fontSize: 8, color: S.textMuted },
   productInsightRow: { flexDirection: 'row', gap: 8 },
   insightCard: {
     flex: 1,
-    backgroundColor: A.card,
+    backgroundColor: S.card,
     borderRadius: 10,
     padding: 12,
     gap: 4,
     borderWidth: 1,
-    borderColor: A.border,
+    borderColor: S.border,
   },
-  insightTitle: { fontSize: 10, color: A.textSub, fontWeight: '600', textTransform: 'uppercase' as any, letterSpacing: 0.5 },
-  insightValue: { fontSize: 13, color: A.text, fontWeight: '600' },
-  insightSub: { fontSize: 11, color: A.textSub },
+  insightTitle: { fontSize: 10, color: S.textSub, fontWeight: '600', textTransform: 'uppercase' as any, letterSpacing: 0.5 },
+  insightValue: { fontSize: 13, color: S.text, fontWeight: '600' },
+  insightSub: { fontSize: 11, color: S.textSub },
   lowStockCard: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: A.amberDim,
+    backgroundColor: S.amberDim,
     borderRadius: 10,
     padding: 12,
     marginTop: 8,
     borderWidth: 1,
-    borderColor: A.amber,
+    borderColor: S.amber,
   },
   payRow: { marginBottom: 12 },
   payRowTop: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
-  payLabel: { fontSize: 12, color: A.text, fontWeight: '600' },
-  payCount: { fontSize: 11, color: A.textSub },
-  payBarTrack: { height: 8, backgroundColor: A.inputBg, borderRadius: 4, overflow: 'hidden' },
+  payLabel: { fontSize: 12, color: S.text, fontWeight: '600' },
+  payCount: { fontSize: 11, color: S.textSub },
+  payBarTrack: { height: 8, backgroundColor: S.inputBg, borderRadius: 4, overflow: 'hidden' },
   payBarFill: { height: '100%', borderRadius: 4 },
-  insightsCard: { backgroundColor: A.card, borderRadius: 12, padding: 16, borderWidth: 1, borderColor: `${A.amber}40` },
+  insightsCard: { backgroundColor: S.card, borderRadius: 12, padding: 16, borderWidth: 1, borderColor: `${S.amber}40` },
   insightsHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
-  insightsTitle: { fontSize: 15, fontWeight: '700', color: A.text },
+  insightsTitle: { fontSize: 15, fontWeight: '700', color: S.text },
   insightBulletRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginBottom: 8 },
   insightDot: { width: 6, height: 6, borderRadius: 3, marginTop: 6 },
-  insightBulletText: { fontSize: 13, color: A.textSub, flex: 1, lineHeight: 18 },
-  noData: { fontSize: 13, color: A.textSub, paddingVertical: 16, textAlign: 'center' },
+  insightBulletText: { fontSize: 13, color: S.textSub, flex: 1, lineHeight: 18 },
+  noData: { fontSize: 13, color: S.textSub, paddingVertical: 16, textAlign: 'center' },
   empty: { alignItems: 'center', justifyContent: 'center', paddingVertical: 60, gap: 12 },
-  emptyText: { color: A.textSub, fontSize: 14, textAlign: 'center' },
+  emptyText: { color: S.textSub, fontSize: 14, textAlign: 'center' },
 });

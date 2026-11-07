@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
-import { A } from '@/lib/admin-theme';
+import { S } from '@/lib/shop-theme';
 import {
   STATUS_LABELS,
   STATUS_COLORS,
@@ -64,13 +64,13 @@ export function HistoryTab({ orders }: { orders: ShopOrder[] }) {
   return (
     <View style={{ flex: 1 }}>
       <View style={styles.searchRow}>
-        <Search size={16} color={A.textSub} />
+        <Search size={16} color={S.textSub} />
         <TextInput
           style={styles.searchInput}
           value={query}
           onChangeText={setQuery}
           placeholder="Search order ID, customer name, phone..."
-          placeholderTextColor={A.textMuted}
+          placeholderTextColor={S.textMuted}
         />
       </View>
 
@@ -85,10 +85,10 @@ export function HistoryTab({ orders }: { orders: ShopOrder[] }) {
           return (
             <TouchableOpacity
               key={f.key}
-              style={[styles.chip, active && { backgroundColor: A.cyanDim, borderColor: A.cyan }]}
+              style={[styles.chip, active && { backgroundColor: S.cyanDim, borderColor: S.cyan }]}
               onPress={() => setFilter(f.key)}
             >
-              <Text style={[styles.chipText, { color: active ? A.cyan : A.textSub }]}>{f.label}</Text>
+              <Text style={[styles.chipText, { color: active ? S.cyan : S.textSub }]}>{f.label}</Text>
             </TouchableOpacity>
           );
         })}
@@ -96,13 +96,13 @@ export function HistoryTab({ orders }: { orders: ShopOrder[] }) {
 
       {filtered.length === 0 ? (
         <View style={styles.empty}>
-          <Calendar size={40} color={A.textMuted} />
+          <Calendar size={40} color={S.textMuted} />
           <Text style={styles.emptyText}>No orders match your filters</Text>
         </View>
       ) : (
         <View style={{ gap: 10 }}>
           {filtered.map((order) => {
-            const color = STATUS_COLORS[order.status] || A.textSub;
+            const color = STATUS_COLORS[order.status] || S.textSub;
             return (
               <View key={order.id} style={styles.card}>
                 <View style={styles.cardHeader}>
@@ -123,7 +123,7 @@ export function HistoryTab({ orders }: { orders: ShopOrder[] }) {
                 </View>
                 <View style={styles.cardRow}>
                   <Text style={styles.cardLabel}>Total</Text>
-                  <Text style={[styles.cardValue, { color: A.green, fontWeight: '700' }]}>
+                  <Text style={[styles.cardValue, { color: S.green, fontWeight: '700' }]}>
                     ${Number(order.total_amount).toFixed(2)}
                   </Text>
                 </View>
@@ -145,7 +145,7 @@ export function HistoryTab({ orders }: { orders: ShopOrder[] }) {
                     {new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </Text>
                   {order.delivered_at && (
-                    <Text style={[styles.cardTime, { color: A.green }]}>
+                    <Text style={[styles.cardTime, { color: S.green }]}>
                       Completed {new Date(order.delivered_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </Text>
                   )}
@@ -164,47 +164,47 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: A.inputBg,
+    backgroundColor: S.inputBg,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: A.inputBorder,
+    borderColor: S.inputBorder,
     paddingHorizontal: 14,
     paddingVertical: 4,
     marginBottom: 12,
   },
-  searchInput: { flex: 1, color: A.text, fontSize: 14, paddingVertical: 10 },
+  searchInput: { flex: 1, color: S.text, fontSize: 14, paddingVertical: 10 },
   chip: {
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: A.border,
-    backgroundColor: A.card,
+    borderColor: S.border,
+    backgroundColor: S.card,
   },
   chipText: { fontSize: 12, fontWeight: '600' },
   empty: { alignItems: 'center', justifyContent: 'center', paddingVertical: 60, gap: 12 },
-  emptyText: { color: A.textSub, fontSize: 14 },
+  emptyText: { color: S.textSub, fontSize: 14 },
   card: {
-    backgroundColor: A.card,
+    backgroundColor: S.card,
     borderRadius: 12,
     padding: 14,
     borderWidth: 1,
-    borderColor: A.border,
+    borderColor: S.border,
   },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  orderId: { fontSize: 14, fontWeight: '700', color: A.text },
+  orderId: { fontSize: 14, fontWeight: '700', color: S.text },
   badge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, borderWidth: 1 },
   badgeText: { fontSize: 10, fontWeight: '600' },
   cardRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4 },
-  cardLabel: { fontSize: 12, color: A.textSub },
-  cardValue: { fontSize: 13, color: A.text },
+  cardLabel: { fontSize: 12, color: S.textSub },
+  cardValue: { fontSize: 13, color: S.text },
   cardFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginTop: 8,
     paddingTop: 8,
     borderTopWidth: 1,
-    borderTopColor: A.border,
+    borderTopColor: S.border,
   },
-  cardTime: { fontSize: 11, color: A.textMuted },
+  cardTime: { fontSize: 11, color: S.textMuted },
 });
