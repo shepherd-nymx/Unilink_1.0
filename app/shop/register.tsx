@@ -31,16 +31,15 @@ import {
   Check,
   Tag,
 } from 'lucide-react-native';
-import { useTheme } from '@/contexts/ThemeContext';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
 import { TermsAndConditions } from '@/components/TermsAndConditions';
 import { sendEmail } from '@/lib/email-service';
 import { SHOP_CATEGORIES } from '@/components/marketplace/types';
+import { S } from '@/lib/shop-theme';
 
 export default function ShopRegister() {
   const router = useRouter();
-  const { colors, isDark } = useTheme();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(20)).current;
 
@@ -91,18 +90,18 @@ export default function ShopRegister() {
     }
   };
 
-  const bg = isDark ? '#050b16' : '#f0f4f8';
-  const cardBg = isDark ? '#0a1220' : '#ffffff';
-  const cardBorder = isDark ? '#1a2d4a' : '#e2e8f0';
-  const textPrimary = isDark ? '#e0eeff' : '#0a1929';
-  const textSecondary = isDark ? '#6a8fb0' : '#64748b';
-  const inputBg = isDark ? '#0d1828' : '#f8fafc';
-  const inputBorder = isDark ? '#1a2d4a' : '#cbd5e1';
-  const placeholderColor = isDark ? '#3d5577' : '#94a3b8';
-  const primary = '#0066ff';
+  const bg = '#050b16';
+  const cardBg = '#0a1220';
+  const cardBorder = '#1a2d4a';
+  const textPrimary = '#e0eeff';
+  const textSecondary = '#6a8fb0';
+  const inputBg = '#0d1828';
+  const inputBorder = '#1a2d4a';
+  const placeholderColor = '#3d5577';
+  const primary = '#00e5ff';
   const primaryLight = '#3385ff';
-  const errorColor = '#ef4444';
-  const successColor = '#10b981';
+  const errorColor = '#ff3366';
+  const successColor = '#00ff88';
 
   const useGps = async () => {
     setLocating(true);
@@ -389,7 +388,7 @@ export default function ShopRegister() {
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <View style={[styles.headerLogo, { borderColor: primary }]}>
-            <View style={[styles.headerLogoInner, { backgroundColor: `${primary}15`, borderColor: primaryLight }]}>
+            <View style={[styles.headerLogoInner, { backgroundColor: S.cyanDim, borderColor: primaryLight }]}>
               <Store size={22} color={primary} />
             </View>
           </View>
@@ -405,7 +404,7 @@ export default function ShopRegister() {
 
       <Animated.View style={[styles.body, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
         {error ? (
-          <View style={[styles.errorBox, { backgroundColor: isDark ? 'rgba(239,68,68,0.1)' : '#fff5f5', borderColor: errorColor }]}>
+          <View style={[styles.errorBox, { backgroundColor: S.redDim, borderColor: errorColor }]}>
             <AlertCircle size={16} color={errorColor} />
             <Text style={[styles.errorText, { color: errorColor }]}>{error}</Text>
           </View>
@@ -558,7 +557,7 @@ export default function ShopRegister() {
                 Enter your shop's latitude and longitude so messengers can navigate to you
               </Text>
               <TouchableOpacity
-                style={[styles.gpsDetectBtn, { backgroundColor: isDark ? 'rgba(0,102,255,0.1)' : '#eff6ff', borderColor: `${primary}40` }]}
+                style={[styles.gpsDetectBtn, { backgroundColor: S.blueDim, borderColor: `${primary}40` }]}
                 onPress={useGps}
                 disabled={locating}
               >
@@ -572,7 +571,7 @@ export default function ShopRegister() {
                 </Text>
               </TouchableOpacity>
               {(latitude && longitude) ? (
-                <View style={[styles.gpsDetectedBox, { backgroundColor: isDark ? 'rgba(16,185,129,0.1)' : '#ecfdf5', borderColor: `${successColor}40` }]}>
+                <View style={[styles.gpsDetectedBox, { backgroundColor: S.greenDim, borderColor: `${successColor}40` }]}>
                   <MapPin size={12} color={successColor} />
                   <Text style={{ color: successColor, fontSize: 11, fontWeight: '600' }}>
                     Location detected: {latitude}, {longitude}
