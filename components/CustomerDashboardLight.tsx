@@ -8,21 +8,21 @@ export function CustomerDashboardLightHeader({ name, desktop, copied, onShare, o
     {!desktop && <Text style={lightDashboard.wordmark}>UniLink</Text>}
     <View style={lightDashboard.heading}>
       <View style={lightDashboard.greetingRow}>
-        <Text style={[lightDashboard.greeting, !desktop && { fontSize: 26 }]} numberOfLines={1}>Hi, {name}</Text>
+        <Text style={[lightDashboard.greeting, !desktop && { fontSize: 22 }]} numberOfLines={1}>Hi, {name}</Text>
         <View style={lightDashboard.active}><View style={lightDashboard.activeDot}/><Text style={lightDashboard.activeText}>Active</Text></View>
       </View>
       <Text style={lightDashboard.subtitle}>What do you need today?</Text>
     </View>
-    <View style={[lightDashboard.actions, !desktop && { marginTop: 18 }]}>
+    <View style={[lightDashboard.actions, !desktop && { marginTop: 8, gap: 6 }]}>
       <View style={[lightDashboard.secondaryActions, !desktop && { width: '100%' }]}>
-        <TouchableOpacity accessibilityRole="button" accessibilityLabel="Share UniLink with friends" onPress={onShare} style={lightDashboard.secondaryButton}>
+        <TouchableOpacity accessibilityRole="button" accessibilityLabel="Share UniLink with friends" onPress={onShare} style={[lightDashboard.secondaryButton, !desktop && { minHeight: 32, paddingHorizontal: 12 }]} hitSlop={6}>
           <Share2 size={18} color="#20314e"/><Text style={lightDashboard.secondaryLabel}>{copied ? 'Link copied!' : 'Share'}</Text>
         </TouchableOpacity>
-        <TouchableOpacity accessibilityRole="button" onPress={onTutorial} style={lightDashboard.secondaryButton}>
+        <TouchableOpacity accessibilityRole="button" onPress={onTutorial} style={[lightDashboard.secondaryButton, !desktop && { minHeight: 32, paddingHorizontal: 12 }]} hitSlop={6}>
           <CircleHelp size={18} color="#20314e"/><Text style={lightDashboard.secondaryLabel}>How it works</Text>
         </TouchableOpacity>
       </View>
-      <TouchableOpacity accessibilityRole="button" onPress={onDelivery} style={[lightDashboard.deliveryButton, !desktop && { width: '100%' }]}>
+      <TouchableOpacity accessibilityRole="button" onPress={onDelivery} style={[lightDashboard.deliveryButton, !desktop && { width: '100%', minHeight: 44 }]}>
         <Truck size={20} color="#fff"/><Text style={lightDashboard.deliveryLabel}>Request delivery</Text>
       </TouchableOpacity>
     </View>
@@ -36,24 +36,14 @@ export function CustomerGroceryBanner({ desktop }: { desktop: boolean }) {
   </View>;
 }
 
-export function CustomerProductArtwork({ name, icon, desktop }: { name: string; icon: string; desktop: boolean }) {
-  // These are illustrative category images, not merchant product photos or brands.
-  const image = /^milk\b/i.test(name) ? require('@/assets/images/customer-dashboard/milk.png')
-    : /shawarma/i.test(name) ? require('@/assets/images/customer-dashboard/shawarma.png') : null;
-  return <View style={[lightDashboard.productArtwork, desktop && { width: 112, height: 130 }]}>
-    {image ? <Image source={image} style={{ width: '100%', height: '100%' }} resizeMode="contain" accessible={false}/>
-      : <Text style={{ fontSize: 44 }} accessibilityElementsHidden>{icon || '🛍️'}</Text>}
-  </View>;
-}
-
 export const lightDashboard = StyleSheet.create({
-  header: { paddingHorizontal: 20, paddingTop: 22, paddingBottom: 14, backgroundColor: '#fff' },
+  header: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 8, backgroundColor: '#fff', width: '100%', minWidth: 0 },
   headerDesktop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 20, paddingHorizontal: 36, paddingTop: 32, paddingBottom: 22, flexWrap: 'wrap' },
-  wordmark: { fontSize: 22, fontWeight: '800', letterSpacing: -0.8, color: '#0057ff', marginBottom: 18 },
+  wordmark: { fontSize: 18, fontWeight: '800', letterSpacing: -0.8, color: '#0057ff', marginBottom: 5 },
   heading: { flexShrink: 1, minWidth: 0 },
   greetingRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   greeting: { color: '#0d1830', fontSize: 32, fontWeight: '800', letterSpacing: -1, flexShrink: 1 },
-  subtitle: { color: '#68768d', fontSize: 15, marginTop: 5 },
+  subtitle: { color: '#68768d', fontSize: 13, marginTop: 3 },
   active: { backgroundColor: '#d9fae7', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, flexDirection: 'row', alignItems: 'center', gap: 5 },
   activeDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#0baa57' },
   activeText: { color: '#078844', fontSize: 11, fontWeight: '700' },

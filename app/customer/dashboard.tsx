@@ -32,14 +32,14 @@ import { saveUserData, clearUserData, loadUserData } from '@/lib/storage-service
 import { startPaynowPayment, generateReference } from '@/lib/paynow-service';
 import { validateUpload } from '@/lib/upload-validation';
 import NotificationPermissionModal from '@/components/NotificationPermissionModal';
-import AnimatedChatIcon from '@/components/AnimatedChatIcon';
+import CustomerNavigation from '@/components/CustomerNavigation';
 import InAppNotificationBanner from '@/components/InAppNotificationBanner';
 import DriverSelectionModal from '@/components/DriverSelectionModal';
 import OpenRequestWaitingModal from '@/components/OpenRequestWaitingModal';
 import CustomerTutorial from '@/components/CustomerTutorial';
 import AnnouncementPopup from '@/components/AnnouncementPopup';
 import AnimatedDeliveryBackground from '@/components/AnimatedDeliveryBackground';
-import { CustomerDashboardLightHeader, CustomerGroceryBanner, CustomerProductArtwork, customerLightOverrides, lightDashboard } from '@/components/CustomerDashboardLight';
+import { CustomerDashboardLightHeader, CustomerGroceryBanner, customerLightOverrides, lightDashboard } from '@/components/CustomerDashboardLight';
 
 const CACHE_PREFIX = 'cache_customer_';
 const CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
@@ -124,43 +124,6 @@ type Driver = {
   availability_days?: string[];
 };
 
-function FlashingDot({ count, color = '#ef4444' }: { count: number; color?: string }) {
-  const opacity = useRef(new Animated.Value(1)).current;
-  const scale = useRef(new Animated.Value(1)).current;
-
-  useEffect(() => {
-    if (count === 0) return;
-    const loop = Animated.loop(
-      Animated.parallel([
-        Animated.sequence([
-          Animated.timing(opacity, { toValue: 0.3, duration: 500, useNativeDriver: true }),
-          Animated.timing(opacity, { toValue: 1, duration: 500, useNativeDriver: true }),
-        ]),
-        Animated.sequence([
-          Animated.spring(scale, { toValue: 1.3, useNativeDriver: true }),
-          Animated.spring(scale, { toValue: 1, useNativeDriver: true }),
-        ]),
-      ])
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [count]);
-
-  if (count === 0) return null;
-
-  return (
-    <Animated.View style={{
-      position: 'absolute', top: 2, right: 2,
-      minWidth: 16, height: 16, borderRadius: 8, paddingHorizontal: 3,
-      justifyContent: 'center', alignItems: 'center',
-      borderWidth: 1.5, borderColor: '#070f1c',
-      opacity, transform: [{ scale }], backgroundColor: color,
-    }}>
-      <Text style={{ fontSize: 8, fontWeight: '800', color: '#fff' }}>{count > 9 ? '9+' : count}</Text>
-    </Animated.View>
-  );
-}
-
 export default function CustomerDashboard() {
   const router = useRouter();
   const params = useLocalSearchParams();
@@ -179,9 +142,8 @@ export default function CustomerDashboard() {
   const { isChecking, isAccepted } = useTermsGuard('customer');
   useHardwareBackExit();
   const { unreadMessageCount, shopOrderUpdatesCount, inAppMessage, clearInAppMessage, requestNotificationPermission } = useNotifications();
-  const [groceryItems, setGroceryItems] = useState<GroceryItem[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
+  // Preset catalog selections were removed; retain the existing order payload shape.
+  const groceryItems: GroceryItem[] = [];
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [selectedDriver, setSelectedDriver] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -196,7 +158,6 @@ export default function CustomerDashboard() {
   const expiredOrderIds = useRef<Set<string>>(new Set());
   const [customItems, setCustomItems] = useState<CustomItem[]>([]);
   const [showAddItemModal, setShowAddItemModal] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
   const [driverSearchQuery, setDriverSearchQuery] = useState('');
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [acceptedOrder, setAcceptedOrder] = useState<any>(null);
@@ -277,8 +238,7 @@ export default function CustomerDashboard() {
     setCurrentUser(customerId, 'customer');
     saveUserData({ id: customerId, type: 'customer' });
     registerForPushNotificationsOnLogin(customerId, 'customer').catch(() => {});
-    loadCustomerData();
-    loadGroceryItems();
+    void loadCustomerData().finally(() => setLoading(false));
     loadDrivers();
     loadNotificationStatus();
     checkExpiredOrders();
@@ -356,13 +316,6 @@ export default function CustomerDashboard() {
     setSelectedDriver(null);
   }, [deliveryMethod, paymentOption]);
 
-  useEffect(() => {
-    if (searchQuery.trim()) {
-      const allCategoryIds = new Set(categories.map(cat => cat.id));
-      setExpandedCategories(allCategoryIds);
-    }
-  }, [searchQuery, categories]);
-
   const loadCustomerData = async () => {
     try {
       const { data, error: dbError } = await supabase
@@ -392,62 +345,6 @@ export default function CustomerDashboard() {
           setCustomerCoords({ latitude: cached.latitude, longitude: cached.longitude });
         }
       }
-    }
-  };
-
-  const loadGroceryItems = async () => {
-    try {
-      const { data: categoryData, error: catError } = await supabase
-        .from('categories')
-        .select('*')
-        .order('sort_order', { ascending: true });
-
-      if (catError) throw catError;
-      setCategories(categoryData || []);
-
-      const initialExpanded = new Set<string>();
-      categoryData?.forEach(cat => initialExpanded.add(cat.id));
-      setExpandedCategories(initialExpanded);
-
-      const { data, error: dbError } = await supabase
-        .from('grocery_items')
-        .select(`
-          *,
-          categories (
-            id,
-            name,
-            icon,
-            sort_order
-          )
-        `)
-        .eq('is_available', true)
-        .order('name');
-
-      if (dbError) throw dbError;
-
-      const mappedItems = data.map(item => ({ ...item, quantity: 0 }));
-      setGroceryItems(mappedItems);
-
-      saveCache('categories', categoryData || []);
-      saveCache('grocery_items', mappedItems);
-    } catch (err: any) {
-      console.error('Failed to load items:', err);
-      const cachedCats = loadCache<Category[]>('categories');
-      const cachedItems = loadCache<GroceryItem[]>('grocery_items');
-      if (cachedCats) {
-        setCategories(cachedCats);
-        setExpandedCategories(new Set(cachedCats.map(c => c.id)));
-      }
-      if (cachedItems) {
-        setGroceryItems(cachedItems);
-      }
-      if (!cachedItems) {
-        setError('Could not load items. Please try again.');
-      } else {
-        setError('You are offline. Showing cached items.');
-      }
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -592,28 +489,6 @@ export default function CustomerDashboard() {
     setSelectedDriverForReviews(driver);
     setShowReviewsModal(true);
     loadDriverReviews(driver.id);
-  };
-
-  const updateQuantity = (id: string, change: number) => {
-    setGroceryItems(items =>
-      items.map(item => {
-        if (item.id === id) {
-          const newQuantity = Math.max(0, item.quantity + change);
-          return { ...item, quantity: newQuantity };
-        }
-        return item;
-      })
-    );
-    if (change > 0 && !selectedDriver && deliveryMode === 'direct') {
-      if (scrollHintTimer.current) clearTimeout(scrollHintTimer.current);
-      setShowScrollHint(true);
-      Animated.sequence([
-        Animated.timing(scrollHintAnim, { toValue: 1, duration: 300, useNativeDriver: true }),
-        Animated.delay(2800),
-        Animated.timing(scrollHintAnim, { toValue: 0, duration: 300, useNativeDriver: true }),
-      ]).start();
-      scrollHintTimer.current = setTimeout(() => setShowScrollHint(false), 3400);
-    }
   };
 
   const calculateTotal = () => {
@@ -1744,18 +1619,6 @@ export default function CustomerDashboard() {
   const filteredDrivers = getFilteredDrivers();
   const commissionTier = getCommissionTier(total);
 
-  const getFilteredGroceryItems = () => {
-    if (!searchQuery.trim()) {
-      return groceryItems;
-    }
-    const query = searchQuery.toLowerCase().trim();
-    return groceryItems.filter(item =>
-      item.name.toLowerCase().includes(query)
-    );
-  };
-
-  const filteredGroceryItems = getFilteredGroceryItems();
-
   return (
     <View style={styles.container}>
       {isDark && <AnimatedDeliveryBackground />}
@@ -1863,118 +1726,7 @@ export default function CustomerDashboard() {
       )}
 
       <ScrollView ref={contentRef} style={styles.content} contentContainerStyle={!isDark ? { paddingBottom: 28 } : undefined}>
-        <View style={styles.searchContainer}>
-          <View style={styles.searchInputWrapper}>
-            <Search size={20} color={colors.textTertiary} style={styles.searchIcon} />
-            <TextInput
-              style={styles.searchInput}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              placeholder="Search groceries..."
-              placeholderTextColor={colors.placeholder}
-            />
-            {searchQuery.length > 0 && (
-              <TouchableOpacity
-                style={styles.clearSearchButton}
-                onPress={() => setSearchQuery('')}
-              >
-                <X size={18} color={colors.textTertiary} />
-              </TouchableOpacity>
-            )}
-          </View>
-          {searchQuery.trim() && filteredGroceryItems.length === 0 && (
-            <Text style={styles.noResultsText}>
-              No items found matching "{searchQuery}"
-            </Text>
-          )}
-        </View>
-
-        {!isDark && <>
-          <CustomerGroceryBanner desktop={desktopLight}/>
-          <Text style={lightDashboard.sectionTitle}>Shop essentials</Text>
-        </>}
-        <View style={styles.itemsList}>
-          {categories.map(category => {
-            const categoryItems = filteredGroceryItems.filter(
-              item => item.category_id === category.id
-            );
-            if (categoryItems.length === 0) return null;
-
-            const isExpanded = expandedCategories.has(category.id);
-            const categoryItemCount = categoryItems.reduce(
-              (sum, item) => sum + item.quantity,
-              0
-            );
-
-            return (
-              <View key={category.id} style={styles.categorySection}>
-                <TouchableOpacity
-                  style={styles.categoryHeader}
-                  accessibilityRole="button"
-                  accessibilityState={{ expanded: isExpanded }}
-                  onPress={() => {
-                    const newExpanded = new Set(expandedCategories);
-                    if (isExpanded) {
-                      newExpanded.delete(category.id);
-                    } else {
-                      newExpanded.add(category.id);
-                    }
-                    setExpandedCategories(newExpanded);
-                  }}
-                >
-                  <View style={styles.categoryHeaderLeft}>
-                    <Text style={styles.categoryEmoji}>{category.icon}</Text>
-                    <Text style={styles.categoryName}>{category.name}</Text>
-                    {categoryItemCount > 0 && (
-                      <View style={styles.categoryBadge}>
-                        <Text style={styles.categoryBadgeText}>{categoryItemCount}</Text>
-                      </View>
-                    )}
-                  </View>
-                  {isExpanded ? (
-                    <ChevronUp size={20} color={colors.textTertiary} />
-                  ) : (
-                    <ChevronDown size={20} color={colors.textTertiary} />
-                  )}
-                </TouchableOpacity>
-
-                {isExpanded && (
-                  <View style={styles.categoryItems}>
-                    {categoryItems.map(item => (
-                      <View key={item.id} style={styles.itemCard}>
-                        {!isDark && <CustomerProductArtwork name={item.name} icon={category.icon} desktop={desktopLight}/>}
-                        <View style={styles.itemInfo}>
-                          <Text style={styles.itemName}>{item.name}</Text>
-                          <Text style={styles.itemPrice}>${item.price.toFixed(2)}</Text>
-                        </View>
-                        <View style={styles.quantityControls}>
-                          <TouchableOpacity
-                            style={styles.quantityButton}
-                            accessibilityRole="button"
-                            accessibilityLabel={`Remove one ${item.name}`}
-                            onPress={() => updateQuantity(item.id, -1)}
-                          >
-                            <Text style={styles.quantityButtonText}>-</Text>
-                          </TouchableOpacity>
-                          <Text style={styles.quantityText}>{item.quantity}</Text>
-                          <TouchableOpacity
-                            style={styles.quantityButton}
-                            accessibilityRole="button"
-                            accessibilityLabel={`Add one ${item.name}`}
-                            onPress={() => updateQuantity(item.id, 1)}
-                          >
-                            <Text style={styles.quantityButtonText}>+</Text>
-                          </TouchableOpacity>
-                        </View>
-                      </View>
-                    ))}
-                  </View>
-                )}
-              </View>
-            );
-          })}
-        </View>
-
+        {!isDark && <CustomerGroceryBanner desktop={desktopLight}/>}
         {!isDark && <TouchableOpacity style={lightDashboard.nearby} accessibilityRole="button" onPress={() => router.push('/customer/marketplace')}>
           <View style={lightDashboard.nearbyIcon}><ShoppingBag size={22} color="#0057ff"/></View>
           <Text style={lightDashboard.nearbyLabel}>Nearby shops</Text><ChevronRight size={20} color="#384e6f"/>
@@ -2024,7 +1776,7 @@ export default function CustomerDashboard() {
           <View style={styles.orderSummary}>
             <Text style={styles.summaryTitle}>Order Summary</Text>
             <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Items ({selectedCount})</Text>
+              <Text style={styles.summaryLabel}>Items ({selectedCount + customItems.length})</Text>
               <Text style={styles.summaryValue}>${total.toFixed(2)}</Text>
             </View>
             {selectedDriverData && (
@@ -2371,108 +2123,10 @@ export default function CustomerDashboard() {
         <Text style={styles.deliveryFabText}>Nearby Shops</Text>
       </TouchableOpacity>}
 
-      {/* Bottom Navigation Bar */}
-      <View style={[styles.bottomNav, { backgroundColor: isDark ? 'rgba(13,25,42,0.96)' : '#FFFFFF' }]}>
-        {desktopLight && <Text style={lightDashboard.sidebarBrand}>UniLink</Text>}
-        {!isDark && <TouchableOpacity accessibilityRole="button" accessibilityLabel="Home" accessibilityState={{ selected: true }}
-          style={[styles.bottomNavItem, desktopLight && lightDashboard.home]} onPress={() => contentRef.current?.scrollTo({ y: 0, animated: true })}>
-          <View style={styles.bottomNavIconWrap}><Home size={22} color="#0057ff"/></View>
-          <Text style={[styles.bottomNavLabel, { color: '#0057ff' }]}>Home</Text>
-        </TouchableOpacity>}
-        <TouchableOpacity
-          style={styles.bottomNavItem}
-          onPress={() => router.push({ pathname: '/customer/profile', params: { customerId, customerName } })}
-          activeOpacity={0.6}
-        >
-          <View style={[
-            styles.bottomNavIconWrap,
-            { backgroundColor: isDark ? 'rgba(56,189,248,0.12)' : 'rgba(26,115,232,0.08)' }
-          ]}>
-            <User size={20} color={P} strokeWidth={2.2} />
-          </View>
-          <Text style={[styles.bottomNavLabel, { color: P }]}>Profile</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.bottomNavItem}
-          onPress={() => router.push({ pathname: '/customer/chat', params: { customerId, customerName } })}
-          activeOpacity={0.6}
-        >
-          <View style={[
-            styles.bottomNavIconWrap,
-            {
-              backgroundColor: unreadMessageCount > 0
-                ? 'rgba(239,68,68,0.12)'
-                : isDark ? 'rgba(56,189,248,0.12)' : 'rgba(26,115,232,0.08)'
-            }
-          ]}>
-            <AnimatedChatIcon
-              unreadCount={unreadMessageCount}
-              iconColor={unreadMessageCount > 0 ? '#EF4444' : P}
-              badgeColor="#ef4444"
-              size={20}
-            />
-          </View>
-          <Text style={[
-            styles.bottomNavLabel,
-            { color: unreadMessageCount > 0 ? '#EF4444' : P }
-          ]}>Chat</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.bottomNavItem}
-          onPress={() => {
-            setNotificationDot(null);
-            setShopUpdatesBaseline(shopOrderUpdatesCount);
-            router.push({ pathname: '/customer/orders', params: { customerId } });
-          }}
-          activeOpacity={0.6}
-        >
-          <View style={[
-            styles.bottomNavIconWrap,
-            {
-              backgroundColor: notificationDot || shopOrderUpdatesCount > shopUpdatesBaseline
-                ? (notificationDot === 'yellow' || shopOrderUpdatesCount > shopUpdatesBaseline ? 'rgba(245,158,11,0.14)' : 'rgba(16,185,129,0.14)')
-                : isDark ? 'rgba(56,189,248,0.12)' : 'rgba(26,115,232,0.08)'
-            }
-          ]}>
-            <History
-              size={20}
-              color={notificationDot || shopOrderUpdatesCount > shopUpdatesBaseline ? (notificationDot === 'yellow' ? WARN : SUCCESS) : P}
-              strokeWidth={2.2}
-            />
-            {notificationDot && (
-              <View style={[
-                styles.bottomNavDot,
-                {
-                  backgroundColor: notificationDot === 'yellow' ? WARN : SUCCESS,
-                  borderColor: CARD
-                }
-              ]} />
-            )}
-            <FlashingDot count={Math.max(0, shopOrderUpdatesCount - shopUpdatesBaseline)} color="#f59e0b" />
-          </View>
-          <Text style={[
-            styles.bottomNavLabel,
-            { color: notificationDot || shopOrderUpdatesCount > shopUpdatesBaseline ? (notificationDot === 'yellow' || shopOrderUpdatesCount > shopUpdatesBaseline ? WARN : SUCCESS) : P }
-          ]}>Orders</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.bottomNavItem}
-          onPress={() => router.push('/support' as any)}
-          activeOpacity={0.6}
-        >
-          <View style={[
-            styles.bottomNavIconWrap,
-            { backgroundColor: isDark ? 'rgba(56,189,248,0.12)' : 'rgba(26,115,232,0.08)' }
-          ]}>
-            <HelpCircle size={20} color={P} strokeWidth={2.2} />
-          </View>
-          <Text style={[styles.bottomNavLabel, { color: P }]}>Support</Text>
-        </TouchableOpacity>
-
-      </View>
+      <CustomerNavigation dashboard customerId={customerId || undefined} customerName={customerName || fetchedName || undefined}
+        desktopSidebar={desktopLight} notice={notificationDot} shopUpdatesBaseline={shopUpdatesBaseline}
+        onOrdersPress={() => { setNotificationDot(null); setShopUpdatesBaseline(shopOrderUpdatesCount); }}
+        onHomePress={() => contentRef.current?.scrollTo({ y: 0, animated: true })}/>
 
       <CustomerTutorial
         visible={showTutorial}

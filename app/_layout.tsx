@@ -1,7 +1,8 @@
 import { useEffect, useRef } from 'react';
 import { Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { Platform } from 'react-native';
+import { Platform, View } from 'react-native';
+import CustomerNavigation from '@/components/CustomerNavigation';
 import * as Notifications from 'expo-notifications';
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 import { ThemeProvider, useTheme } from '@/contexts/ThemeContext';
@@ -147,9 +148,14 @@ function RootNavigator() {
 
   return (
     <>
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="+not-found" />
-      </Stack>
+      <View style={{ flex: 1, minHeight: 0 }}>
+        <View style={{ flex: 1, minHeight: 0 }}>
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="+not-found" />
+          </Stack>
+        </View>
+        <CustomerNavigation />
+      </View>
       <StatusBar style={isDark ? 'light' : 'dark'} />
     </>
   );
