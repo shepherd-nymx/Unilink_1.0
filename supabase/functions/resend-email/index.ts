@@ -109,7 +109,23 @@ async function reserveEmailSlot(
     .maybeSingle();
 
   if (error) {
-    if (error.code === "23505") return { id: null, isDuplicate: true };
+    if (error.code === "23505") {
+      // A historical failed registration is not a successfully delivered welcome.
+      // Reclaim that slot atomically; concurrent requests can only claim it once.
+      if (isRegistrationEmail(req)) {
+        const { data: previous, error: lookupError } = await supabase.from("email_notifications")
+          .select("id,status,attempts").eq("recipient_email", req.to).eq("type", req.type).is("order_id", null).maybeSingle();
+        if (lookupError) throw lookupError;
+        if (previous?.status === "failed") {
+          const { data: claimed, error: claimError } = await supabase.from("email_notifications")
+            .update({ ...row, attempts: (previous.attempts || 0) + 1, error_message: null })
+            .eq("id", previous.id).eq("status", "failed").select("id").maybeSingle();
+          if (claimError) throw claimError;
+          if (claimed) return { id: claimed.id, isDuplicate: false };
+        }
+      }
+      return { id: null, isDuplicate: true };
+    }
     throw error;
   }
   return { id: data?.id ?? null, isDuplicate: false };

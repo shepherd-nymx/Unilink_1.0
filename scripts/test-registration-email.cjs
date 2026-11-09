@@ -17,13 +17,29 @@ const resend = [];
 const gmail = [];
 let providerFailure = false;
 let handler;
+function query(table, patch) {
+  const filters = [];
+  const run = () => {
+    const collection = table === 'email_notifications' ? rows : Object.values(accounts[table] || {});
+    const found = collection.find(row => filters.every(([key, value]) => (row[key] ?? null) === value));
+    if (found && patch) Object.assign(found, patch);
+    return { data: found || null, error: null };
+  };
+  return {
+    eq(key, value) { filters.push([key, value]); return this; },
+    is(key, value) { return this.eq(key, value); },
+    select() { return this; },
+    async maybeSingle() { return run(); },
+    then(resolve, reject) { return Promise.resolve(run()).then(resolve, reject); },
+  };
+}
 const db = { from(table) { return {
-  select() { return { eq(_, id) { return { async maybeSingle() { return { data: table === 'email_notifications' ? rows.find(r => r.id === id) : accounts[table]?.[id], error: null }; } }; } }; },
+  select() { return query(table); },
   insert(row) { return { select() { return { async maybeSingle() {
     if (rows.some(r => r.recipient_email === row.recipient_email && r.type === row.type && !r.order_id)) return { error: { code: '23505' } };
     const next = { id: `mail-${rows.length + 1}`, ...row }; rows.push(next); return { data: { id: next.id } };
   } }; } }; },
-  update(update) { return { async eq(_, id) { Object.assign(rows.find(r => r.id === id), update); return { error: null }; } }; },
+  update(update) { return query(table, update); },
 }; } };
 const context = {
   createClient: () => db,
@@ -54,5 +70,18 @@ const call = async body => (await handler(new Request('https://example.test/emai
   assert.equal((await call({ retry: true, id: failed.id })).status, 'sent');
   assert.equal(resend.at(-1).headers['Idempotency-Key'], resend.at(-2).headers['Idempotency-Key']);
   assert.equal((await call({ retry: true, id: failed.id })).status, 'already_sent');
-  console.log('PASS: customer, messenger and shop registration; recipient checks; escaping; duplicates; provider failure/retry; existing Gmail notifications.');
+  // Reproduce an old failed welcome with no saved customer association.
+  const historical = rows.find(row => row.id === failed.id);
+  Object.assign(historical, { status: 'failed', user_id: null, metadata: { name: 'Old name' }, error_message: 'Old sender failed' });
+  const before = resend.length;
+  const recovered = await Promise.all([
+    call({ ...customer, to: 'retry@example.test', userId: 'c2' }),
+    call({ ...customer, to: 'retry@example.test', userId: 'c2' }),
+  ]);
+  assert.equal(recovered.filter(r => r.status === 'sent').length, 1);
+  assert.equal(recovered.filter(r => r.status === 'duplicate').length, 1);
+  assert.equal(resend.length, before + 1);
+  assert.equal(historical.user_id, 'c2'); assert.equal(historical.error_message, null);
+  assert.match(resend.at(-1).payload.html, /Retry/); assert.doesNotMatch(resend.at(-1).payload.html, /Old name/);
+  console.log('PASS: portal registration, recipient checks, duplicates, failure/retry, historical failed-slot recovery under concurrent requests, and existing Gmail notifications.');
 })().catch(error => { console.error(error); process.exitCode = 1; });

@@ -12,7 +12,7 @@ Supabase Edge Function secrets:
 
 Registration emails reply to `unilinkbase@gmail.com`. No secret belongs in an `EXPO_PUBLIC_*` variable. Supabase Auth's Google/email-link provider settings are separate and unchanged.
 
-The `resend-email` function resolves registration recipient/name from the saved customer, driver or shop record and rejects a different recipient. It preserves the existing database deduplication (one no-order email per recipient/type) and uses the email log ID as the Resend idempotency key for retries. Email errors do not fail successful registrations. Shop and messenger messages accurately describe pending approval.
+The `resend-email` function resolves registration recipient/name from the saved customer, driver or shop record and rejects a different recipient. It preserves the existing database deduplication (one no-order email per recipient/type) and uses the email log ID as the Resend idempotency key for retries. A failed registration log is reclaimed atomically with the current saved account details; a successfully sent or in-flight message is not sent again. Email errors do not fail successful registrations. Shop and messenger messages accurately describe pending approval.
 
 ## Verification
 
