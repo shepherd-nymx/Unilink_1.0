@@ -32,6 +32,23 @@ async function bodyOf(req: Request) {
   for await (const chunk of req) { body += chunk; if (Buffer.byteLength(body) > 8192) throw new Error('size'); }
   return JSON.parse(body);
 }
+export function freeAIReason(error: unknown): string {
+  let current = error as { message?: unknown; responseBody?: unknown; cause?: unknown; statusCode?: number } | undefined;
+  const hints: string[] = [];
+  for (let depth = 0; current && depth < 4; depth++) {
+    if (typeof current.message === 'string') hints.push(current.message);
+    if (typeof current.responseBody === 'string') hints.push(current.responseBody);
+    current = current.cause && typeof current.cause === 'object' ? current.cause as typeof current : undefined;
+  }
+  const text = hints.join(' ').toLowerCase();
+  if (/customer_verification_required|verify.*account|account.*verif|valid payment method|credit card/.test(text)) return 'account_verification_required';
+  if (/insufficient_funds|quota_for_entity_exceeded/.test(text)) return 'free_quota_unavailable';
+  if (/api.key|authentication|oidc|unauthorized/.test(text)) return 'gateway_authentication_required';
+  if (/free_model_unavailable/.test(text)) return 'zero_price_model_unavailable';
+  if (/timeout|timed out|abort/.test(text)) return 'provider_timeout';
+  return 'provider_unavailable';
+}
+
 export function createShoppingHandler(dependencies: Dependencies) {
   return async function handler(req: Request, res: ServerResponse) {
     if (req.method !== 'POST') { res.setHeader('Allow','POST'); return send(res,405,{error:'Use POST.'}); }
@@ -50,7 +67,7 @@ export function createShoppingHandler(dependencies: Dependencies) {
       catch (err) {
         // Log categories only, never prompts, credentials or raw upstream responses.
         const failure = err as { name?: string; statusCode?: number; cause?: { name?: string; statusCode?: number } };
-        if (body.basicOnly !== true) console.warn('[shopping-assistant] free_ai_unavailable', { name: failure.name, status: failure.statusCode ?? failure.cause?.statusCode });
+        if (body.basicOnly !== true) console.warn('[shopping-assistant] free_ai_unavailable', { name: failure.name, status: failure.statusCode ?? failure.cause?.statusCode, reason: freeAIReason(err) });
         mode = 'catalogue';
         try { intent = parseBasicRequest(messages.at(-1)!.content); }
         catch { return send(res,400,{error:'Please use up to six items with quantities under 1,000, and a budget in US dollars.'}); }

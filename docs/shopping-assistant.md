@@ -32,3 +32,7 @@ No conversations are saved to the database/local storage. They remain in the cur
 - Actual public Supabase catalogue loader checked read-only against UniLink: four active shops, 106 in-stock products and seven service-area rows at verification time. No customer records were created or production orders sent.
 
 If free AI access needs setup, use the owning Vercel team's AI Gateway dashboard; do not paste credentials in chat or enable a paid top-up without authorization. The catalogue fallback remains usable while setup is pending.
+
+## Live activation status
+
+The production UI/API/public-catalogue flow was tested end-to-end. Gateway returned HTTP 403 for the free AI call, and the clearly labelled basic catalogue fallback returned a real matching product and opened it in the existing catalogue. Full AI parsing is not claimed as activated while this provider refusal remains. Failure logs classify known provider setup/quota/authentication reasons without printing raw provider messages.
