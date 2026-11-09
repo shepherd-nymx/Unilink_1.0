@@ -13,7 +13,8 @@ import {
   Modal,
   RefreshControl,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
+import { shopServesLocation } from '@/lib/shop-location-visibility';
 import { supabase } from '@/lib/supabase';
 import { loadUserData } from '@/lib/storage-service';
 import { A } from '@/lib/admin-theme';
@@ -29,6 +30,8 @@ type ServiceLocationMap = Record<string, { location_name: string; location_type:
 
 export default function Marketplace() {
   const router = useRouter();
+  const { shopId: requestedShopId } = useLocalSearchParams<{ shopId?: string }>();
+  const appliedShopId = useRef<string | null>(null);
   const { isDark } = useTheme();
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
@@ -274,12 +277,21 @@ export default function Marketplace() {
     customerAddress?.formatted_address || '',
   ].filter(Boolean).join(', ').toLowerCase();
 
-  const shopServesCustomer = (shopId: string): boolean => {
-    const sls = shopServiceLocations[shopId];
-    if (!sls || sls.length === 0) return false; // No service locations set = visible to no one
-    if (!customerLocationText.trim()) return false; // Unknown customer location = can't verify service
-    return sls.some(sl => customerLocationText.includes(sl.location_name.toLowerCase().trim()));
-  };
+  const shopServesCustomer = (shopId: string): boolean => shopServesLocation(shopServiceLocations[shopId], customerLocationText);
+
+  useEffect(() => {
+    if (!requestedShopId || loading || appliedShopId.current === requestedShopId) return;
+    appliedShopId.current = requestedShopId;
+    const requested = shops.find(shop => shop.id === requestedShopId);
+    if (requested && shopServesLocation(shopServiceLocations[requested.id], customerLocationText)) {
+      setSelectedShopId(requested.id);
+      setSearchQuery('');
+      setSelectedCategory(null);
+    } else {
+      setSelectedShopId(null);
+      setError('This shop is not available for your saved service location.');
+    }
+  }, [requestedShopId, loading, shops, shopServiceLocations, customerLocationText]);
 
   const anyCartBlocked = cartByShop.some(sc => {
     const s = shops.find(sh => sh.id === sc.shopId);

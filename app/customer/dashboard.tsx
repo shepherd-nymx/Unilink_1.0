@@ -34,13 +34,14 @@ import { startPaynowPayment, generateReference } from '@/lib/paynow-service';
 import { validateUpload } from '@/lib/upload-validation';
 import NotificationPermissionModal from '@/components/NotificationPermissionModal';
 import CustomerNavigation from '@/components/CustomerNavigation';
+import CustomerHomeSections from '@/components/CustomerHomeSections';
 import InAppNotificationBanner from '@/components/InAppNotificationBanner';
 import DriverSelectionModal from '@/components/DriverSelectionModal';
 import OpenRequestWaitingModal from '@/components/OpenRequestWaitingModal';
 import CustomerTutorial from '@/components/CustomerTutorial';
 import AnnouncementPopup from '@/components/AnnouncementPopup';
 import AnimatedDeliveryBackground from '@/components/AnimatedDeliveryBackground';
-import { CustomerDashboardLightHeader, CustomerGroceryBanner, customerLightOverrides, lightDashboard } from '@/components/CustomerDashboardLight';
+import { CustomerDashboardLightHeader, customerLightOverrides, lightDashboard } from '@/components/CustomerDashboardLight';
 
 const CACHE_PREFIX = 'cache_customer_';
 const CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
@@ -1708,11 +1709,6 @@ export default function CustomerDashboard() {
       )}
 
       <ScrollView ref={contentRef} style={styles.content} contentContainerStyle={!isDark ? { paddingBottom: 28 } : undefined}>
-        {!isDark && <CustomerGroceryBanner desktop={desktopLight}/>}
-        {!isDark && <TouchableOpacity style={lightDashboard.nearby} accessibilityRole="button" onPress={() => router.push('/customer/marketplace')}>
-          <View style={lightDashboard.nearbyIcon}><ShoppingBag size={22} color="#0057ff"/></View>
-          <Text style={lightDashboard.nearbyLabel}>Nearby shops</Text><ChevronRight size={20} color="#384e6f"/>
-        </TouchableOpacity>}
         <TouchableOpacity
           accessibilityRole="button" accessibilityLabel="Request delivery"
           onPress={() => router.push({ pathname: '/customer/delivery-request', params: { customerId, customerName } } as any)}
@@ -1763,6 +1759,14 @@ export default function CustomerDashboard() {
             </View>
           )}
         </View>
+
+        <CustomerHomeSections customerId={customerId || undefined}
+          messengerCount={drivers.filter(driver => isDriverWithinAvailableWindow(driver)).length}
+          onCreateList={() => setShowAddItemModal(true)}
+          onDeliveryOptions={() => router.push({ pathname: '/customer/delivery-request', params: { customerId, customerName } } as any)}
+          onBrowseShops={() => router.push('/customer/marketplace')}
+          onShop={shopId => router.push({ pathname: '/customer/marketplace', params: { shopId } })}
+          onProfile={() => router.push({ pathname: '/customer/profile', params: { customerId, customerName } })}/>
 
         {(selectedCount > 0 || customItems.length > 0) && (
           <View style={styles.orderSummary}>
@@ -2104,16 +2108,6 @@ export default function CustomerDashboard() {
           <ChevronDown size={15} color="#fff" strokeWidth={2.5} />
         </Animated.View>
       )}
-
-      {/* Shop Groceries FAB (light theme uses the same action in the content) */}
-      {isDark && <TouchableOpacity
-        style={styles.deliveryFab}
-        onPress={() => router.push('/customer/marketplace')}
-        activeOpacity={0.85}
-      >
-        <ShoppingBag size={20} color="#fff" strokeWidth={2.5} />
-        <Text style={styles.deliveryFabText}>Nearby Shops</Text>
-      </TouchableOpacity>}
 
       <CustomerNavigation dashboard customerId={customerId || undefined} customerName={customerName || fetchedName || undefined}
         desktopSidebar={desktopLight} notice={notificationDot} shopUpdatesBaseline={shopUpdatesBaseline}
