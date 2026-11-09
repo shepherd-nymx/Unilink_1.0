@@ -26,4 +26,4 @@ The one-route Vercel rewrite allows the callback URL to load directly. Real inbo
 - Mobile-browser mocked-provider tests cover preserved legacy username/password fields, successful email-link requests without premature login, verified Google name/email prefill and readonly email, no extra username/password requirements, and a returning identity reusing the existing profile ID/dashboard route.
 - Google authorize endpoint returned a redirect to accounts.google.com; no Google credentials or real email messages were used in automated tests.
 
-No existing user credentials or portal policies were changed. Security-definer RPCs use a fixed empty search_path, require auth.uid() plus a confirmed email from auth.users, and revoke anon/PUBLIC execution.
+No existing user credentials or portal policies were changed. Security-definer RPCs use a fixed empty search_path, require auth.uid() plus a confirmed email from auth.users and a signed OAuth/OTP/magic-link authentication-method claim (password auto-confirm alone is rejected), and revoke anon/PUBLIC execution.
