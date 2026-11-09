@@ -34,7 +34,7 @@ import { startPaynowPayment, generateReference } from '@/lib/paynow-service';
 import { validateUpload } from '@/lib/upload-validation';
 import NotificationPermissionModal from '@/components/NotificationPermissionModal';
 import CustomerNavigation from '@/components/CustomerNavigation';
-import CustomerHomeSections from '@/components/CustomerHomeSections';
+import CustomerHomeSections, { NearbyShopsAction } from '@/components/CustomerHomeSections';
 import InAppNotificationBanner from '@/components/InAppNotificationBanner';
 import DriverSelectionModal from '@/components/DriverSelectionModal';
 import OpenRequestWaitingModal from '@/components/OpenRequestWaitingModal';
@@ -1709,16 +1709,7 @@ export default function CustomerDashboard() {
       )}
 
       <ScrollView ref={contentRef} style={styles.content} contentContainerStyle={!isDark ? { paddingBottom: 28 } : undefined}>
-        <TouchableOpacity
-          accessibilityRole="button" accessibilityLabel="Request delivery"
-          onPress={() => router.push({ pathname: '/customer/delivery-request', params: { customerId, customerName } } as any)}
-          style={[styles.customItemsSection, { flexDirection: 'row', alignItems: 'center', gap: 12 }]}
-          activeOpacity={0.8}
-        >
-          <View style={[lightDashboard.nearbyIcon, { backgroundColor: isDark ? '#16314c' : '#e6efff' }]}><Truck size={22} color={P}/></View>
-          <Text style={[styles.customItemsTitle, { flex: 1 }]}>Request delivery</Text>
-          <ChevronRight size={20} color={TX2}/>
-        </TouchableOpacity>
+        <NearbyShopsAction onPress={() => router.push('/customer/marketplace')}/>
         <View style={styles.customItemsSection}>
           <View style={styles.customItemsHeader}>
             <View style={styles.customItemsHeaderLeft}>
@@ -1763,7 +1754,6 @@ export default function CustomerDashboard() {
         <CustomerHomeSections customerId={customerId || undefined}
           messengerCount={drivers.filter(driver => isDriverWithinAvailableWindow(driver)).length}
           onCreateList={() => setShowAddItemModal(true)}
-          onDeliveryOptions={() => router.push({ pathname: '/customer/delivery-request', params: { customerId, customerName } } as any)}
           onBrowseShops={() => router.push('/customer/marketplace')}
           onShop={shopId => router.push({ pathname: '/customer/marketplace', params: { shopId } })}
           onProfile={() => router.push({ pathname: '/customer/profile', params: { customerId, customerName } })}/>

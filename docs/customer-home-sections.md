@@ -1,12 +1,12 @@
 # Customer home middle sections
 
-The customer dashboard keeps Request Delivery and Custom Items at the top of its scrolling content, followed by:
+The customer dashboard starts with a prominent Nearby Shops action and Custom Items, followed by:
 
 - Three manually browsable shopping banners. Shopping-list actions open the existing custom-item modal; the shop banner opens the marketplace.
 - A three-step ordering explainer.
-- Today's deliveries, using the customer's saved service-area name and existing messenger listings. Delivery options opens the existing delivery-request service selector. Scheduling continues through the existing per-driver availability flow.
+- Today's deliveries, using the customer's saved service-area name and existing messenger listings. The delivery-options shortcut is temporarily disabled with Request Delivery. Scheduling for custom shopping lists continues through the existing per-driver availability flow.
 - Featured Shops with saved merchant logos, names and location-verification markers. Up to three active shops serving the customer's location are shown, followed by More Shops. Missing or failed logos use a storefront icon.
-- The existing Nearby Shops action.
+- A dimmed, disabled Request Delivery action labelled unavailable for now. The delivery-options shortcut is disabled too; custom shopping lists and marketplace ordering remain available.
 
 The sections follow the light/dark theme, fit narrow phones, and retain the persistent customer navigation. The initial home skeleton matches the new arrangement; the shop strip has its own loading placeholders, retry state, and a location-completion prompt.
 

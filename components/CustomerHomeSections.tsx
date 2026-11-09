@@ -16,11 +16,26 @@ const slides = [
 ] as const;
 
 type Props = {
-  customerId?: string; messengerCount: number; onCreateList: () => void; onDeliveryOptions: () => void;
+  customerId?: string; messengerCount: number; onCreateList: () => void;
   onBrowseShops: () => void; onShop: (id: string) => void; onProfile: () => void;
 };
 
-export default function CustomerHomeSections({ customerId, messengerCount, onCreateList, onDeliveryOptions, onBrowseShops, onShop, onProfile }: Props) {
+export function NearbyShopsAction({ onPress }: { onPress: () => void }) {
+  const { isDark } = useTheme();
+  const ink = isDark ? '#032135' : '#fff';
+  return <TouchableOpacity accessibilityRole="button" accessibilityLabel="Nearby shops"
+    accessibilityHint="Browse shops and products that serve your location" onPress={onPress} activeOpacity={0.85}
+    style={{ marginHorizontal: isDark ? 16 : 20, marginTop: 12, marginBottom: 8, borderRadius: 18, overflow: 'hidden', shadowColor: isDark ? '#00d8ef' : '#0066ff', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.18, shadowRadius: 12, elevation: 4 }}>
+    <LinearGradient colors={isDark ? ['#00e2ee', '#00b6ee'] : ['#0066ff', '#0052d4']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+      style={{ minHeight: 76, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+      <View style={{ width: 44, height: 44, borderRadius: 13, backgroundColor: isDark ? 'rgba(3,33,53,0.12)' : 'rgba(255,255,255,0.18)', justifyContent: 'center', alignItems: 'center' }}><ShoppingBag size={25} color={ink}/></View>
+      <View style={{ flex: 1, minWidth: 0 }}><Text style={{ color: ink, fontSize: 17, fontWeight: '800' }}>Nearby shops</Text><Text style={{ color: isDark ? '#164058' : '#e0ecff', fontSize: 12, marginTop: 4 }}>Find your next favourite shop</Text></View>
+      <ChevronRight size={23} color={ink}/>
+    </LinearGradient>
+  </TouchableOpacity>;
+}
+
+export default function CustomerHomeSections({ customerId, messengerCount, onCreateList, onBrowseShops, onShop, onProfile }: Props) {
   const { isDark } = useTheme();
   const { width: viewportWidth } = useWindowDimensions();
   const carousel = useRef<ScrollView>(null);
@@ -106,7 +121,7 @@ export default function CustomerHomeSections({ customerId, messengerCount, onCre
         <Text style={[s.deliveryDetail, { color: muted }]}>{messengerCount > 0 ? `${messengerCount} messenger${messengerCount === 1 ? '' : 's'} listed for your area` : 'Choose your service and messenger'}</Text>
         {!!locationName && <View style={s.location}><MapPin size={11} color={accent}/><Text style={[s.locationText, { color: muted }]} numberOfLines={1}>{locationName}</Text></View>}
       </View>
-      <TouchableOpacity accessibilityRole="button" accessibilityLabel="View delivery options" onPress={onDeliveryOptions} style={[s.deliveryButton, { backgroundColor: isDark ? '#006ecc' : '#0066ff' }]}><Text style={s.deliveryButtonText}>Delivery{'\n'}options</Text><ChevronRight size={12} color="#fff"/></TouchableOpacity>
+      <TouchableOpacity accessibilityRole="button" accessibilityLabel="Delivery options unavailable" accessibilityState={{ disabled: true }} disabled style={[s.deliveryButton, { backgroundColor: isDark ? '#254158' : '#d9e1eb', opacity: 0.45 }]}><Text style={[s.deliveryButtonText, { color: muted }]}>Delivery{'\n'}options</Text></TouchableOpacity>
     </View>
 
     <View style={[s.panel, panel]}>
@@ -125,7 +140,13 @@ export default function CustomerHomeSections({ customerId, messengerCount, onCre
           <TouchableOpacity accessibilityRole="button" accessibilityLabel="More shops" onPress={onBrowseShops} style={[s.shop, { width: viewportWidth >= 1000 ? 150 : 76, backgroundColor: isDark ? '#09243a' : '#f0f6ff', borderColor: isDark ? '#1b4b66' : '#dce5f0' }]}><ShoppingBag size={25} color={accent}/><View style={{ flexDirection: 'row', alignItems: 'center' }}><Text style={[s.shopName, { color: text }]} numberOfLines={1}>More shops</Text><ChevronRight size={10} color={accent}/></View></TouchableOpacity>
         </ScrollView>}
     </View>
-    <TouchableOpacity accessibilityRole="button" accessibilityLabel="Nearby shops" onPress={onBrowseShops} style={[s.nearby, { backgroundColor: isDark ? '#00d8ef' : '#0066ff' }]}><ShoppingBag size={19} color={isDark ? '#032135' : '#fff'}/><Text style={[s.nearbyText, { color: isDark ? '#032135' : '#fff' }]}>Nearby shops</Text></TouchableOpacity>
+    <View style={{ alignItems: 'center', gap: 6 }}>
+      <TouchableOpacity accessibilityRole="button" accessibilityLabel="Request delivery" accessibilityState={{ disabled: true }} disabled
+        style={[s.nearby, { backgroundColor: isDark ? '#254158' : '#dfe6ee', opacity: 0.45 }]}>
+        <Truck size={19} color={muted}/><Text style={[s.nearbyText, { color: muted }]}>Request delivery</Text>
+      </TouchableOpacity>
+      <Text style={{ color: muted, fontSize: 11 }}>Unavailable for now</Text>
+    </View>
   </View>;
 }
 

@@ -43,14 +43,14 @@ export default function PageSkeleton({ page, layout = skeletonLayoutForPage(page
   const body = <>
         {layout === 'home' && <>
           <View style={[s.row, { justifyContent: 'center', marginBottom: 20 }]}><Block width={86} height={32}/><Block width={120} height={32}/></View>
-          <View style={[card, { marginBottom: 14 }]}>{row(true, false)}</View>
+          <Block height={76} borderRadius={18} style={{ marginBottom: 14 }}/>
           <View style={card}><View style={[s.row, { justifyContent: 'space-between', marginBottom: 16 }]}><Block width="40%" height={18}/><Block width={96} height={36} borderRadius={10}/></View>{lines(2)}</View>
           <Block height={desktop ? 208 : 170} borderRadius={16} style={{ marginTop: 18 }}/>
           <View style={[s.row, { justifyContent: 'center', paddingVertical: 8 }]}>{[0,1,2].map(i => <Block key={i} width={6} height={6} borderRadius={3}/>)}</View>
           <View style={[card, { marginBottom: 12 }]}><Block width="64%" height={16}/><View style={[s.row, { marginTop: 12 }]}>{[0,1,2].map(i => <Block key={i} height={36} style={{ flex: 1 }}/>)}</View></View>
           <View style={[card, { marginBottom: 12 }]}>{row(true, true)}</View>
           <View style={card}><Block width="54%" height={16}/><View style={[s.row, { marginTop: 12 }]}>{[0,1,2,3].map(i => <Block key={i} height={74} borderRadius={12} style={{ flex: 1 }}/>)}</View></View>
-          <Block width={160} height={44} borderRadius={24} style={{ alignSelf: 'center', marginTop: 14 }}/>
+          <Block width={200} height={44} borderRadius={24} style={{ alignSelf: 'center', marginTop: 14 }}/><Block width={112} height={10} style={{ alignSelf: 'center', marginTop: 8 }}/>
         </>}
         {layout === 'dashboard' && <>
           <View style={card}>{row()}<Block height={42} borderRadius={12} style={{ marginTop: 20 }}/></View>
