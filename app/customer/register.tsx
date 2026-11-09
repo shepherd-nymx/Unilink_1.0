@@ -10,7 +10,9 @@ import {
   Platform,
   Animated,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
+import { CustomerIdentityButtons } from '@/components/CustomerIdentityButtons';
+import { verifiedCustomerIdentity, enterCustomerPortal } from '@/lib/customer-identity';
 import { supabase } from '@/lib/supabase';
 import { reverseGeocode, getCurrentLocation } from '@/lib/map-utils';
 import {
@@ -42,6 +44,9 @@ type LocationData = {
 
 export default function CustomerRegister() {
   const router = useRouter();
+  const { identity } = useLocalSearchParams<{identity?: string}>();
+  const identityMode = identity === 'true';
+  const [identityReady, setIdentityReady] = useState(false);
   const { isDark } = useTheme();
 
   const [fullName, setFullName] = useState('');
@@ -103,6 +108,20 @@ export default function CustomerRegister() {
 
     loadUniversities();
   }, []);
+
+  useEffect(() => {
+    if (!identityMode) return;
+    let mounted = true;
+    void verifiedCustomerIdentity().then(user => {
+      if (!mounted) return;
+      if (!user) { router.replace('/customer/login'); return; }
+      setEmail(user.email ?? '');
+      const name = user.user_metadata?.full_name || user.user_metadata?.name;
+      if (typeof name === 'string') setFullName(name);
+      setIdentityReady(true);
+    }).catch(() => { if (mounted) router.replace('/customer/login'); });
+    return () => { mounted = false; };
+  }, [identityMode, router]);
 
   const loadUniversities = async () => {
     try {
@@ -168,7 +187,7 @@ export default function CustomerRegister() {
 
   const handleRegister = async () => {
     setError('');
-    if (!fullName || !phoneNumber || !password || !username || !email.trim()) {
+    if (!fullName.trim() || !phoneNumber.trim() || !email.trim() || (!identityMode && (!password || !username))) {
       setError('Please fill in all required fields, including email');
       return;
     }
@@ -186,11 +205,11 @@ export default function CustomerRegister() {
       setError('Please select your location from the list');
       return;
     }
-    if (password !== confirmPassword) {
+    if (!identityMode && password !== confirmPassword) {
       setError('Passwords do not match');
       return;
     }
-    if (password.length < 6) {
+    if (!identityMode && password.length < 6) {
       setError('Password must be at least 6 characters');
       return;
     }
@@ -206,6 +225,21 @@ export default function CustomerRegister() {
     setShowTermsModal(false);
     try {
       const emailTrim = email.trim().toLowerCase();
+      if (identityMode) {
+        if (!await verifiedCustomerIdentity()) throw new Error('Your sign-in expired. Please sign in again.');
+        const {data: customer, error: profileError} = await supabase.rpc('complete_customer_identity_profile', {
+          p_full_name: fullName.trim(), p_phone: phoneNumber.trim(),
+          p_university_id: universityId === 'other' ? otherPlaceId : universityId,
+          p_latitude: location!.latitude, p_longitude: location!.longitude,
+          p_address: location!.formatted_address, p_accuracy: location!.accuracy ?? null,
+          p_terms_version: termsVersion
+        });
+        if (profileError) throw profileError;
+        await sendEmail({type:'welcome',to:customer.email,userId:customer.id,userType:'customer',data:{name:customer.full_name}}).catch(()=>{});
+        void sendEmail({type:'admin_registration_alert',to:'unilinkbase@gmail.com',userId:customer.id,userType:'customer',data:{role:'customer',name:customer.full_name,email:customer.email,phone:phoneNumber,location:location!.formatted_address}}).catch(()=>{});
+        router.replace(await enterCustomerPortal(customer));
+        return;
+      }
       const authEmail = emailTrim;
       let authId: string | null = null;
       try {
@@ -311,6 +345,7 @@ export default function CustomerRegister() {
 
   const isFocused = (field: string) => focused === field;
 
+  if (identityMode && !identityReady) return <View style={{flex:1,justifyContent:'center',padding:24}}><ActivityIndicator/><Text>Checking your verified account…</Text></View>;
   return (
     <>
       <TermsAndConditions
@@ -358,6 +393,7 @@ export default function CustomerRegister() {
             </View>
           ) : null}
 
+          {!identityMode ? <View style={[styles.card, {backgroundColor:cardBg,borderColor:cardBorder}]}><Text style={{color:textPrimary,fontWeight:'700'}}>Use your Google account or email</Text><CustomerIdentityButtons/><Text style={{color:textSecondary}}>Or complete the existing registration form below.</Text></View> : null}
           {/* Personal Info Card */}
           <View style={[styles.card, { backgroundColor: cardBg, borderColor: cardBorder, shadowColor: primary }]}>
             <View style={styles.cardHeader}>
@@ -380,7 +416,7 @@ export default function CustomerRegister() {
                 { field: 'email', label: 'EMAIL', placeholder: 'your@email.com', value: email, setter: setEmail, icon: <Mail size={16} color={isFocused('email') ? primary : placeholderColor} />, required: true, caps: 'none' as any, keyboard: 'email-address' as any },
                 { field: 'password', label: 'PASSWORD', placeholder: 'At least 6 characters', value: password, setter: setPassword, icon: <Lock size={16} color={isFocused('password') ? primary : placeholderColor} />, required: true, secure: true },
                 { field: 'confirmPassword', label: 'CONFIRM PASSWORD', placeholder: 'Re-enter password', value: confirmPassword, setter: setConfirmPassword, icon: <Lock size={16} color={isFocused('confirmPassword') ? primary : placeholderColor} />, required: true, secure: true },
-              ].map(({ field, label, placeholder, value, setter, icon, required, caps, keyboard, secure }) => (
+              ].filter(item => !identityMode || !['username','password','confirmPassword'].includes(item.field)).map(({ field, label, placeholder, value, setter, icon, required, caps, keyboard, secure }) => (
                 <View key={field} style={styles.inputGroup}>
                   <Text style={[styles.label, { color: textSecondary }]}>
                     {label}{required && <Text style={{ color: '#EF4444' }}> *</Text>}
@@ -394,6 +430,8 @@ export default function CustomerRegister() {
                     <TextInput
                       style={[styles.input, { color: textPrimary }]}
                       value={value}
+                      editable={!(identityMode && field === 'email')}
+                      accessibilityLabel={label}
                       onChangeText={setter}
                       placeholder={placeholder}
                       placeholderTextColor={placeholderColor}
