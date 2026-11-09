@@ -49,6 +49,16 @@ export function freeAIReason(error: unknown): string {
   return 'provider_unavailable';
 }
 
+export function providerAccessSummary(error: unknown, messages: Message[]): string | undefined {
+  const failure = error as { statusCode?: number; message?: unknown; cause?: { statusCode?: number } };
+  // Authorization failures happen before inference. Never record generation/validation
+  // errors that might echo request content, or the upstream response body/headers.
+  if ((failure.statusCode ?? failure.cause?.statusCode) !== 403 || typeof failure.message !== 'string') return undefined;
+  let summary = failure.message;
+  for (const message of messages) summary = summary.split(message.content).join('[request removed]');
+  return summary.replace(/Bearer\s+\S+|(?:sk|vck)_[A-Za-z0-9_-]+|eyJ[A-Za-z0-9_.-]+/g, '[credential removed]').replace(/https?:\/\/[^\s)]+/g, '[provider link]').replace(/<[^>]*>|[\x00-\x1f]/g, ' ').slice(0, 350);
+}
+
 export function createShoppingHandler(dependencies: Dependencies) {
   return async function handler(req: Request, res: ServerResponse) {
     if (req.method !== 'POST') { res.setHeader('Allow','POST'); return send(res,405,{error:'Use POST.'}); }
@@ -65,9 +75,9 @@ export function createShoppingHandler(dependencies: Dependencies) {
       let mode: 'ai' | 'catalogue' = 'ai', intent: ShoppingIntent;
       try { if (body.basicOnly === true) throw new Error('basic_requested'); intent = await dependencies.parse(messages); }
       catch (err) {
-        // Log categories only, never prompts, credentials or raw upstream responses.
+        // Log categories and redacted authorization descriptions only; no request/response bodies.
         const failure = err as { name?: string; statusCode?: number; cause?: { name?: string; statusCode?: number } };
-        if (body.basicOnly !== true) console.warn('[shopping-assistant] free_ai_unavailable', { name: failure.name, status: failure.statusCode ?? failure.cause?.statusCode, reason: freeAIReason(err) });
+        if (body.basicOnly !== true) console.warn('[shopping-assistant] free_ai_unavailable', { name: failure.name, status: failure.statusCode ?? failure.cause?.statusCode, reason: freeAIReason(err), access: providerAccessSummary(err, messages) });
         mode = 'catalogue';
         try { intent = parseBasicRequest(messages.at(-1)!.content); }
         catch { return send(res,400,{error:'Please use up to six items with quantities under 1,000, and a budget in US dollars.'}); }

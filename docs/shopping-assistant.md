@@ -22,7 +22,7 @@ Suggestions consider up to 12 matching purchasable options per requested item, w
 
 Requests are limited to 8KB, six messages, 1,000 characters per message, 4,000 total characters and six requested products. Calls have bounded output, no SDK retries and an 18-second inference timeout. There is a best-effort eight-per-minute hashed-IP throttle per server instance. It is not a distributed abuse limit or global spend cap. Keep the model zero-price-only; add a durable limiter and explicit approved spend controls before enabling paid inference or broader automation.
 
-No conversations are saved to the database/local storage. They remain in the current screen's memory. Function logs contain only failure category/status, never prompts or raw upstream responses. Existing Vercel/platform request logging still applies.
+No conversations are saved to the database/local storage. They remain in the current screen's memory. Function logs contain failure category/status and, for authorization refusals only, a bounded provider description with conversation text, credentials and URLs removed. Prompts, response bodies and headers are not logged. Existing Vercel/platform request logging still applies.
 
 ## Validation
 
