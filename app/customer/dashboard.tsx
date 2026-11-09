@@ -13,10 +13,11 @@ import {
   Switch,
   Platform,
   Animated,
+  useWindowDimensions,
 } from 'react-native';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { supabase } from '@/lib/supabase';
-import { LogOut, ShoppingCart, ShoppingBag, Car, User, CircleAlert as AlertCircle, History, ChevronDown, ChevronUp, Plus, X, Package, Search, Star, CircleCheck as CheckCircle, Camera, Image as ImageIcon, MessageCircle, Circle as HelpCircle, Bell, Truck, CreditCard, Share2, Mail, Link2, Smartphone } from 'lucide-react-native';
+import { LogOut, ShoppingCart, ShoppingBag, Car, User, CircleAlert as AlertCircle, History, ChevronDown, ChevronUp, Plus, X, Package, Search, Star, CircleCheck as CheckCircle, Camera, Image as ImageIcon, MessageCircle, Circle as HelpCircle, Bell, Truck, CreditCard, Share2, Mail, Link2, Smartphone, Home, ChevronRight } from 'lucide-react-native';
 import { Share as RNShare } from 'react-native';
 import * as Location from 'expo-location';
 import * as ImagePicker from 'expo-image-picker';
@@ -38,6 +39,7 @@ import OpenRequestWaitingModal from '@/components/OpenRequestWaitingModal';
 import CustomerTutorial from '@/components/CustomerTutorial';
 import AnnouncementPopup from '@/components/AnnouncementPopup';
 import AnimatedDeliveryBackground from '@/components/AnimatedDeliveryBackground';
+import { CustomerDashboardLightHeader, CustomerGroceryBanner, CustomerProductArtwork, customerLightOverrides, lightDashboard } from '@/components/CustomerDashboardLight';
 
 const CACHE_PREFIX = 'cache_customer_';
 const CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
@@ -171,6 +173,9 @@ export default function CustomerDashboard() {
   const customerId = resolvedCustomerId;
   const customerName = params.customerName as string;
   const { colors, isDark } = useTheme();
+  const { width: viewportWidth } = useWindowDimensions();
+  const desktopLight = !isDark && viewportWidth >= 1000;
+  const contentRef = useRef<ScrollView>(null);
   const { isChecking, isAccepted } = useTermsGuard('customer');
   useHardwareBackExit();
   const { unreadMessageCount, shopOrderUpdatesCount, inAppMessage, clearInAppMessage, requestNotificationPermission } = useNotifications();
@@ -1017,7 +1022,7 @@ export default function CustomerDashboard() {
   const WARN = '#F59E0B';
   const ERR = '#EF4444';
 
-  const styles = StyleSheet.create({
+  const baseStyles = StyleSheet.create({
     container: { flex: 1, backgroundColor: isDark ? '#050D1A' : '#050D1A' },
     centered: { justifyContent: 'center', alignItems: 'center' },
     header: {
@@ -1704,6 +1709,11 @@ export default function CustomerDashboard() {
     driverSelectSub: { fontSize: 12 },
   });
 
+  const overrides = customerLightOverrides(viewportWidth);
+  const styles = isDark ? baseStyles : Object.fromEntries(
+    Object.entries(baseStyles).map(([key, value]) => [key, StyleSheet.flatten([value, overrides[key]])])
+  ) as typeof baseStyles;
+
   if (isChecking) {
     return (
       <View style={[styles.container, styles.centered]}>
@@ -1748,7 +1758,7 @@ export default function CustomerDashboard() {
 
   return (
     <View style={styles.container}>
-      <AnimatedDeliveryBackground />
+      {isDark && <AnimatedDeliveryBackground />}
       <NotificationPermissionModal userType="customer" />
       <InAppNotificationBanner
         visible={!!inAppMessage}
@@ -1760,6 +1770,11 @@ export default function CustomerDashboard() {
         }}
         onDismiss={clearInAppMessage}
       />
+      {!isDark ? <CustomerDashboardLightHeader
+        name={customerName || fetchedName || 'there'} desktop={desktopLight} copied={shareCopied}
+        onShare={handleShare} onTutorial={() => setShowTutorial(true)}
+        onDelivery={() => router.push({ pathname: '/customer/delivery-request', params: { customerId, customerName } } as any)}
+      /> : (
       <View style={styles.header}>
         <View style={styles.headerTopRow}>
           <Text style={[styles.logoWordmark, { color: '#00e5ff' }]}>UNILINK</Text>
@@ -1804,6 +1819,7 @@ export default function CustomerDashboard() {
           </TouchableOpacity>
         </View>
       </View>
+      )}
 
       {showShareModal && (
         <View style={styles.shareModalOverlay}>
@@ -1846,7 +1862,7 @@ export default function CustomerDashboard() {
         </View>
       )}
 
-      <ScrollView style={styles.content}>
+      <ScrollView ref={contentRef} style={styles.content} contentContainerStyle={!isDark ? { paddingBottom: 28 } : undefined}>
         <View style={styles.searchContainer}>
           <View style={styles.searchInputWrapper}>
             <Search size={20} color={colors.textTertiary} style={styles.searchIcon} />
@@ -1873,6 +1889,10 @@ export default function CustomerDashboard() {
           )}
         </View>
 
+        {!isDark && <>
+          <CustomerGroceryBanner desktop={desktopLight}/>
+          <Text style={lightDashboard.sectionTitle}>Shop essentials</Text>
+        </>}
         <View style={styles.itemsList}>
           {categories.map(category => {
             const categoryItems = filteredGroceryItems.filter(
@@ -1890,6 +1910,8 @@ export default function CustomerDashboard() {
               <View key={category.id} style={styles.categorySection}>
                 <TouchableOpacity
                   style={styles.categoryHeader}
+                  accessibilityRole="button"
+                  accessibilityState={{ expanded: isExpanded }}
                   onPress={() => {
                     const newExpanded = new Set(expandedCategories);
                     if (isExpanded) {
@@ -1920,6 +1942,7 @@ export default function CustomerDashboard() {
                   <View style={styles.categoryItems}>
                     {categoryItems.map(item => (
                       <View key={item.id} style={styles.itemCard}>
+                        {!isDark && <CustomerProductArtwork name={item.name} icon={category.icon} desktop={desktopLight}/>}
                         <View style={styles.itemInfo}>
                           <Text style={styles.itemName}>{item.name}</Text>
                           <Text style={styles.itemPrice}>${item.price.toFixed(2)}</Text>
@@ -1927,6 +1950,8 @@ export default function CustomerDashboard() {
                         <View style={styles.quantityControls}>
                           <TouchableOpacity
                             style={styles.quantityButton}
+                            accessibilityRole="button"
+                            accessibilityLabel={`Remove one ${item.name}`}
                             onPress={() => updateQuantity(item.id, -1)}
                           >
                             <Text style={styles.quantityButtonText}>-</Text>
@@ -1934,6 +1959,8 @@ export default function CustomerDashboard() {
                           <Text style={styles.quantityText}>{item.quantity}</Text>
                           <TouchableOpacity
                             style={styles.quantityButton}
+                            accessibilityRole="button"
+                            accessibilityLabel={`Add one ${item.name}`}
                             onPress={() => updateQuantity(item.id, 1)}
                           >
                             <Text style={styles.quantityButtonText}>+</Text>
@@ -1948,6 +1975,10 @@ export default function CustomerDashboard() {
           })}
         </View>
 
+        {!isDark && <TouchableOpacity style={lightDashboard.nearby} accessibilityRole="button" onPress={() => router.push('/customer/marketplace')}>
+          <View style={lightDashboard.nearbyIcon}><ShoppingBag size={22} color="#0057ff"/></View>
+          <Text style={lightDashboard.nearbyLabel}>Nearby shops</Text><ChevronRight size={20} color="#384e6f"/>
+        </TouchableOpacity>}
         <View style={styles.customItemsSection}>
           <View style={styles.customItemsHeader}>
             <View style={styles.customItemsHeaderLeft}>
@@ -2330,18 +2361,24 @@ export default function CustomerDashboard() {
         </Animated.View>
       )}
 
-      {/* Shop Groceries FAB */}
-      <TouchableOpacity
+      {/* Shop Groceries FAB (light theme uses the same action in the content) */}
+      {isDark && <TouchableOpacity
         style={styles.deliveryFab}
         onPress={() => router.push('/customer/marketplace')}
         activeOpacity={0.85}
       >
         <ShoppingBag size={20} color="#fff" strokeWidth={2.5} />
         <Text style={styles.deliveryFabText}>Nearby Shops</Text>
-      </TouchableOpacity>
+      </TouchableOpacity>}
 
       {/* Bottom Navigation Bar */}
       <View style={[styles.bottomNav, { backgroundColor: isDark ? 'rgba(13,25,42,0.96)' : '#FFFFFF' }]}>
+        {desktopLight && <Text style={lightDashboard.sidebarBrand}>UniLink</Text>}
+        {!isDark && <TouchableOpacity accessibilityRole="button" accessibilityLabel="Home" accessibilityState={{ selected: true }}
+          style={[styles.bottomNavItem, desktopLight && lightDashboard.home]} onPress={() => contentRef.current?.scrollTo({ y: 0, animated: true })}>
+          <View style={styles.bottomNavIconWrap}><Home size={22} color="#0057ff"/></View>
+          <Text style={[styles.bottomNavLabel, { color: '#0057ff' }]}>Home</Text>
+        </TouchableOpacity>}
         <TouchableOpacity
           style={styles.bottomNavItem}
           onPress={() => router.push({ pathname: '/customer/profile', params: { customerId, customerName } })}
