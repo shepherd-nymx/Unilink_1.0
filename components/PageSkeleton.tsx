@@ -57,10 +57,15 @@ export default function PageSkeleton({ page, layout = skeletonLayoutForPage(page
           <View style={[s.grid, { marginVertical: 16 }]}>{[0,1,2,3].map(i => <View key={i} style={[card, { width: desktop ? '23.5%' : '47.5%', minHeight: 104 }]}><Block width="65%" height={12}/><Block width={54} height={28} style={{ marginTop: 18 }}/></View>)}</View>
           <Block width="45%" height={18} style={{ marginBottom: 14 }}/>{records(3)}
         </>}
-        {layout === 'marketplace' && <>
-          <Block height={48} borderRadius={14}/><View style={{ marginVertical: 16 }}>{filters}</View>
-          <View style={s.grid}>{[0,1,2,3].map(i => <View key={i} style={[card, { width: desktop ? '23.5%' : '47.5%', padding: 10 }]}><Block height={120} borderRadius={12}/><View style={{ marginTop: 14 }}>{lines(2)}</View><Block width="38%" height={20} style={{ marginTop: 14 }}/></View>)}</View>
-        </>}
+        {layout === 'marketplace' && <View style={{ width: '100%', maxWidth: 728, alignSelf: 'center', gap: 16 }}>
+          <Block height={48} borderRadius={14}/>{filters}{filters}
+          <Block width="52%" height={24} style={{ marginVertical: 6 }}/>
+          {[0,1,2].map(i => <View key={i} style={[card, { borderRadius: 20, gap: 14 }]}>
+            <View style={s.row}><Block width={64} height={64} borderRadius={32}/><View style={{ flex: 1, gap: 10 }}><Block width="85%" height={20}/><Block width="92%" height={12}/><Block width="70%" height={11}/></View></View>
+            <View style={s.row}><Block width={62} height={24}/><Block width={72} height={24}/></View>
+            <View style={[s.row, { justifyContent: 'space-between' }]}><Block width={96} height={28}/><Block width={112} height={36} borderRadius={10}/></View>
+          </View>)}
+        </View>}
         {(layout === 'orders' || layout === 'records' || layout === 'conversations') && <>
           {!embedded && <>{['admin/emails', 'admin/reviews', 'admin/audit-logs'].includes(page) && <Block height={46} borderRadius={12}/>}<View style={{ marginBottom: 16 }}>{filters}</View></>}{records(layout === 'conversations' ? 5 : 4)}
         </>}
@@ -86,6 +91,10 @@ export default function PageSkeleton({ page, layout = skeletonLayoutForPage(page
         {layout === 'home' ? <View style={{ gap: 8, marginBottom: 18 }}>
           {!desktop && <Block width={72} height={18}/>}
           <View style={s.row}><Block width={170} height={24}/><Block width={56} height={20} borderRadius={16}/></View><Block width={160} height={12}/>
+        </View> : layout === 'marketplace' ? <View style={{ maxWidth: 720, width: '100%', alignSelf: 'center', gap: 14, marginBottom: 20 }}>
+          <Block width={100} height={21} style={{ alignSelf: 'center' }}/>
+          <View style={[s.row, { justifyContent: 'space-between' }]}><Block width={38} height={38} borderRadius={10}/><Block width={164} height={28}/><Block width={42} height={42} borderRadius={10}/></View>
+          <Block width="78%" height={13} style={{ alignSelf: 'center' }}/><Block width={140} height={12} style={{ alignSelf: 'center' }}/>
         </View> : <View style={[s.row, { marginBottom: 24 }]}>
           {onBack ? <TouchableOpacity accessibilityRole="button" accessibilityLabel="Go back" onPress={onBack} style={{ width: 44, height: 44, justifyContent: 'center', alignItems: 'center' }}><ArrowLeft size={22} color={dark ? '#bdd6ef' : '#52627c'}/></TouchableOpacity> : <Block width={38} height={38} borderRadius={10}/>}
           <View style={{ flex: 1, gap: 9 }}><Block width="62%" height={24}/><Block width="42%" height={11}/></View><Block width={34} height={34} borderRadius={17}/>

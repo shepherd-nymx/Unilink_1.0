@@ -9,7 +9,6 @@ import {
   StyleSheet,
   Animated,
   Platform,
-  ActivityIndicator,
   Modal,
   RefreshControl,
 } from 'react-native';
@@ -18,10 +17,10 @@ import { shopServesLocation } from '@/lib/shop-location-visibility';
 import { supabase } from '@/lib/supabase';
 import { loadUserData } from '@/lib/storage-service';
 import { A } from '@/lib/admin-theme';
-import { ArrowLeft, Store, Search, ShoppingCart, Plus, Minus, X, Package, CreditCard, CircleCheck as CheckCircle, CircleAlert as AlertCircle, Info, ChevronLeft, ChevronRight, MapPin, Lock, Award, Tag, GraduationCap, Truck } from 'lucide-react-native';
+import { ArrowLeft, Store, Search, ShoppingCart, Plus, Minus, X, Package, CreditCard, CircleCheck as CheckCircle, CircleAlert as AlertCircle, Info, ChevronLeft, ChevronRight, MapPin, Lock, GraduationCap, Truck } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Shop, Product, CartItem, CartByShop, ThemePalette, computeShopOpen, DeliveryFeeTier, computeTierDeliveryFee, SHOP_CATEGORIES } from '@/components/marketplace/types';
-import { ShopCard } from '@/components/marketplace/ShopCard';
+import { MarketplaceShopCard } from '@/components/marketplace/MarketplaceShopCard';
 import { ProductCard } from '@/components/marketplace/ProductCard';
 import { ShopProfileModal } from '@/components/marketplace/ShopProfileModal';
 import { CheckoutModal } from '@/components/marketplace/CheckoutModal';
@@ -65,14 +64,14 @@ export default function Marketplace() {
   const [orderSuccess, setOrderSuccess] = useState(false);
 
   const palette: ThemePalette = {
-    bg: isDark ? '#050b16' : '#f0f4f8',
-    cardBg: isDark ? '#0a1220' : '#ffffff',
-    cardBorder: isDark ? '#1a2d4a' : '#e2e8f0',
+    bg: isDark ? '#07101e' : '#f0f4f8',
+    cardBg: isDark ? '#101e30' : '#ffffff',
+    cardBorder: isDark ? '#263c52' : '#e2e8f0',
     textPrimary: isDark ? '#e0eeff' : '#0a1929',
-    textSecondary: isDark ? '#6a8fb0' : '#64748b',
+    textSecondary: isDark ? '#9aafc5' : '#64748b',
     inputBg: isDark ? '#0d1828' : '#f8fafc',
     inputBorder: isDark ? '#1a2d4a' : '#cbd5e1',
-    placeholderColor: isDark ? '#3d5577' : '#94a3b8',
+    placeholderColor: isDark ? '#8b9fb5' : '#94a3b8',
     primary: '#0066ff',
     accent: '#00e5ff',
     success: '#00c853',
@@ -506,6 +505,12 @@ export default function Marketplace() {
     }
   };
 
+  const visibleShops = shops
+    .filter(shop => !searchQuery.trim() || shop.name.toLowerCase().includes(searchQuery.toLowerCase()))
+    .filter(shop => !selectedShopCategory || shop.category === selectedShopCategory)
+    .filter(shop => !selectedArea || shop.location === selectedArea)
+    .filter(shop => shopServesCustomer(shop.id));
+
   if (loading) {
     return <PageSkeleton page="customer/marketplace"/>;
   }
@@ -524,30 +529,23 @@ export default function Marketplace() {
 
   return (
     <View style={[styles.container, { backgroundColor: palette.bg }]}>
-      <View style={[styles.header, { backgroundColor: palette.cardBg, borderBottomColor: palette.cardBorder }]}>
-        <TouchableOpacity
-          style={[styles.backBtn, { backgroundColor: palette.inputBg, borderColor: palette.inputBorder }]}
-          onPress={() => router.back()}
-        >
-          <ArrowLeft size={18} color={palette.textPrimary} />
-        </TouchableOpacity>
-        <View style={{ flex: 1 }}>
-          <Text style={[styles.headerTitle, { color: palette.textPrimary }]} numberOfLines={1}>Shop Groceries</Text>
-          <Text style={[styles.headerSub, { color: palette.textSecondary }]}>
-            {shops.filter(s => shopServesCustomer(s.id)).length} shops{customerUniversityName ? ` near ${customerUniversityName}` : ''} available
-          </Text>
+      <View style={[styles.marketHeader, { backgroundColor: palette.bg }]}>
+        <Text style={styles.wordmark}>UNI<Text style={{ color: palette.primary }}>LINK</Text></Text>
+        <View style={styles.marketHeaderRow}>
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel="Back" style={[styles.backBtn, { backgroundColor: palette.inputBg, borderColor: palette.cardBorder }]} onPress={() => router.back()}>
+            <ArrowLeft size={22} color={palette.textPrimary} />
+          </TouchableOpacity>
+          <Text style={[styles.marketTitle, { color: palette.textPrimary }]}>Nearby shops</Text>
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Shopping cart, ${cartCount} items`} style={[styles.cartBtn, { backgroundColor: cartCount > 0 ? palette.primary : palette.inputBg, borderColor: palette.cardBorder }]} onPress={() => setShowCart(true)}>
+            <ShoppingCart size={22} color={cartCount > 0 ? '#fff' : palette.textPrimary} />
+            {cartCount > 0 && <View style={styles.cartBadge}><Text style={styles.cartBadgeText}>{cartCount}</Text></View>}
+          </TouchableOpacity>
         </View>
-        <TouchableOpacity
-          style={[styles.cartBtn, { backgroundColor: cartCount > 0 ? palette.primary : palette.inputBg, borderColor: cartCount > 0 ? palette.primary : palette.inputBorder }]}
-          onPress={() => setShowCart(true)}
-        >
-          <ShoppingCart size={18} color={cartCount > 0 ? '#fff' : palette.textPrimary} />
-          {cartCount > 0 && (
-            <View style={styles.cartBadge}>
-              <Text style={styles.cartBadgeText}>{cartCount}</Text>
-            </View>
-          )}
-        </TouchableOpacity>
+        <View style={styles.marketLocation}>
+          <MapPin size={15} color={palette.textSecondary} />
+          <Text style={[styles.marketLocationText, { color: palette.textSecondary }]} numberOfLines={2}>{customerUniversityName || 'Your service area'}</Text>
+        </View>
+        <Text style={[styles.marketCount, { color: palette.textSecondary }]}>{shops.filter(s => shopServesCustomer(s.id)).length} shops serve your area</Text>
       </View>
 
       <Animated.View style={{ flex: 1, opacity: fadeAnim }}>
@@ -555,7 +553,7 @@ export default function Marketplace() {
         {!selectedShopId ? (
           <ScrollView
             style={{ flex: 1 }}
-            contentContainerStyle={{ padding: 16, paddingBottom: 80 }}
+            contentContainerStyle={styles.marketContent}
             refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.primary} />}
           >
             <View style={[styles.searchBar, { backgroundColor: palette.inputBg, borderColor: palette.inputBorder, marginBottom: 16 }]}>
@@ -583,16 +581,15 @@ export default function Marketplace() {
 
             {/* Category filter chips */}
             <View style={{ marginBottom: 16 }}>
-              <Text style={[styles.sectionTitle, { color: palette.textSecondary, marginBottom: 8 }]}>FILTER BY CATEGORY</Text>
+
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingRight: 16 }}>
                 <TouchableOpacity
                   style={[styles.areaChip, { backgroundColor: !selectedShopCategory ? palette.primary : palette.inputBg, borderColor: !selectedShopCategory ? palette.primary : palette.inputBorder }]}
                   onPress={() => setSelectedShopCategory(null)}
                 >
-                  <Store size={12} color={!selectedShopCategory ? '#fff' : palette.textSecondary} />
-                  <Text style={{ color: !selectedShopCategory ? '#fff' : palette.textSecondary, fontSize: 12, fontWeight: '600' }}>All Categories</Text>
+                  <Text style={{ color: !selectedShopCategory ? '#fff' : palette.textSecondary, fontSize: 12, fontWeight: '600' }}>All shops</Text>
                 </TouchableOpacity>
-                {SHOP_CATEGORIES.map(cat => (
+                {['Grocery', 'Electronics', 'Pharmacy', ...SHOP_CATEGORIES.filter(cat => !['Grocery', 'Electronics', 'Pharmacy'].includes(cat))].map(cat => (
                   <TouchableOpacity
                     key={cat}
                     style={[styles.areaChip, { backgroundColor: selectedShopCategory === cat ? palette.primary : palette.inputBg, borderColor: selectedShopCategory === cat ? palette.primary : palette.inputBorder }]}
@@ -606,15 +603,15 @@ export default function Marketplace() {
 
             {/* Area filter chips */}
             {areas.length > 0 && (
-              <View style={{ marginBottom: 16 }}>
-                <Text style={[styles.sectionTitle, { color: palette.textSecondary, marginBottom: 8 }]}>FILTER BY AREA</Text>
+              <View style={styles.areaFilterRow}>
+                <Text style={[styles.areaLabel, { color: palette.textSecondary }]}>Area</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingRight: 16 }}>
                   <TouchableOpacity
                     style={[styles.areaChip, { backgroundColor: !selectedArea ? palette.primary : palette.inputBg, borderColor: !selectedArea ? palette.primary : palette.inputBorder }]}
                     onPress={() => setSelectedArea(null)}
                   >
                     <MapPin size={12} color={!selectedArea ? '#fff' : palette.textSecondary} />
-                    <Text style={{ color: !selectedArea ? '#fff' : palette.textSecondary, fontSize: 12, fontWeight: '600' }}>All Areas</Text>
+                    <Text style={{ color: !selectedArea ? '#fff' : palette.textSecondary, fontSize: 12, fontWeight: '600' }}>All areas</Text>
                   </TouchableOpacity>
                   {areas.map(a => (
                     <TouchableOpacity
@@ -630,99 +627,21 @@ export default function Marketplace() {
               </View>
             )}
 
-            <Text style={[styles.sectionTitle, { color: palette.textSecondary }]}>SELECT A SHOP TO BROWSE</Text>
-            {shops.length === 0 ? (
+            <View style={styles.shopSectionHeading}>
+              <Text style={[styles.shopSectionTitle, { color: palette.textPrimary }]}>Choose a shop</Text>
+              <Text style={{ color: palette.textSecondary, fontSize: 13 }}>{visibleShops.length} shops</Text>
+            </View>
+            {visibleShops.length === 0 ? (
               <View style={styles.emptyState}>
                 <Store size={40} color={palette.placeholderColor} />
-                <Text style={{ color: palette.textSecondary, fontSize: 14 }}>No shops available</Text>
+                <Text style={{ color: palette.textSecondary, fontSize: 14 }}>{shops.length === 0 ? 'No shops available' : 'No shops match your search or service area'}</Text>
               </View>
             ) : (
               <View style={styles.shopList}>
-                {shops
-                  .filter(shop => !searchQuery.trim() || shop.name.toLowerCase().includes(searchQuery.toLowerCase()))
-                  .filter(shop => !selectedShopCategory || shop.category === selectedShopCategory)
-                  .filter(shop => !selectedArea || shop.location === selectedArea)
-                  .filter(shop => shopServesCustomer(shop.id))
-                  .map(shop => {
-                    const open = shop.operating_hours ? computeShopOpen(shop) : true;
-                    return (
-                      <TouchableOpacity
-                        key={shop.id}
-                        style={[styles.shopSelectCard, { backgroundColor: palette.cardBg, borderColor: palette.cardBorder, opacity: !shop.is_available ? 0.6 : 1 }]}
-                        onPress={() => { setSelectedShopId(shop.id); setSearchQuery(''); }}
-                        activeOpacity={0.8}
-                      >
-                        <View style={[styles.shopSelectLogo, { backgroundColor: palette.inputBg }]}>
-                          {shop.logo_url && Platform.OS === 'web' ? (
-                            <img src={shop.logo_url} style={{ width: 52, height: 52, borderRadius: 26, objectFit: 'cover' as any }} alt={shop.name} />
-                          ) : (
-                            <Store size={24} color={palette.primary} />
-                          )}
-                        </View>
-                        <View style={{ flex: 1 }}>
-                          <Text style={[styles.shopSelectName, { color: palette.textPrimary }]} numberOfLines={1}>{shop.name}</Text>
-                          {shop.description ? (
-                            <Text style={[styles.shopSelectDesc, { color: palette.textSecondary }]} numberOfLines={2}>{shop.description}</Text>
-                          ) : null}
-                          <View style={styles.shopSelectMeta}>
-                            {shop.category ? (
-                              <View style={[styles.shopSelectBadge, { backgroundColor: `${palette.accent}18` }]}>
-                                <Tag size={9} color={palette.accent} />
-                                <Text style={[styles.shopSelectBadgeText, { color: palette.accent }]} numberOfLines={1}>{shop.category}</Text>
-                              </View>
-                            ) : null}
-                            {shop.location ? (
-                              <View style={[styles.shopSelectBadge, { backgroundColor: `${palette.primary}15` }]}>
-                                <MapPin size={9} color={palette.primary} />
-                                <Text style={[styles.shopSelectBadgeText, { color: palette.primary }]} numberOfLines={1}>{shop.location}</Text>
-                              </View>
-                            ) : null}
-                            <View style={[styles.shopSelectBadge, { backgroundColor: open ? `${palette.success}22` : `${palette.error}22` }]}>
-                              <View style={[styles.shopSelectDot, { backgroundColor: open ? palette.success : palette.error }]} />
-                              <Text style={[styles.shopSelectBadgeText, { color: open ? palette.success : palette.error }]} numberOfLines={1}>{open ? 'Open' : 'Closed'}</Text>
-                            </View>
-                            {!shop.is_available ? (
-                              <View style={[styles.shopSelectBadge, { backgroundColor: `${palette.error}22` }]}>
-                                <Text style={[styles.shopSelectBadgeText, { color: palette.error }]} numberOfLines={1}>Unavailable</Text>
-                              </View>
-                            ) : null}
-                            {shop.premium_badge ? (
-                              <View style={[styles.shopSelectBadge, {
-                                backgroundColor: shop.premium_badge === 'platinum' ? 'rgba(229,228,226,0.18)' :
-                                  shop.premium_badge === 'blue' ? 'rgba(59,130,246,0.18)' :
-                                  'rgba(34,197,94,0.18)',
-                                borderColor: shop.premium_badge === 'platinum' ? '#e5e4e2' :
-                                  shop.premium_badge === 'blue' ? '#3b82f6' : '#22c55e',
-                                borderWidth: 1,
-                              }]}>
-                                <Award size={9} color={
-                                  shop.premium_badge === 'platinum' ? '#e5e4e2' :
-                                  shop.premium_badge === 'blue' ? '#3b82f6' : '#22c55e'
-                                } />
-                                <Text style={[styles.shopSelectBadgeText, {
-                                  color: shop.premium_badge === 'platinum' ? '#e5e4e2' :
-                                    shop.premium_badge === 'blue' ? '#3b82f6' : '#22c55e',
-                                }]} numberOfLines={1}>{shop.premium_badge === 'platinum' ? 'Platinum' : shop.premium_badge === 'blue' ? 'Blue' : 'Green'}</Text>
-                              </View>
-                            ) : null}
-                            {shop.offers_free_delivery ? (
-                              <View style={[styles.shopSelectBadge, { backgroundColor: `${palette.success}18`, borderColor: palette.success, borderWidth: 1 }]}>
-                                <Truck size={9} color={palette.success} />
-                                <Text style={[styles.shopSelectBadgeText, { color: palette.success }]} numberOfLines={1}>Free Delivery</Text>
-                              </View>
-                            ) : null}
-                            {shop.is_student_owned ? (
-                              <View style={[styles.shopSelectBadge, { backgroundColor: `${palette.accent}18`, borderColor: palette.accent, borderWidth: 1 }]}>
-                                <GraduationCap size={9} color={palette.accent} />
-                                <Text style={[styles.shopSelectBadgeText, { color: palette.accent }]} numberOfLines={1}>Student Owned</Text>
-                              </View>
-                            ) : null}
-                          </View>
-                        </View>
-                        <ChevronRight size={20} color={palette.placeholderColor} />
-                      </TouchableOpacity>
-                    );
-                  })}
+                {visibleShops.map(shop => (
+                  <MarketplaceShopCard key={shop.id} shop={shop} palette={palette} isDark={isDark}
+                    onPress={() => { setSelectedShopId(shop.id); setSearchQuery(''); }} />
+                ))}
               </View>
             )}
           </ScrollView>
@@ -970,7 +889,19 @@ export default function Marketplace() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  container: { flex: 1, minHeight: 0 },
+  marketHeader: { width: '100%', maxWidth: 760, alignSelf: 'center', paddingHorizontal: 18, paddingTop: 14, paddingBottom: 18 },
+  wordmark: { fontSize: 21, fontWeight: '900', letterSpacing: 2, color: '#1683ff', textAlign: 'center', marginBottom: 14 },
+  marketHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  marketTitle: { flex: 1, textAlign: 'center', fontSize: 25, fontWeight: '800', letterSpacing: -0.6 },
+  marketLocation: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6, marginTop: 12, paddingHorizontal: 16 },
+  marketLocationText: { fontSize: 12, textAlign: 'center', flexShrink: 1, lineHeight: 18 },
+  marketCount: { textAlign: 'center', fontSize: 12, marginTop: 4 },
+  marketContent: { padding: 16, paddingTop: 4, paddingBottom: 32, width: '100%', maxWidth: 760, alignSelf: 'center' },
+  areaFilterRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 24 },
+  areaLabel: { fontSize: 13, fontWeight: '700' },
+  shopSectionHeading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
+  shopSectionTitle: { fontSize: 22, fontWeight: '800', letterSpacing: -0.4 },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: A.bg },
   header: {
     flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14,
@@ -993,7 +924,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 10,
     borderRadius: 12, borderWidth: 1.5, paddingHorizontal: 14, minHeight: 46,
   },
-  searchInput: { flex: 1, fontSize: 15, paddingVertical: 12 },
+  searchInput: { flex: 1, minWidth: 0, fontSize: 15, paddingVertical: 12 },
   categoryChip: {
     paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1.5,
   },
@@ -1044,20 +975,11 @@ const styles = StyleSheet.create({
   successTitle: { fontSize: 22, fontWeight: '800', color: A.text, marginBottom: 8 },
   successText: { fontSize: 14, color: A.textSub, textAlign: 'center' },
   shopList: { gap: 12, marginTop: 4 },
-  shopSelectCard: {
-    flexDirection: 'row', alignItems: 'center', gap: 14,
-    borderRadius: 14, borderWidth: 1, padding: 14,
-  },
-  shopSelectLogo: { width: 52, height: 52, borderRadius: 26, justifyContent: 'center', alignItems: 'center' },
-  shopSelectName: { fontSize: 16, fontWeight: '700' },
-  shopSelectDesc: { fontSize: 12, marginTop: 2, lineHeight: 17 },
-  shopSelectMeta: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8, flexWrap: 'wrap' as any, overflow: 'hidden' as any },
   shopSelectBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, flexShrink: 1 },
   areaChip: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
-    paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, borderWidth: 1,
+    paddingHorizontal: 16, paddingVertical: 10, borderRadius: 22, borderWidth: 1,
   },
-  shopSelectDot: { width: 6, height: 6, borderRadius: 3 },
   shopSelectBadgeText: { fontSize: 10, fontWeight: '700', flexShrink: 1 },
   selectedShopBanner: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
