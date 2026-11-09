@@ -225,7 +225,7 @@ export default function DriverRegister() {
         }
       }
 
-      const { error: insertError } = await supabase.from('drivers').insert({
+      const { data: driver, error: insertError } = await supabase.from('drivers').insert({
         full_name: fullName,
         phone_number: phoneNumber,
         email: emailTrim,
@@ -245,9 +245,12 @@ export default function DriverRegister() {
         terms_accepted: true,
         terms_version: termsVersion,
         terms_accepted_at: new Date().toISOString(),
-      });
+      }).select('id').single();
 
       if (insertError) throw insertError;
+      if (emailTrim && driver) {
+        void sendEmail({ type: 'welcome', to: emailTrim, userId: driver.id, userType: 'driver', data: { name: fullName } }).catch(() => {});
+      }
       // Fire-and-forget admin alert — never blocks registration
       try {
         sendEmail({

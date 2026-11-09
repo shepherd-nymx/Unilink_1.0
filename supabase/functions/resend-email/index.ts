@@ -2,12 +2,14 @@ import { createClient } from "npm:@supabase/supabase-js@2.58.0";
 import nodemailer from "npm:nodemailer@6.9.16";
 
 // ---------------------------------------------------------------------------
-// UniLink transactional email dispatcher (Gmail SMTP)
+// UniLink transactional email dispatcher (Resend registration + existing Gmail notifications)
 //
 // Sends via Gmail using nodemailer. Credentials are read from server-side
 // environment variables (GMAIL_USER, GMAIL_APP_PASSWORD) and never exposed
 // to the client.
 //
+// Registration emails use RESEND_API_KEY and RESEND_FROM_EMAIL (defaults to no-reply@unilinkbase.com).
+// Other email types retain the existing Gmail transport.
 // Required env (configured as Supabase secrets):
 //   GMAIL_USER         — Gmail address (unilinkbase@gmail.com)
 //   GMAIL_APP_PASSWORD — Gmail App Password (16 chars, no spaces)
@@ -161,6 +163,43 @@ async function sendViaGmail(payload: {
   return { id: info.messageId || `gmail_${Date.now()}` };
 }
 
+// Only registration messages use the newly connected provider.
+function isRegistrationEmail(req: EmailRequest): boolean {
+  return req.type === "welcome" || (req.type === "shop_notification" && req.data?.action === "registration_received");
+}
+
+// Resolve the recipient and display name from a saved account. Public registration
+// requests cannot turn the Resend transport into an arbitrary-recipient sender.
+async function resolveRegistrationEmail(supabase: ReturnType<typeof getSupabase>, req: EmailRequest): Promise<EmailRequest> {
+  if (!isRegistrationEmail(req)) return req;
+  const shop = req.type === "shop_notification";
+  const table = shop ? "shops" : req.userType === "customer" ? "customers" : req.userType === "driver" ? "drivers" : null;
+  const id = shop ? req.data?.shopId : req.userId;
+  if (!table || !id) throw new Error("Registration email requires a saved account.");
+  const { data, error } = await supabase.from(table).select(shop ? "id,contact_email,name" : "id,email,full_name").eq("id", id).maybeSingle();
+  if (error || !data) throw new Error("Registration account not found.");
+  const email = String(shop ? data.contact_email || "" : data.email || "").trim().toLowerCase();
+  if (!email || email !== req.to.trim().toLowerCase()) throw new Error("Registration email must match the saved account.");
+  return { ...req, to: email, userId: data.id, userType: shop ? "shop" : req.userType, orderId: null,
+    data: { ...req.data, name: data.full_name, shopName: data.name, role: req.userType } };
+}
+
+async function sendRegistrationOrGmail(req: EmailRequest, emailId: string, payload: Parameters<typeof sendViaGmail>[0]): Promise<{ id: string }> {
+  if (!isRegistrationEmail(req)) return sendViaGmail(payload);
+  const key = Deno.env.get("RESEND_API_KEY");
+  if (!key) throw new Error("RESEND_API_KEY not configured");
+  const from = Deno.env.get("RESEND_FROM_EMAIL") || "no-reply@unilinkbase.com";
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json", "Idempotency-Key": `registration/${emailId}` },
+    body: JSON.stringify({ ...payload, from: `UniLink <${from}>`, reply_to: "unilinkbase@gmail.com" }),
+    signal: AbortSignal.timeout(15000),
+  });
+  const result = await response.json();
+  if (!response.ok || !result.id) throw new Error(result.message || `Resend HTTP ${response.status}`);
+  return { id: result.id };
+}
+
 function logoBlock(): string {
   return `
   <div style="text-align:center;margin:0 0 24px 0;">
@@ -231,8 +270,13 @@ function plainTextWrap(body: string): string {
 // ---------------------------------------------------------------------------
 function renderWelcome(d: Record<string, any>): { subject: string; html: string; text: string } {
   const name = d.name || "there";
+  if (d.role === "driver") {
+    const text = `Welcome to UniLink, ${name}! Your messenger application has been received and is awaiting review. We'll let you know when it is approved. Open UniLink: ${APP_URL}`;
+    return { subject: "Welcome to UniLink Messenger!", text,
+      html: `<h1>Welcome to UniLink, ${escapeHtml(name)}!</h1><p>Your messenger application has been received and is awaiting review. We'll let you know when it is approved.</p>${ctaButton(APP_URL, "Open UniLink")}<p class="small">Need help? Reply to this email.</p>` };
+  }
   const html = `
-    <h1>Welcome to UniLink, ${name}!</h1>
+    <h1>Welcome to UniLink, ${escapeHtml(name)}!</h1>
     <p>We're thrilled to have you. UniLink connects students with trusted messengers to order groceries and essentials from local shops and get them delivered right to their door — quickly, safely, and affordably.</p>
     <p>Here's what you can do next:</p>
     <p>&bull; Place your first order from your favourite shop.<br>&bull; Track your delivery in real time.<br>&bull; Chat with your messenger inside the app.</p>
@@ -596,6 +640,7 @@ async function sendOne(
 
   let rendered: { subject: string; html: string; text: string };
   try {
+    req = await resolveRegistrationEmail(supabase, req);
     rendered = render(req);
   } catch (e: any) {
     return { id: null, status: "skipped", duplicate: false, error: e.message };
@@ -606,7 +651,7 @@ async function sendOne(
   if (!id) return { id: null, status: "skipped", duplicate: false, error: "no slot" };
 
   try {
-    const { id: resendId } = await sendViaGmail({
+    const { id: resendId } = await sendRegistrationOrGmail(req, id, {
       from: FROM_ADDRESS,
       to: req.to,
       subject: rendered.subject,
@@ -664,7 +709,7 @@ Deno.serve(async (req: Request) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      const retryReq: EmailRequest = {
+      let retryReq: EmailRequest = {
         type: existing.type as EmailType,
         to: existing.recipient_email,
         userId: existing.user_id,
@@ -673,14 +718,14 @@ Deno.serve(async (req: Request) => {
         data: existing.metadata || {},
       };
       let rendered: { subject: string; html: string; text: string };
-      try { rendered = render(retryReq); }
+      try { retryReq = await resolveRegistrationEmail(supabase, retryReq); rendered = render(retryReq); }
       catch (e: any) {
         return new Response(JSON.stringify({ error: e.message }), {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       try {
-        const { id: resendId } = await sendViaGmail({
+        const { id: resendId } = await sendRegistrationOrGmail(retryReq, existing.id, {
           from: FROM_ADDRESS,
           to: retryReq.to,
           subject: rendered.subject,
