@@ -61,7 +61,7 @@ export default function ShoppingAssistant() {
     } finally { clearTimeout(timer); pending.current = false; setBusy(false); }
   }
   function browse(product: AssistantProduct) {
-    router.push({pathname:'/customer/marketplace',params:{shopId:product.shopId,productId:product.id}});
+    router.dismissTo({pathname:'/customer/marketplace',params:{shopId:product.shopId,productId:product.id}});
   }
   function productRow(product: AssistantProduct, key: string) {
     return <TouchableOpacity key={key} accessibilityRole="button" accessibilityLabel={`View ${product.name} at ${product.shopName}`} onPress={() => browse(product)} style={[s.product,{borderColor:palette.border}]}>

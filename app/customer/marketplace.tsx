@@ -661,7 +661,7 @@ export default function Marketplace() {
             <View style={[styles.selectedShopBanner, { backgroundColor: palette.cardBg, borderColor: palette.cardBorder }]}>
               <TouchableOpacity
                 style={[styles.backToShopsBtn, { backgroundColor: palette.inputBg, borderColor: palette.inputBorder }]}
-                onPress={() => { setSelectedShopId(null); setSearchQuery(''); setSelectedCategory(null); }}
+                onPress={() => { appliedShopId.current = null; router.setParams({ shopId: undefined, productId: undefined }); setSelectedShopId(null); setSearchQuery(''); setSelectedCategory(null); }}
               >
                 <ChevronLeft size={16} color={palette.textPrimary} />
                 <Text style={[styles.backToShopsText, { color: palette.textPrimary }]}>Shops</Text>

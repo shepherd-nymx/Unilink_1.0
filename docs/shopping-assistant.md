@@ -4,7 +4,7 @@ Entry points: Home → Shop with UNILINK, or Nearby shops → Ask UNILINK. The c
 
 ## Runtime
 
-`POST /api/shopping-assistant` is a Vercel Node function, separate from the static Expo app. It uses existing public Supabase URL/anon-key variables. It reads active shops, service locations, active in-stock products, shop delivery tiers and the selected university name. No service-role key, schema change or new database permission is needed. The supplied university ID is a public service-area selector, not proof of customer identity. The API does not accept customer IDs or fetch customers/orders/payments.
+`POST /api/shopping-assistant` is a Vercel Node function, separate from the static Expo app. It uses existing public Supabase URL/anon-key variables. It reads active shops, service locations, active in-stock products, shop delivery tiers and the selected university name. An explicit CommonJS-to-ESM runtime bridge loads the ESM-only AI SDK with native import(); this avoids Vercel’s CommonJS loader rewriting it to require(). No service-role key, schema change or new database permission is needed. The supplied university ID is a public service-area selector, not proof of customer identity. The API does not accept customer IDs or fetch customers/orders/payments.
 
 `ai@7.0.166` parses the last five conversation messages into a validated intent: products, amounts/units, USD budget and whether delivery is included. Only conversation text is sent to the model; the app's customer records, shop catalogue, address, phone, coordinates and identifiers are not sent. The UI warns users not to put private information in their request. Free model providers may retain/use submitted text; do not present this as a private support channel.
 
@@ -28,7 +28,7 @@ No conversations are saved to the database/local storage. They remain in the cur
 
 - `node scripts/test-shopping-assistant.cjs`: units, pack sizes, combined stock, closed/other-area shops, wrong product-type exclusions, known and unknown delivery fees, price tiers, multi-shop totals, under/over budget, unsupported currencies, Harare opening times, basic parser, request validation, no-store responses and throttle.
 - `npm run typecheck` and `EXPO_NO_TELEMETRY=1 EXPO_OFFLINE=1 npm run build:web`.
-- Browser integration: Home → assistant → real Node handler with mocked model/catalogue → basket → matching product → existing cart. Dark 390px, light 320px and dark desktop 1440px; persistent navigation and no horizontal overflow.
+- Browser integration: Home → assistant → real Node handler with mocked model/catalogue → basket → matching product → existing cart, including an assistant round trip that retains an existing cart. Dark 390px, light 320px and dark desktop 1440px; persistent navigation and no horizontal overflow.
 - Actual public Supabase catalogue loader checked read-only against UniLink: four active shops, 106 in-stock products and seven service-area rows at verification time. No customer records were created or production orders sent.
 
 If free AI access needs setup, use the owning Vercel team's AI Gateway dashboard; do not paste credentials in chat or enable a paid top-up without authorization. The catalogue fallback remains usable while setup is pending.
