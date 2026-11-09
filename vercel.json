@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/((?!\\.well-known/|_expo/|images/|.*\\.[^/]+$).*)",
+      "destination": "/index.html"
+    }
+  ]
+}
