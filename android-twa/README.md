@@ -60,7 +60,7 @@ npm run generate
 npm run verify
 ```
 
-Generation uses the checked-in `twa-manifest.json` for Android settings and the exact pinned Bubblewrap core version; it downloads the configured icon artwork from the website. It does not automatically adopt new web-manifest settings into the Android config. It respects the standard HTTPS proxy/CA environment. Generated Gradle, Java and resource files are overwritten, so keep app-specific settings in `twa-manifest.json`, review the diff, and re-run the checks. Do not add general unverified external origins to the trust list: an external identity provider should open through the browser's normal handling.
+Generation uses the checked-in `twa-manifest.json` for Android settings and the exact pinned Bubblewrap core version; it downloads the configured icon artwork and embeds a web-manifest snapshot from the website. It does not automatically adopt new web-manifest settings into the Android config. It respects the standard HTTPS proxy/CA environment. Generated Gradle, Java and resource files are overwritten, so keep app-specific settings in `twa-manifest.json`, review the diff, and re-run the checks. Do not add general unverified external origins to the trust list: an external identity provider should open through the browser's normal handling.
 
 The root Expo identity (`com.unilink.grocerydelivery`) describes a different native packaging route. Do not replace this TWA package with it or combine the two release paths accidentally.
 
