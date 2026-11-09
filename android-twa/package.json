@@ -1,0 +1,17 @@
+{
+  "name": "unilink-android-twa",
+  "private": true,
+  "version": "1.0.1",
+  "description": "Android Trusted Web Activity for the existing UniLink PWA",
+  "scripts": {
+    "generate": "node generate.cjs",
+    "bundle": "./gradlew bundleRelease",
+    "apk:debug": "./gradlew assembleDebug",
+    "verify": "node scripts/verify-config.cjs"
+  },
+  "devDependencies": {
+    "@bubblewrap/core": "1.27.0",
+    "https-proxy-agent": "7.0.6",
+    "node-fetch": "2.7.0"
+  }
+}

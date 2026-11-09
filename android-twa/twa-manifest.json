@@ -1,0 +1,53 @@
+{
+  "packageId": "com.unilinkbase.twa",
+  "host": "www.unilinkbase.com",
+  "name": "UniLink",
+  "launcherName": "UniLink",
+  "display": "standalone",
+  "orientation": "portrait",
+  "themeColor": "#2563eb",
+  "themeColorDark": "#0B192D",
+  "navigationColor": "#ffffff",
+  "navigationColorDark": "#0B192D",
+  "backgroundColor": "#ffffff",
+  "enableNotifications": true,
+  "startUrl": "/",
+  "iconUrl": "https://www.unilinkbase.com/icon-512.png",
+  "maskableIconUrl": "https://www.unilinkbase.com/icon-512.png",
+  "splashScreenFadeOutDuration": 300,
+  "signingKey": {
+    "path": "/PATH/TO/EXISTING_UPLOAD_KEYSTORE.jks",
+    "alias": "EXISTING_KEY_ALIAS"
+  },
+  "appVersionCode": 1,
+  "appVersion": "1.0.1",
+  "shortcuts": [],
+  "generatorApp": "bubblewrap-cli@1.27.0",
+  "webManifestUrl": "https://www.unilinkbase.com/manifest.json",
+  "fallbackType": "customtabs",
+  "features": {},
+  "alphaDependencies": {
+    "enabled": false
+  },
+  "enableSiteSettingsShortcut": true,
+  "isChromeOSOnly": false,
+  "isMetaQuest": false,
+  "fullScopeUrl": "https://www.unilinkbase.com/",
+  "minSdkVersion": 24,
+  "fingerprints": [
+    {
+      "name": "Existing site certificate 1",
+      "value": "75:64:A9:D6:2B:33:FA:63:69:E7:38:72:98:D2:32:56:97:BB:02:CF:C9:79:05:36:3C:C4:64:0D:C9:F5:0B:54"
+    },
+    {
+      "name": "Existing site certificate 2",
+      "value": "80:2E:B8:65:A8:E3:36:C5:C3:E2:39:51:6C:9A:4F:CF:08:9D:D4:68:5A:04:23:F6:78:4F:78:93:4D:85:E8:3A"
+    },
+    {
+      "name": "Owner Windows release certificate",
+      "value": "42:E5:B6:8B:F9:4B:E8:19:AA:67:96:FA:55:FF:D3:0B:26:C5:30:CC:51:37:91:4D:BA:94:95:4F:1B:3E:66:3E"
+    }
+  ],
+  "additionalTrustedOrigins": [],
+  "retainedBundles": []
+}

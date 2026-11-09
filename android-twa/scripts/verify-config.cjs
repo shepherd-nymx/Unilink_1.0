@@ -1,0 +1,28 @@
+#!/usr/bin/env node
+const fs = require('node:fs');
+const path = require('node:path');
+const assert = require('node:assert/strict');
+const root = path.resolve(__dirname,'..');
+const manifest = JSON.parse(fs.readFileSync(path.join(root,'twa-manifest.json'),'utf8'));
+const dal = JSON.parse(fs.readFileSync(path.join(root,'../public/.well-known/assetlinks.json'),'utf8'));
+const entry=dal.find(item=>item.target?.package_name===manifest.packageId);
+assert(entry,'TWA package must match an existing website Digital Asset Links entry');
+assert.equal(manifest.packageId,'com.unilinkbase.twa');
+assert.equal(manifest.host,'www.unilinkbase.com');
+assert.equal(manifest.startUrl,'/');
+assert.equal(manifest.webManifestUrl,'https://www.unilinkbase.com/manifest.json');
+assert.equal(manifest.fallbackType,'customtabs');
+assert.equal(manifest.minSdkVersion,24,'Android Browser Helper 2.7.4 requires API24+');
+assert.deepEqual(manifest.fingerprints.map(item=>item.value).sort(),[...entry.target.sha256_cert_fingerprints].sort(),'Existing website fingerprints must be preserved');
+const gradle=fs.readFileSync(path.join(root,'app/build.gradle'),'utf8');
+assert.match(gradle,/compileSdkVersion 36\b/);
+assert.match(gradle,/minSdkVersion 24\b/);
+assert.match(gradle,/targetSdkVersion 36\b/);
+assert.match(gradle,/applicationId "com\.unilinkbase\.twa"/);
+const android=fs.readFileSync(path.join(root,'app/src/main/AndroidManifest.xml'),'utf8');
+assert.match(android,/android:host="@string\/hostName"/);
+assert.match(gradle,/hostName: 'www\.unilinkbase\.com'/);
+assert.match(android,/android:scheme="https"/);
+assert.doesNotMatch(android,/android\.permission\.(ACCESS_BACKGROUND_LOCATION|READ_CONTACTS|MANAGE_EXTERNAL_STORAGE)/);
+assert(fs.existsSync(path.join(root,'gradle/wrapper/gradle-wrapper.jar')),'Gradle wrapper JAR missing');
+console.log('Verified: package, canonical origin, preserved certificates, API36 and wrapper resources.');
