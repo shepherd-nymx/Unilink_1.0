@@ -11,7 +11,7 @@ export function skeletonLayoutForPage(page: string): SkeletonLayout {
   if (page.endsWith('/dashboard')) return 'dashboard';
   if (page === 'customer/marketplace') return 'marketplace';
   if (page === 'driver/chat' || page === 'shop/chat') return 'conversations';
-  if (page.endsWith('/chat') || page === 'chat/messages') return 'chat';
+  if (page.endsWith('/chat') || page === 'chat/messages' || page === 'customer/assistant') return 'chat';
   if (/\/(receipt|ticket)$/.test(page)) return 'receipt';
   if (/\/(terms|merchant-policy)$/.test(page) || page === 'policies') return 'document';
   if (/\/(profile|settings|register|identity-callback|privacy-centre|compliance)$/.test(page)) return 'form';
@@ -44,6 +44,7 @@ export default function PageSkeleton({ page, layout = skeletonLayoutForPage(page
         {layout === 'home' && <>
           <View style={[s.row, { justifyContent: 'center', marginBottom: 20 }]}><Block width={86} height={32}/><Block width={120} height={32}/></View>
           <Block height={76} borderRadius={18} style={{ marginBottom: 14 }}/>
+          <Block height={72} borderRadius={17} style={{ marginBottom: 14 }}/>
           <View style={card}><View style={[s.row, { justifyContent: 'space-between', marginBottom: 16 }]}><Block width="40%" height={18}/><Block width={96} height={36} borderRadius={10}/></View>{lines(2)}</View>
           <Block height={desktop ? 208 : 170} borderRadius={16} style={{ marginTop: 18 }}/>
           <View style={[s.row, { justifyContent: 'center', paddingVertical: 8 }]}>{[0,1,2].map(i => <Block key={i} width={6} height={6} borderRadius={3}/>)}</View>

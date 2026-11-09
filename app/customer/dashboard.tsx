@@ -18,7 +18,7 @@ import {
 } from 'react-native';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { supabase } from '@/lib/supabase';
-import { LogOut, ShoppingCart, ShoppingBag, Car, User, CircleAlert as AlertCircle, History, ChevronDown, ChevronUp, Plus, X, Package, Search, Star, CircleCheck as CheckCircle, Camera, Image as ImageIcon, MessageCircle, Circle as HelpCircle, Bell, Truck, CreditCard, Share2, Mail, Link2, Smartphone, Home, ChevronRight } from 'lucide-react-native';
+import { LogOut, ShoppingCart, ShoppingBag, Car, User, CircleAlert as AlertCircle, History, ChevronDown, ChevronUp, Plus, X, Package, Search, Star, CircleCheck as CheckCircle, Camera, Image as ImageIcon, MessageCircle, Circle as HelpCircle, Bell, Truck, CreditCard, Share2, Mail, Link2, Smartphone, Home, ChevronRight, Sparkles } from 'lucide-react-native';
 import { Share as RNShare } from 'react-native';
 import * as Location from 'expo-location';
 import * as ImagePicker from 'expo-image-picker';
@@ -1710,6 +1710,10 @@ export default function CustomerDashboard() {
 
       <ScrollView ref={contentRef} style={styles.content} contentContainerStyle={!isDark ? { paddingBottom: 28 } : undefined}>
         <NearbyShopsAction onPress={() => router.push('/customer/marketplace')}/>
+        <TouchableOpacity accessibilityRole="button" accessibilityLabel="Shop with UNILINK assistant" onPress={() => router.push('/customer/assistant')}
+          style={{ marginHorizontal: isDark ? 16 : 20, marginVertical: 8, padding: 15, borderRadius: 17, borderWidth: 1, borderColor: isDark ? '#245078' : '#c7dcfa', backgroundColor: isDark ? '#0d2038' : '#edf5ff', flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+          <Sparkles size={24} color={isDark ? '#7ac4ff' : '#005be8'}/><View style={{ flex: 1 }}><Text style={{ color: isDark ? '#e5f1fc' : '#102139', fontSize: 15, fontWeight: '800' }}>Shop with UNILINK</Text><Text style={{ color: isDark ? '#9ab9d7' : '#5e7189', fontSize: 12, marginTop: 4 }}>Tell me your list and budget</Text></View><ChevronRight size={20} color={isDark ? '#7ac4ff' : '#005be8'}/>
+        </TouchableOpacity>
         <View style={styles.customItemsSection}>
           <View style={styles.customItemsHeader}>
             <View style={styles.customItemsHeaderLeft}>

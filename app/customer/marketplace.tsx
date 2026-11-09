@@ -17,7 +17,7 @@ import { shopServesLocation } from '@/lib/shop-location-visibility';
 import { supabase } from '@/lib/supabase';
 import { loadUserData } from '@/lib/storage-service';
 import { A } from '@/lib/admin-theme';
-import { ArrowLeft, Store, Search, ShoppingCart, Plus, Minus, X, Package, CreditCard, CircleCheck as CheckCircle, CircleAlert as AlertCircle, Info, ChevronLeft, ChevronRight, MapPin, Lock, GraduationCap, Truck } from 'lucide-react-native';
+import { ArrowLeft, Store, Search, ShoppingCart, Plus, Minus, X, Package, CreditCard, CircleCheck as CheckCircle, CircleAlert as AlertCircle, Info, ChevronLeft, ChevronRight, MapPin, Lock, GraduationCap, Truck, Sparkles } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Shop, Product, CartItem, CartByShop, ThemePalette, computeShopOpen, DeliveryFeeTier, computeTierDeliveryFee, SHOP_CATEGORIES } from '@/components/marketplace/types';
 import { MarketplaceShopCard } from '@/components/marketplace/MarketplaceShopCard';
@@ -29,7 +29,7 @@ type ServiceLocationMap = Record<string, { location_name: string; location_type:
 
 export default function Marketplace() {
   const router = useRouter();
-  const { shopId: requestedShopId } = useLocalSearchParams<{ shopId?: string }>();
+  const { shopId: requestedShopId, productId: requestedProductId } = useLocalSearchParams<{ shopId?: string; productId?: string }>();
   const appliedShopId = useRef<string | null>(null);
   const { isDark } = useTheme();
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -279,18 +279,20 @@ export default function Marketplace() {
   const shopServesCustomer = (shopId: string): boolean => shopServesLocation(shopServiceLocations[shopId], customerLocationText);
 
   useEffect(() => {
-    if (!requestedShopId || loading || appliedShopId.current === requestedShopId) return;
-    appliedShopId.current = requestedShopId;
+    const selectionKey = `${requestedShopId || ''}:${requestedProductId || ''}`;
+    if (!requestedShopId || loading || appliedShopId.current === selectionKey) return;
+    appliedShopId.current = selectionKey;
     const requested = shops.find(shop => shop.id === requestedShopId);
     if (requested && shopServesLocation(shopServiceLocations[requested.id], customerLocationText)) {
       setSelectedShopId(requested.id);
-      setSearchQuery('');
+      const requestedProduct = requestedProductId ? products.find(product => product.id === requestedProductId && product.shop_id === requested.id) : null;
+      setSearchQuery(requestedProduct?.name || '');
       setSelectedCategory(null);
     } else {
       setSelectedShopId(null);
       setError('This shop is not available for your saved service location.');
     }
-  }, [requestedShopId, loading, shops, shopServiceLocations, customerLocationText]);
+  }, [requestedShopId, requestedProductId, loading, shops, products, shopServiceLocations, customerLocationText]);
 
   const anyCartBlocked = cartByShop.some(sc => {
     const s = shops.find(sh => sh.id === sc.shopId);
@@ -579,6 +581,9 @@ export default function Marketplace() {
               </View>
             ) : null}
 
+            <TouchableOpacity accessibilityRole="button" accessibilityLabel="Ask UNILINK assistant" onPress={() => router.push('/customer/assistant')} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 18, padding: 12, borderRadius: 12, backgroundColor: `${palette.primary}15` }}>
+              <Sparkles size={18} color={palette.primary}/><Text style={{ flex: 1, color: palette.textPrimary, fontSize: 13, fontWeight: '700' }}>Need help choosing? Ask UNILINK</Text><ChevronRight size={17} color={palette.primary}/>
+            </TouchableOpacity>
             {/* Category filter chips */}
             <View style={{ marginBottom: 16 }}>
 

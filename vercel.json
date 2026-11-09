@@ -1,5 +1,12 @@
 {
   "rewrites": [
-    { "source": "/customer/identity-callback", "destination": "/index.html" }
+    {
+      "source": "/customer/identity-callback",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/customer/assistant",
+      "destination": "/index.html"
+    }
   ]
 }
