@@ -1,3 +1,4 @@
+import PageSkeleton from '@/components/PageSkeleton';
 import { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
@@ -5,7 +6,6 @@ import {
 } from 'react-native';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { supabase } from '@/lib/supabase';
-import { SkeletonList } from '@/components/Skeleton';
 import {
   ArrowLeft, Package, Clock, CircleCheck as CheckCircle,
   Circle as XCircle, FileText, CreditCard, Copy, CircleAlert as AlertCircle,
@@ -524,11 +524,7 @@ export default function CustomerOrders() {
   );
 
   if (loading) {
-    return (
-      <View style={[styles.container]}>
-        <SkeletonList count={6} lines={3} />
-      </View>
-    );
+    return <PageSkeleton page="customer/orders"/>;
   }
 
   const activeDeliveryCount = deliveryRequests.filter(r => r.status === 'pending' || r.status === 'accepted' || r.status === 'in_progress').length;

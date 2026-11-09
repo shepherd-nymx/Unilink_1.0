@@ -1,3 +1,4 @@
+import PageSkeleton from '@/components/PageSkeleton';
 import { useState, useEffect, useRef } from 'react';
 import {
   View,
@@ -14,7 +15,6 @@ import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { ArrowLeft, Plus, Truck, CreditCard as Edit2, CreditCard, Trash2, CircleCheck as CheckCircle, Circle as XCircle, School, Key, RefreshCw, ShieldCheck, ShieldAlert, Ban, Calendar, Clock } from 'lucide-react-native';
 import { A } from '@/lib/admin-theme';
-import { SkeletonList } from '@/components/Skeleton';
 import { ConnectionBadge } from '@/components/ConnectionBadge';
 
 type Driver = {
@@ -408,20 +408,7 @@ export default function ManageDrivers() {
   const suspendedCount = approvedDriversList.filter(d => getSubStatus(d) === 'suspended').length;
 
   if (loading) {
-    return (
-      <View style={{ flex: 1, backgroundColor: A.bg }}>
-        <View style={{ backgroundColor: A.surface, paddingTop: 60, paddingBottom: 16, paddingHorizontal: 20, borderBottomWidth: 1, borderBottomColor: A.border, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-          <TouchableOpacity onPress={() => router.back()} style={{ width: 36, height: 36, borderRadius: 8, backgroundColor: A.cyanDim, borderWidth: 1, borderColor: A.cyan, justifyContent: 'center', alignItems: 'center' }}>
-            <ArrowLeft size={18} color={A.cyan} />
-          </TouchableOpacity>
-          <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 10, fontWeight: '700', letterSpacing: 2, color: A.textMuted, textTransform: 'uppercase' }}>FLEET MANAGEMENT</Text>
-            <Text style={{ fontSize: 22, fontWeight: '800', color: A.text }}>Manage Drivers</Text>
-          </View>
-        </View>
-        <SkeletonList count={6} lines={4} />
-      </View>
-    );
+    return <PageSkeleton page="admin/drivers" onBack={() => router.back()}/>;
   }
 
   return (

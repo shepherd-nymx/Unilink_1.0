@@ -1,3 +1,4 @@
+import PageSkeleton from '@/components/PageSkeleton';
 import { useState, useEffect, useRef } from 'react';
 import {
   View,
@@ -494,12 +495,7 @@ export default function Marketplace() {
   };
 
   if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={A.cyan} />
-        <Text style={{ color: A.textSub, marginTop: 12 }}>Loading marketplace...</Text>
-      </View>
-    );
+    return <PageSkeleton page="customer/marketplace"/>;
   }
 
   if (orderSuccess) {

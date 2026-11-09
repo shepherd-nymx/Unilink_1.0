@@ -1,3 +1,4 @@
+import PageSkeleton from '@/components/PageSkeleton';
 import { useState, useEffect, useRef } from 'react';
 import {
   View,
@@ -11,7 +12,6 @@ import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { ArrowLeft, Package, User, Truck, ShoppingBag, Circle as XCircle, MapPin, Navigation } from 'lucide-react-native';
 import { A } from '@/lib/admin-theme';
-import { SkeletonList } from '@/components/Skeleton';
 import { ConnectionBadge } from '@/components/ConnectionBadge';
 import type { DeliveryRequestRow } from '@/lib/delivery-request-types';
 
@@ -187,20 +187,7 @@ export default function ViewDeliveries() {
   };
 
   if (loading) {
-    return (
-      <View style={{ flex: 1, backgroundColor: A.bg }}>
-        <View style={{ backgroundColor: A.surface, paddingTop: 60, paddingBottom: 16, paddingHorizontal: 20, borderBottomWidth: 1, borderBottomColor: A.border, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-          <TouchableOpacity onPress={() => router.back()} style={{ width: 36, height: 36, borderRadius: 8, backgroundColor: A.cyanDim, borderWidth: 1, borderColor: A.cyan, justifyContent: 'center', alignItems: 'center' }}>
-            <ArrowLeft size={18} color={A.cyan} />
-          </TouchableOpacity>
-          <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 10, fontWeight: '700', letterSpacing: 2, color: A.textMuted }}>ORDER TRACKING</Text>
-            <Text style={{ fontSize: 22, fontWeight: '800', color: A.text }}>All Deliveries</Text>
-          </View>
-        </View>
-        <SkeletonList count={6} lines={3} />
-      </View>
-    );
+    return <PageSkeleton page="admin/deliveries" onBack={() => router.back()}/>;
   }
 
   return (

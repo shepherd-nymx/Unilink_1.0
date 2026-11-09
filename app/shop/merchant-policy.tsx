@@ -1,3 +1,4 @@
+import PageSkeleton from '@/components/PageSkeleton';
 import { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -67,11 +68,7 @@ export default function MerchantPolicy() {
   };
 
   if (loading) {
-    return (
-      <View style={[styles.container, { backgroundColor: BG, justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator size="large" color={P} />
-      </View>
-    );
+    return <PageSkeleton page="shop/merchant-policy"/>;
   }
 
   if (error || !policy) {

@@ -1,3 +1,4 @@
+import PageSkeleton from '@/components/PageSkeleton';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
@@ -352,12 +353,7 @@ export default function AdminEmailLogs() {
       </View>
 
       {/* List */}
-      {loading ? (
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 }}>
-          <ActivityIndicator size="large" color={A.cyan} />
-          <Text style={{ color: A.textSub, fontSize: 13 }}>Loading email logs...</Text>
-        </View>
-      ) : filtered.length === 0 ? (
+      {loading ? <PageSkeleton page="admin/emails" embedded fill/> : filtered.length === 0 ? (
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12, paddingHorizontal: 40 }}>
           <View
             style={{

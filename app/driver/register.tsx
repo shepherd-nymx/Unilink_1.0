@@ -1,3 +1,4 @@
+import { SkeletonField } from '@/components/Skeleton';
 import { useState, useEffect, useRef } from 'react';
 import {
   View,
@@ -44,6 +45,7 @@ export default function DriverRegister() {
   const [nationalId, setNationalId] = useState('');
   const [universityId, setUniversityId] = useState('');
   const [customLocation, setCustomLocation] = useState('');
+  const [catalogLoading, setCatalogLoading] = useState(true);
   const [universities, setUniversities] = useState<Array<{ id: string; name: string }>>([]);
   const [deliveryType, setDeliveryType] = useState<'walking' | 'vehicle'>('walking');
   const [vehicleType, setVehicleType] = useState('');
@@ -80,7 +82,7 @@ export default function DriverRegister() {
       setUniversities(data || []);
     } catch (err: any) {
       console.error('Failed to load universities:', err);
-    }
+    } finally { setCatalogLoading(false); }
   };
 
   const fetchTermsAndConditions = async () => {
@@ -520,7 +522,7 @@ export default function DriverRegister() {
                 <MapPin size={14} color={TEXT_MUTED} />
                 <Text style={styles.label}>Service Location <Text style={styles.required}>*</Text></Text>
               </View>
-              {Platform.OS === 'web' ? (
+              {catalogLoading ? <SkeletonField dark/> : (Platform.OS === 'web' ? (
                 <select
                   value={universityId}
                   onChange={(e) => setUniversityId(e.target.value)}
@@ -552,7 +554,7 @@ export default function DriverRegister() {
                     {universityId === 'other' ? 'Other location...' : (universities.find(u => u.id === universityId)?.name || 'Select your service location')}
                   </Text>
                 </View>
-              )}
+              ))}
             </View>
 
             {universityId === 'other' && (

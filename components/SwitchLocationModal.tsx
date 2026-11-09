@@ -1,3 +1,4 @@
+import PageSkeleton from '@/components/PageSkeleton';
 import { useState, useEffect, useRef } from 'react';
 import {
   View,
@@ -161,12 +162,7 @@ export default function SwitchLocationModal({
             </View>
           ) : null}
 
-          {loading ? (
-            <View style={ms.loadingBox}>
-              <ActivityIndicator size="small" color={CYAN} />
-              <Text style={ms.loadingText}>Loading locations...</Text>
-            </View>
-          ) : (
+          {loading ? <PageSkeleton page="driver/locations" embedded/> : (
             <ScrollView style={ms.list} contentContainerStyle={{ gap: 8, paddingBottom: 8 }} showsVerticalScrollIndicator={false}>
               {universities.map(uni => {
                 const isActive = uni.id === (selected ?? currentActiveUniversityId);

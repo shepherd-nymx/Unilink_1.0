@@ -1,3 +1,4 @@
+import PageSkeleton from '@/components/PageSkeleton';
 import { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator,
@@ -190,11 +191,7 @@ export default function PrivacyCentre() {
   };
 
   if (loading) {
-    return (
-      <View style={[styles.container, { backgroundColor: BG, justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator size="large" color={P} />
-      </View>
-    );
+    return <PageSkeleton page="customer/privacy-centre"/>;
   }
 
   return (

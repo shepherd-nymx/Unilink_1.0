@@ -1,3 +1,4 @@
+import PageSkeleton from '@/components/PageSkeleton';
 import { useState, useEffect, useRef } from 'react';
 import {
   View,
@@ -166,47 +167,7 @@ export default function CustomerChat() {
   };
 
   if (loading) {
-    return (
-      <View style={{ flex: 1, backgroundColor: BG }}>
-        <View style={{
-          backgroundColor: SURFACE,
-          paddingTop: 56,
-          paddingBottom: 16,
-          paddingHorizontal: 20,
-          borderBottomWidth: 1,
-          borderBottomColor: BORDER,
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: 14,
-        }}>
-          <View style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 1.5, backgroundColor: CYAN, opacity: 0.6 }} />
-          <TouchableOpacity
-            onPress={() => router.back()}
-            style={{
-              width: 36, height: 36, borderRadius: 8,
-              backgroundColor: CYAN_DIM, borderWidth: 1, borderColor: CYAN,
-              justifyContent: 'center', alignItems: 'center',
-            }}
-          >
-            <ArrowLeft size={18} color={CYAN} />
-          </TouchableOpacity>
-          <View>
-            <Text style={{ fontSize: 10, fontWeight: '700', letterSpacing: 2, color: TEXT_MUTED }}>MESSENGER</Text>
-            <Text style={{ fontSize: 22, fontWeight: '800', color: TEXT }}>Messages</Text>
-          </View>
-        </View>
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', gap: 16 }}>
-          <View style={{
-            width: 68, height: 68, borderRadius: 34,
-            backgroundColor: CYAN_DIM, borderWidth: 1, borderColor: BORDER,
-            justifyContent: 'center', alignItems: 'center',
-          }}>
-            <ActivityIndicator size="large" color={CYAN} />
-          </View>
-          <Text style={{ fontSize: 14, color: TEXT_SUB, letterSpacing: 1 }}>Connecting...</Text>
-        </View>
-      </View>
-    );
+    return <PageSkeleton page="customer/chat" onBack={() => router.back()}/>;
   }
 
   if (!activeDelivery || !activeDelivery.driver_id) {

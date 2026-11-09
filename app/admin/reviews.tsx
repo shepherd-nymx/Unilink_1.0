@@ -1,3 +1,4 @@
+import PageSkeleton from '@/components/PageSkeleton';
 import { useState, useEffect, useRef } from 'react';
 import {
   View,
@@ -254,12 +255,7 @@ export default function AdminReviews() {
         </View>
       </View>
 
-      {loading ? (
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 }}>
-          <ActivityIndicator size="large" color={A.cyan} />
-          <Text style={{ color: A.textSub, fontSize: 13 }}>Loading reviews...</Text>
-        </View>
-      ) : filtered.length === 0 ? (
+      {loading ? <PageSkeleton page="admin/reviews" embedded fill/> : filtered.length === 0 ? (
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12, paddingHorizontal: 40 }}>
           <View style={{
             width: 72, height: 72, borderRadius: 36,

@@ -1,3 +1,4 @@
+import PageSkeleton from '@/components/PageSkeleton';
 import { useState, useEffect, useRef } from 'react';
 import {
   View,
@@ -234,11 +235,7 @@ export default function Receipt() {
   const iconShadow = iconPulse.interpolate({ inputRange: [0, 1], outputRange: [0.2, 0.7] });
 
   if (loading) {
-    return (
-      <View style={[r.centered, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color={ACCENT} />
-      </View>
-    );
+    return <PageSkeleton page="customer/receipt"/>;
   }
 
   if (!order) {

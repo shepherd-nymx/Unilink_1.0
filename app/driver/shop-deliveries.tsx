@@ -1,3 +1,4 @@
+import PageSkeleton from '@/components/PageSkeleton';
 import { useState, useEffect, useRef } from 'react';
 import {
   View,
@@ -234,19 +235,7 @@ export default function MessengerShopDeliveries() {
   };
 
   if (loading) {
-    return (
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-            <ArrowLeft size={18} color={TEXT} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Shop Deliveries</Text>
-        </View>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={GREEN} />
-        </View>
-      </View>
-    );
+    return <PageSkeleton page="driver/shop-deliveries" onBack={() => router.back()}/>;
   }
 
   return (

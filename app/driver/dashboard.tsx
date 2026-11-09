@@ -1,3 +1,4 @@
+import PageSkeleton from '@/components/PageSkeleton';
 import { useState, useEffect, useRef } from 'react';
 import {
   View,
@@ -526,22 +527,13 @@ export default function DriverDashboard() {
   });
 
   if (isChecking) {
-    return (
-      <View style={s.centered}>
-        <ActivityIndicator size="large" color={CYAN} />
-        <Text style={{ color: TEXT2, marginTop: 16, fontSize: 13 }}>Verifying access...</Text>
-      </View>
-    );
+    return <PageSkeleton page="driver/dashboard"/>;
   }
 
   if (!isAccepted) return null;
 
   if (loading) {
-    return (
-      <View style={s.centered}>
-        <ActivityIndicator size="large" color={CYAN} />
-      </View>
-    );
+    return <PageSkeleton page="driver/dashboard"/>;
   }
 
   const isOnline = driverInfo?.is_available;

@@ -1,3 +1,4 @@
+import { SkeletonField } from '@/components/Skeleton';
 import { useState, useRef, useEffect } from 'react';
 import {
   View,
@@ -58,6 +59,7 @@ export default function ShopRegister() {
   const [latitude, setLatitude] = useState('');
   const [longitude, setLongitude] = useState('');
   const [locating, setLocating] = useState(false);
+  const [catalogLoading, setCatalogLoading] = useState(true);
   const [areas, setAreas] = useState<{ id: string; name: string; city: string | null }[]>([]);
   const [showAreaPicker, setShowAreaPicker] = useState(false);
   const [logoUri, setLogoUri] = useState<string | null>(null);
@@ -88,7 +90,7 @@ export default function ShopRegister() {
       setAreas(data || []);
     } catch (err) {
       console.error('Failed to load areas:', err);
-    }
+    } finally { setCatalogLoading(false); }
   };
 
   const bg = isDark ? '#050b16' : '#f0f4f8';
@@ -513,7 +515,7 @@ export default function ShopRegister() {
               <Text style={[styles.label, { color: textSecondary }]}>
                 AREA / LOCATION <Text style={{ color: errorColor }}>*</Text>
               </Text>
-              <TouchableOpacity
+              {catalogLoading ? <SkeletonField/> : (<TouchableOpacity
                 style={[styles.inputWrapper, { backgroundColor: inputBg, borderColor: focused === 'area' ? primary : inputBorder }]}
                 onPress={() => { setShowAreaPicker(!showAreaPicker); setFocused('area'); }}
               >
@@ -525,7 +527,7 @@ export default function ShopRegister() {
                   {area || 'Select your area/suburb'}
                 </Text>
                 <ChevronDown size={16} color={placeholderColor} style={{ marginRight: 4 }} />
-              </TouchableOpacity>
+              </TouchableOpacity>)}
 
               {showAreaPicker && (
                 <View style={[styles.areaPickerBox, { backgroundColor: inputBg, borderColor: inputBorder }]}>

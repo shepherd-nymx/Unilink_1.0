@@ -1,3 +1,4 @@
+import PageSkeleton from '@/components/PageSkeleton';
 import { useState, useEffect, useRef } from 'react';
 import {
   View,
@@ -524,18 +525,7 @@ export default function DriverChat() {
         </View>
       ) : null}
 
-      {loading ? (
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', gap: 16 }}>
-          <View style={{
-            width: 68, height: 68, borderRadius: 34,
-            backgroundColor: CYAN_DIM, borderWidth: 1, borderColor: BORDER,
-            justifyContent: 'center', alignItems: 'center',
-          }}>
-            <ActivityIndicator size="large" color={CYAN} />
-          </View>
-          <Text style={{ fontSize: 14, color: TEXT_SUB, letterSpacing: 0.5 }}>Loading conversations...</Text>
-        </View>
-      ) : (
+      {loading ? <PageSkeleton page="driver/chat" embedded fill/> : (
         <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
           {conversations.length > 0 && (
             <View style={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 8 }}>

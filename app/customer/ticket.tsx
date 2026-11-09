@@ -1,3 +1,4 @@
+import PageSkeleton from '@/components/PageSkeleton';
 import { useState, useEffect, useRef } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Animated, Platform, Linking } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -329,11 +330,7 @@ export default function OrderTicket() {
   });
 
   if (loading) {
-    return (
-      <View style={[styles.container, styles.centered]}>
-        <ActivityIndicator size="large" color={P} />
-      </View>
-    );
+    return <PageSkeleton page="customer/ticket"/>;
   }
 
   if (!orderDetails) {

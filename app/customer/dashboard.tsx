@@ -1,3 +1,4 @@
+import PageSkeleton from '@/components/PageSkeleton';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
@@ -1590,14 +1591,7 @@ export default function CustomerDashboard() {
   ) as typeof baseStyles;
 
   if (isChecking) {
-    return (
-      <View style={[styles.container, styles.centered]}>
-        <ActivityIndicator size="large" color={P} />
-        <Text style={{ color: TX2, marginTop: 16, fontSize: 14 }}>
-          Verifying Terms Acceptance...
-        </Text>
-      </View>
-    );
+    return <PageSkeleton page="customer/dashboard"/>;
   }
 
   if (!isAccepted) {
@@ -1605,11 +1599,7 @@ export default function CustomerDashboard() {
   }
 
   if (loading) {
-    return (
-      <View style={[styles.container, styles.centered]}>
-        <ActivityIndicator size="large" color={P} />
-      </View>
-    );
+    return <PageSkeleton page="customer/dashboard"/>;
   }
 
   const selectedCount = groceryItems.filter(item => item.quantity > 0).length;

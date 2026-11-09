@@ -1,3 +1,4 @@
+import PageSkeleton from '@/components/PageSkeleton';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator,
@@ -6,7 +7,6 @@ import {
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { ArrowLeft, ShoppingBag, Package, MapPin, Phone, User, Clock, CircleCheck as CheckCircle, Navigation, X, ChevronRight, Truck, FileText, CircleAlert as AlertCircle, RefreshCw, MessageCircle, ExternalLink, RotateCcw, Lock, TriangleAlert as AlertTriangle } from 'lucide-react-native';
 import { supabase } from '@/lib/supabase';
-import { SkeletonList } from '@/components/Skeleton';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useDeliveryRequest } from '@/hooks/useDeliveryRequest';
 import type { DeliveryRequestRow } from '@/lib/delivery-request-types';
@@ -943,11 +943,7 @@ export default function DriverDeliveryRequests() {
         </TouchableOpacity>
       </View>
 
-      {loading ? (
-        <View style={s.centeredLoader}>
-          <SkeletonList count={5} lines={4} />
-        </View>
-      ) : displayList.length === 0 ? (
+      {loading ? <PageSkeleton page="driver/delivery-requests" embedded fill/> : displayList.length === 0 ? (
         <View style={s.emptyState}>
           <View style={s.emptyIcon}>
             <Truck size={32} color={isDark ? CYAN : '#94a3b8'} />

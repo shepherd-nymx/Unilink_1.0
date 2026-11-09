@@ -1,3 +1,4 @@
+import PageSkeleton from '@/components/PageSkeleton';
 import { useCallback, useEffect, useState } from 'react';
 import {
   View,
@@ -442,9 +443,7 @@ export default function AdminAnnouncements() {
           <Text style={s.addButtonText}>New Announcement</Text>
         </TouchableOpacity>
 
-        {loading ? (
-          <ActivityIndicator color={A.cyan} style={{ marginTop: 30 }} />
-        ) : announcements.length === 0 ? (
+        {loading ? <PageSkeleton page="admin/announcements" embedded/> : announcements.length === 0 ? (
           <View style={s.empty}>
             <Megaphone size={32} color={A.textMuted} />
             <Text style={s.emptyText}>

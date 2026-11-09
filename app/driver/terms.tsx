@@ -1,3 +1,4 @@
+import PageSkeleton from '@/components/PageSkeleton';
 import { useState, useEffect } from 'react';
 import {
   View,
@@ -108,14 +109,7 @@ export default function DriverTermsScreen() {
   };
 
   if (loading && !termsContent) {
-    return (
-      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
-          Loading Terms & Conditions...
-        </Text>
-      </View>
-    );
+    return <PageSkeleton page="driver/terms"/>;
   }
 
   return (

@@ -1,3 +1,4 @@
+import PageSkeleton from '@/components/PageSkeleton';
 import { View, Text, TouchableOpacity, ScrollView, TextInput, ActivityIndicator, Animated } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, Plus, CreditCard as Edit2, Check, X, Power, School, MapPin } from 'lucide-react-native';
@@ -238,14 +239,7 @@ export default function UniversitiesManagement() {
   );
 
   if (loading) {
-    return (
-      <View style={{ flex: 1, backgroundColor: A.bg }}>
-        {headerContent}
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-          <ActivityIndicator size="large" color={A.cyan} />
-        </View>
-      </View>
-    );
+    return <PageSkeleton page="admin/universities" onBack={() => router.back()}/>;
   }
 
   return (

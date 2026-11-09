@@ -1,3 +1,4 @@
+import PageSkeleton from '@/components/PageSkeleton';
 import { useState, useEffect } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Platform, Share,
@@ -288,11 +289,7 @@ export default function OrderTicket() {
   };
 
   if (loading) {
-    return (
-      <View style={[styles.container, { backgroundColor: BG, justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator size="large" color={P} />
-      </View>
-    );
+    return <PageSkeleton page="customer/marketplace/ticket"/>;
   }
 
   if (!order || !order.shops) {

@@ -1,3 +1,4 @@
+import PageSkeleton from '@/components/PageSkeleton';
 import { useState, useEffect, useRef } from 'react';
 import {
   View,
@@ -249,11 +250,7 @@ export default function ManageCustomers() {
   };
 
   if (loading) {
-    return (
-      <View style={{ flex: 1, backgroundColor: A.bg, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" color={A.cyan} />
-      </View>
-    );
+    return <PageSkeleton page="admin/customers"/>;
   }
 
   return (

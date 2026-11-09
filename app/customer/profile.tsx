@@ -1,3 +1,4 @@
+import PageSkeleton from '@/components/PageSkeleton';
 import { useState, useEffect } from 'react';
 import {
   View,
@@ -521,11 +522,7 @@ export default function CustomerProfile() {
   });
 
   if (loading) {
-    return (
-      <View style={[styles.container, styles.centered]}>
-        <ActivityIndicator size="large" color={P} />
-      </View>
-    );
+    return <PageSkeleton page="customer/profile"/>;
   }
 
   return (

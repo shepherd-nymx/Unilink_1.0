@@ -1,3 +1,4 @@
+import PageSkeleton from '@/components/PageSkeleton';
 import { useState, useEffect, useRef } from 'react';
 import {
   View,
@@ -19,7 +20,6 @@ import { validateUpload } from '@/lib/upload-validation';
 import { loadShopSession, clearShopSession } from '@/lib/shop-session-service';
 import { useHardwareBackExit } from '@/hooks/useHardwareBackExit';
 import { S } from '@/lib/shop-theme';
-import { SkeletonList } from '@/components/Skeleton';
 import { HistoryTab } from '@/components/shop/HistoryTab';
 import { AnalyticsTab } from '@/components/shop/AnalyticsTab';
 import { ProfileTab } from '@/components/shop/ProfileTab';
@@ -557,11 +557,7 @@ export default function ShopDashboard() {
   };
 
   if (loading) {
-    return (
-      <View style={styles.container}>
-        <SkeletonList count={5} lines={3} />
-      </View>
-    );
+    return <PageSkeleton page="shop/dashboard"/>;
   }
 
   if (!shop) {

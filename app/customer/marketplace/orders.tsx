@@ -1,3 +1,4 @@
+import PageSkeleton from '@/components/PageSkeleton';
 import { useState, useEffect, useRef } from 'react';
 import {
   View,
@@ -206,22 +207,7 @@ export default function ShopOrders() {
   const primary = '#0066ff';
 
   if (loading) {
-    return (
-      <View style={[styles.container, { backgroundColor: bg }]}>
-        <View style={[styles.header, { backgroundColor: cardBg, borderBottomColor: cardBorder }]}>
-          <TouchableOpacity
-            style={[styles.backBtn, { backgroundColor: isDark ? '#0d1828' : '#f8fafc', borderColor: cardBorder }]}
-            onPress={() => router.back()}
-          >
-            <ArrowLeft size={18} color={textPrimary} />
-          </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: textPrimary }]}>My Shop Orders</Text>
-        </View>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={primary} />
-        </View>
-      </View>
-    );
+    return <PageSkeleton page="customer/marketplace/orders" onBack={() => router.back()}/>;
   }
 
   return (

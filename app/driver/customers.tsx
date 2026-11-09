@@ -1,3 +1,4 @@
+import PageSkeleton from '@/components/PageSkeleton';
 import { useState, useEffect, useRef } from 'react';
 import {
   View,
@@ -132,11 +133,7 @@ export default function DriverCustomers() {
   const headerBorder = headerGlow.interpolate({ inputRange: [0, 1], outputRange: ['rgba(0,229,255,0.06)', 'rgba(0,229,255,0.28)'] });
 
   if (loading) {
-    return (
-      <View style={cs.centered}>
-        <ActivityIndicator size="large" color={CYAN} />
-      </View>
-    );
+    return <PageSkeleton page="driver/customers"/>;
   }
 
   const totalEarnings = history.reduce((s, r) => s + r.driver_earnings, 0);

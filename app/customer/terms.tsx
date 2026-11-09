@@ -1,3 +1,4 @@
+import PageSkeleton from '@/components/PageSkeleton';
 import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -102,14 +103,7 @@ export default function CustomerTermsScreen() {
   };
 
   if (loading && !termsContent) {
-    return (
-      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
-          Loading Terms & Conditions...
-        </Text>
-      </View>
-    );
+    return <PageSkeleton page="customer/terms"/>;
   }
 
   return (

@@ -1,3 +1,4 @@
+import PageSkeleton from '@/components/PageSkeleton';
 import { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet, RefreshControl, Platform,
@@ -6,7 +7,6 @@ import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { A } from '@/lib/admin-theme';
 import { ArrowLeft, ScrollText, Search } from 'lucide-react-native';
-import { SkeletonList } from '@/components/Skeleton';
 
 type AuditLog = {
   id: string;
@@ -93,17 +93,7 @@ export default function AuditLogsPage() {
   const filters = ['all', 'customer', 'shop_owner', 'driver', 'admin'];
 
   if (loading) {
-    return (
-      <View style={s.container}>
-        <View style={s.header}>
-          <TouchableOpacity style={s.backBtn} onPress={() => router.back()}>
-            <ArrowLeft size={20} color={A.text} />
-          </TouchableOpacity>
-          <Text style={s.headerTitle}>Audit Logs</Text>
-        </View>
-        <SkeletonList count={6} lines={2} />
-      </View>
-    );
+    return <PageSkeleton page="admin/audit-logs" onBack={() => router.back()}/>;
   }
 
   return (

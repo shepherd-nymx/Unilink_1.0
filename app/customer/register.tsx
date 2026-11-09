@@ -1,3 +1,5 @@
+import { SkeletonField } from '@/components/Skeleton';
+import PageSkeleton from '@/components/PageSkeleton';
 import { useState, useEffect, useRef } from 'react';
 import {
   View,
@@ -56,6 +58,7 @@ export default function CustomerRegister() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [username, setUsername] = useState('');
   const [universityId, setUniversityId] = useState('');
+  const [catalogLoading, setCatalogLoading] = useState(true);
   const [universities, setUniversities] = useState<Array<{ id: string; name: string }>>([]);
   const [otherPlaces, setOtherPlaces] = useState<Array<{ id: string; name: string }>>([]);
   const [otherPlaceId, setOtherPlaceId] = useState('');
@@ -140,7 +143,7 @@ export default function CustomerRegister() {
         .eq('location_type', 'place')
         .order('name');
       setOtherPlaces(places || []);
-    } catch {}
+    } catch {} finally { setCatalogLoading(false); }
   };
 
   const handleDetectLocation = async () => {
@@ -345,7 +348,8 @@ export default function CustomerRegister() {
 
   const isFocused = (field: string) => focused === field;
 
-  if (identityMode && !identityReady) return <View style={{flex:1,justifyContent:'center',padding:24}}><ActivityIndicator/><Text>Checking your verified account…</Text></View>;
+  if (identityMode && !identityReady) return <PageSkeleton page="customer/register"/>;
+
   return (
     <>
       <TermsAndConditions
@@ -450,7 +454,7 @@ export default function CustomerRegister() {
                 <Text style={[styles.label, { color: textSecondary }]}>
                   LOCATION <Text style={{ color: '#EF4444' }}>*</Text>
                 </Text>
-                {Platform.OS === 'web' ? (
+                {catalogLoading ? <SkeletonField/> : (Platform.OS === 'web' ? (
                   <select
                     value={universityId}
                     onChange={(e) => {
@@ -488,7 +492,7 @@ export default function CustomerRegister() {
                       editable={false}
                     />
                   </View>
-                )}
+                ))}
               </View>
 
               {universityId === 'other' && (

@@ -1,3 +1,5 @@
+import PageSkeleton from '@/components/PageSkeleton';
+import { SkeletonBlock } from '@/components/Skeleton';
 import { useEffect, useRef, useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, Animated, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -204,7 +206,7 @@ export default function AdminDashboard() {
                       </Text>
                     </View>
                     {statsLoading ? (
-                      <ActivityIndicator size="small" color={A.cyan} />
+                      <SkeletonBlock width={54} height={28} style={{ backgroundColor: A.border }}/>
                     ) : (
                       <Text style={{ fontSize: 24, fontWeight: '800', color: A.text }}>{stat.value ?? 0}</Text>
                     )}
@@ -223,7 +225,7 @@ export default function AdminDashboard() {
             >
               Alerts
             </Text>
-            {statsLoading ? null : alerts.length === 0 ? (
+            {statsLoading ? <PageSkeleton page="admin/dashboard" layout="records" embedded/> : alerts.length === 0 ? (
               <View
                 style={{
                   flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: A.greenDim,

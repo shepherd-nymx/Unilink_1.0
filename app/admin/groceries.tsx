@@ -1,3 +1,4 @@
+import PageSkeleton from '@/components/PageSkeleton';
 import { useState, useEffect, useRef } from 'react';
 import {
   View,
@@ -218,11 +219,7 @@ export default function ManageGroceries() {
   };
 
   if (loading) {
-    return (
-      <View style={{ flex: 1, backgroundColor: A.bg, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" color={A.amber} />
-      </View>
-    );
+    return <PageSkeleton page="admin/groceries"/>;
   }
 
   return (

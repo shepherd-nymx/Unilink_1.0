@@ -1,3 +1,4 @@
+import PageSkeleton from '@/components/PageSkeleton';
 import { useState, useEffect, useRef } from 'react';
 import {
   View,
@@ -267,11 +268,7 @@ export default function DriverSettings() {
   const headerBorder = headerGlow.interpolate({ inputRange: [0, 1], outputRange: ['rgba(0,229,255,0.06)', 'rgba(0,229,255,0.25)'] });
 
   if (loading) {
-    return (
-      <View style={ss.centered}>
-        <ActivityIndicator size="large" color={CYAN} />
-      </View>
-    );
+    return <PageSkeleton page="driver/settings"/>;
   }
 
   return (

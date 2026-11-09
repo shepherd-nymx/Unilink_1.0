@@ -1,3 +1,4 @@
+import PageSkeleton from '@/components/PageSkeleton';
 import { useEffect, useRef, useState } from 'react';
 import { View,Text,ActivityIndicator,TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -23,5 +24,6 @@ export default function CustomerIdentityCallback(){
    }catch(e:any){setError(e.message||'Could not complete sign-in. Please try again.');}
   })();
  },[router]);
+ if (!error) return <PageSkeleton page="customer/identity-callback"/>;
  return <View style={{flex:1,justifyContent:'center',padding:28,backgroundColor:'#f0f4ff',gap:16}}>{error?<><Text accessibilityRole="alert" style={{color:'#b91c1c'}}>{error}</Text><TouchableOpacity onPress={()=>router.replace('/customer/login')}><Text style={{color:'#1A73E8'}}>Back to sign in</Text></TouchableOpacity></>:<><ActivityIndicator/><Text>Completing your sign-in…</Text></>}</View>;
 }

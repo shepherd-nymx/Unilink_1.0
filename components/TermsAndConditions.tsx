@@ -1,3 +1,4 @@
+import PageSkeleton from '@/components/PageSkeleton';
 import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
@@ -113,12 +114,7 @@ export function TermsAndConditions({
           </View>
         )}
 
-        {loading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#2563eb" />
-            <Text style={styles.loadingText}>Loading documents...</Text>
-          </View>
-        ) : (
+        {loading ? <PageSkeleton page="customer/terms" embedded/> : (
           <>
             {activeTab === 'terms' && (
               <ScrollView

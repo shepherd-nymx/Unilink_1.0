@@ -1,3 +1,4 @@
+import PageSkeleton from '@/components/PageSkeleton';
 import { useState, useEffect, useRef } from 'react';
 import {
   View,
@@ -16,7 +17,6 @@ import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { A } from '@/lib/admin-theme';
 import { ArrowLeft, Store, CircleCheck as CheckCircle, Circle as XCircle, DollarSign, Clock, Ban, Eye, X, CircleAlert as AlertCircle, ShoppingBag, Settings, MapPin, Calendar, Smartphone, Award, Users, Truck, GraduationCap } from 'lucide-react-native';
-import { SkeletonList } from '@/components/Skeleton';
 import { ConnectionBadge } from '@/components/ConnectionBadge';
 
 type Shop = {
@@ -356,20 +356,7 @@ export default function AdminShops() {
   };
 
   if (loading) {
-    return (
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-            <ArrowLeft size={18} color={A.text} />
-          </TouchableOpacity>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.headerTitle}>Shop Management</Text>
-            <Text style={styles.headerSub}>Loading shops...</Text>
-          </View>
-        </View>
-        <SkeletonList count={6} lines={3} />
-      </View>
-    );
+    return <PageSkeleton page="admin/shops" onBack={() => router.back()}/>;
   }
 
   return (

@@ -1,3 +1,4 @@
+import PageSkeleton from '@/components/PageSkeleton';
 import { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator,
@@ -152,11 +153,7 @@ export default function CompliancePage() {
   const formatDate = (d: string) => new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 
   if (loading) {
-    return (
-      <View style={[styles.container, { backgroundColor: A.bg, justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator size="large" color={A.cyan} />
-      </View>
-    );
+    return <PageSkeleton page="admin/compliance"/>;
   }
 
   return (

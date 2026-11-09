@@ -1,3 +1,4 @@
+import PageSkeleton from '@/components/PageSkeleton';
 import { useState, useEffect, useRef } from 'react';
 import {
   View,
@@ -534,14 +535,7 @@ export default function ChatInterface({
         </View>
       </Animated.View>
 
-      {loading ? (
-        <View style={s.loadingContainer}>
-          <View style={s.loadingRing}>
-            <ActivityIndicator size="large" color={CYAN} />
-          </View>
-          <Text style={s.loadingText}>Loading messages...</Text>
-        </View>
-      ) : (
+      {loading ? <PageSkeleton page="chat/messages" embedded fill/> : (
         <>
           <ScrollView
             ref={scrollViewRef}
