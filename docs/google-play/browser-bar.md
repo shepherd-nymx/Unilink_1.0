@@ -28,4 +28,4 @@ This verifies directly installed release APKs. For the future Google Play instal
 - `assembleRelease`, ZIP CRC and zipalign checks passed. It is deliberately unsigned and cannot be installed until the owner signs it.
 - The unsigned release AAB remains unchanged from `build-artifacts.md`.
 
-The live website certificate file has not been changed. This handoff prepares the required fix; it does not claim that Android domain verification has already succeeded for a new release key.
+The owner supplied the public Windows release fingerprint `42:E5:B6:8B:F9:4B:E8:19:AA:67:96:FA:55:FF:D3:0B:26:C5:30:CC:51:37:91:4D:BA:94:95:4F:1B:3E:66:3E`. It was added to the existing website association on main in commit `aa55be8`, preserving both earlier certificates. Only the owner-signed APK uses this certificate; the original debug APK remains untrusted. Device-side behavior must still be checked after website/Google association verification.

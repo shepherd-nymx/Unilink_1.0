@@ -42,6 +42,10 @@
     {
       "name": "Existing site certificate 2",
       "value": "80:2E:B8:65:A8:E3:36:C5:C3:E2:39:51:6C:9A:4F:CF:08:9D:D4:68:5A:04:23:F6:78:4F:78:93:4D:85:E8:3A"
+    },
+    {
+      "name": "Owner Windows release certificate",
+      "value": "42:E5:B6:8B:F9:4B:E8:19:AA:67:96:FA:55:FF:D3:0B:26:C5:30:CC:51:37:91:4D:BA:94:95:4F:1B:3E:66:3E"
     }
   ],
   "additionalTrustedOrigins": [],
