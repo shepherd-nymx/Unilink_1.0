@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Animated, Platform, Modal, ActivityIndicator } from 'react-native';
+import { CustomerIdentityButtons } from '@/components/CustomerIdentityButtons';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Animated, Platform, Modal, ActivityIndicator, ScrollView } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { ArrowLeft, CircleCheck as CheckCircle, User, Lock, ShoppingCart, Zap, LogIn, Mail, CircleAlert as AlertCircle, X } from 'lucide-react-native';
@@ -114,6 +115,10 @@ export default function CustomerLogin() {
       const storedHash = customer.password_hash;
 
       if (!storedHash) {
+        if (customer.auth_id) {
+          setError('Use Google or an email sign-in link for this account.');
+          return;
+        }
         // Admin-created accounts have no password yet — first login sets it.
         const { error: setErr } = await supabase
           .from('customers')
@@ -181,6 +186,7 @@ export default function CustomerLogin() {
         </View>
       </TouchableOpacity>
 
+      <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
       <Animated.View style={[styles.content, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
 
         {/* Logo badge */}
@@ -221,6 +227,8 @@ export default function CustomerLogin() {
             </View>
           ) : null}
 
+          <CustomerIdentityButtons />
+          <Text style={{ color: textSecondary, textAlign: 'center', marginBottom: 12 }}>Or use your existing username and password</Text>
           <View style={styles.form}>
             {/* Username */}
             <View style={styles.inputGroup}>
@@ -308,6 +316,8 @@ export default function CustomerLogin() {
           </Text>
         </TouchableOpacity>
       </Animated.View>
+
+      </ScrollView>
 
       {/* Password Reset Modal */}
       <Modal visible={showResetModal} animationType="fade" transparent>
