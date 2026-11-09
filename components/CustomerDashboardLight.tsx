@@ -1,8 +1,8 @@
 import { Image, StyleSheet, Text, TouchableOpacity, View, ViewStyle } from 'react-native';
-import { CircleHelp, Share2, Truck } from 'lucide-react-native';
+import { CircleHelp, Share2 } from 'lucide-react-native';
 
-export function CustomerDashboardLightHeader({ name, desktop, copied, onShare, onTutorial, onDelivery }: {
-  name: string; desktop: boolean; copied: boolean; onShare: () => void; onTutorial: () => void; onDelivery: () => void;
+export function CustomerDashboardLightHeader({ name, desktop, copied, onShare, onTutorial }: {
+  name: string; desktop: boolean; copied: boolean; onShare: () => void; onTutorial: () => void;
 }) {
   return <View style={[lightDashboard.header, desktop && lightDashboard.headerDesktop]}>
     {!desktop && <Text style={lightDashboard.wordmark}>UniLink</Text>}
@@ -22,9 +22,7 @@ export function CustomerDashboardLightHeader({ name, desktop, copied, onShare, o
           <CircleHelp size={18} color="#20314e"/><Text style={lightDashboard.secondaryLabel}>How it works</Text>
         </TouchableOpacity>
       </View>
-      <TouchableOpacity accessibilityRole="button" onPress={onDelivery} style={[lightDashboard.deliveryButton, !desktop && { width: '100%', minHeight: 44 }]}>
-        <Truck size={20} color="#fff"/><Text style={lightDashboard.deliveryLabel}>Request delivery</Text>
-      </TouchableOpacity>
+
     </View>
   </View>;
 }

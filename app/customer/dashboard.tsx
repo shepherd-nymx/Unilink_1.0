@@ -1636,7 +1636,6 @@ export default function CustomerDashboard() {
       {!isDark ? <CustomerDashboardLightHeader
         name={customerName || fetchedName || 'there'} desktop={desktopLight} copied={shareCopied}
         onShare={handleShare} onTutorial={() => setShowTutorial(true)}
-        onDelivery={() => router.push({ pathname: '/customer/delivery-request', params: { customerId, customerName } } as any)}
       /> : (
       <View style={styles.header}>
         <View style={styles.headerTopRow}>
@@ -1654,14 +1653,7 @@ export default function CustomerDashboard() {
             Select your groceries
           </Text>
         </View>
-        <TouchableOpacity
-          onPress={() => router.push({ pathname: '/customer/delivery-request', params: { customerId, customerName } } as any)}
-          style={styles.requestDeliveryBtn}
-          activeOpacity={0.8}
-        >
-          <Truck size={14} color="#050D1A" strokeWidth={2.5} />
-          <Text style={styles.requestDeliveryBtnText}>Request Delivery</Text>
-        </TouchableOpacity>
+
         <View style={styles.headerActions}>
           <TouchableOpacity
             onPress={handleShare}
@@ -1731,6 +1723,16 @@ export default function CustomerDashboard() {
           <View style={lightDashboard.nearbyIcon}><ShoppingBag size={22} color="#0057ff"/></View>
           <Text style={lightDashboard.nearbyLabel}>Nearby shops</Text><ChevronRight size={20} color="#384e6f"/>
         </TouchableOpacity>}
+        <TouchableOpacity
+          accessibilityRole="button" accessibilityLabel="Request delivery"
+          onPress={() => router.push({ pathname: '/customer/delivery-request', params: { customerId, customerName } } as any)}
+          style={[styles.customItemsSection, { flexDirection: 'row', alignItems: 'center', gap: 12 }]}
+          activeOpacity={0.8}
+        >
+          <View style={[lightDashboard.nearbyIcon, { backgroundColor: isDark ? '#16314c' : '#e6efff' }]}><Truck size={22} color={P}/></View>
+          <Text style={[styles.customItemsTitle, { flex: 1 }]}>Request delivery</Text>
+          <ChevronRight size={20} color={TX2}/>
+        </TouchableOpacity>
         <View style={styles.customItemsSection}>
           <View style={styles.customItemsHeader}>
             <View style={styles.customItemsHeaderLeft}>
