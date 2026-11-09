@@ -2,13 +2,13 @@
 
 This release path packages the existing UniLink website using an Android Trusted Web Activity (TWA). Customers keep using the hosted application, including future web updates.
 
-**Status: preparation only. This is not a signed, tested, approved Play release.** The owner does not yet have a Play Console account. The existing website verification identifies the Android application as `com.unilinkbase.twa`; preserve this identity and locate the original Android signing materials before building a release. The different package in `app.json` belongs to the separate Expo-native build route.
+**Status: preparation only. This is not a signed, tested, approved Play release.** The owner has now registered an organisation Play Console account; verification status is not yet known. The existing website verification identifies the Android application as `com.unilinkbase.twa`; preserve this package identity. The owner confirmed that there has never been a Play upload, so a new upload key can be created locally for this first release; the actual Play app-signing certificate must then be linked to the website. The different package in `app.json` belongs to the separate Expo-native build route.
 
-## First: register the publisher account
+## Publisher account — registered, verification to confirm
 
-1. Register at <https://play.google.com/console/signup> using the Google account that will own the app.
+1. The owner reports registering an organisation account. Open <https://play.google.com/console> with that same Google account and check the home-page setup and verification tasks.
 2. Choose the account type that matches the actual publisher. UniLink identifies Future Pulse Investments as its operator in its privacy policy; an organization account requires the corresponding organization verification (generally including a D-U-N-S number). Do not register an organization as a personal developer merely to skip verification.
-3. Pay Google's one-time US$25 registration fee and complete the requested identity/contact/device verification in Play Console. Do not share passwords, identity documents, service-account keys, or signing passwords in chat or commit them to Git.
+3. Complete the requested organisation/identity/contact verification in Play Console and resolve any registration-payment task it still shows. Do not share passwords, identity documents, service-account keys, or signing passwords in chat or commit them to Git.
 4. Create the UniLink application. Check that `com.unilinkbase.twa` is the intended permanent package before its first upload.
 
 Official registration and account requirements: <https://support.google.com/googleplay/android-developer/answer/6112435> and <https://support.google.com/googleplay/android-developer/answer/13628312>.
@@ -20,7 +20,7 @@ Official registration and account requirements: <https://support.google.com/goog
 - Verification file: `public/.well-known/assetlinks.json`. It already contains two certificate fingerprints. Their provenance has not been confirmed. Neither proves that we possess a matching signing key.
 - New phone applications must target Android 16 / API 36 or later as of 9 November 2026. New releases need an Android App Bundle (`.aab`) signed with the upload key, plus Play App Signing.
 - When Play App Signing is configured, obtain its **app-signing certificate SHA-256**, not just the upload certificate. Add the matching fingerprint to the website verification file on the exact launch origin. Preserve existing legitimate fingerprints. Check any other origin the application needs to treat as trusted separately.
-- Keep signing keys, passwords, and service-account JSON outside the repository and backed up securely. An unsigned bundle or a debug APK is not a Play upload artifact.
+- For this confirmed first upload, use `android-twa/scripts/create-upload-key.sh` locally to create the upload key outside the repository. The helper never replaces an existing key. Keep signing keys, passwords, and service-account JSON outside the repository and backed up securely. An unsigned bundle or a debug APK is not a Play upload artifact.
 - Follow the Android wrapper's README for the concrete build configuration and remaining prerequisites.
 
 Sources: <https://support.google.com/googleplay/android-developer/answer/11926878?hl=en>, <https://developer.android.com/guide/app-bundle>, <https://developer.chrome.com/docs/android/trusted-web-activity/quick-start>.
@@ -67,3 +67,5 @@ Source: <https://support.google.com/googleplay/android-developer/answer/14151465
 ## Recheck the hosted PWA
 
 Run `node scripts/check-play-web.mjs` using Node 22 or later. If the machine uses an HTTPS proxy, use a Node version with environment-proxy support and run `NODE_USE_ENV_PROXY=1 node scripts/check-play-web.mjs`; preserve the configured CA trust. The command is read-only and exits nonzero for observed web prerequisites that fail. It does not sign an app, upload to Play, validate policy wording or substitute for Android testing.
+
+For the newly registered organisation account, follow [`console-handoff.md`](console-handoff.md). It covers checking verification status, the first-upload signing path and internal testing before any production submission.
