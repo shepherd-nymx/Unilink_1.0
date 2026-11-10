@@ -42,9 +42,10 @@ export function freeAIReason(error: unknown): string {
   }
   const text = hints.join(' ').toLowerCase();
   if (/customer_verification_required|verify.*account|account.*verif|valid payment method|credit card/.test(text)) return 'account_verification_required';
-  if (/insufficient_funds|quota_for_entity_exceeded/.test(text)) return 'free_quota_unavailable';
+  if (/insufficient_funds|quota_for_entity_exceeded|free_quota_unavailable|monthly_allowance_exhausted/.test(text)) return 'free_quota_unavailable';
   if (/api.key|authentication|oidc|unauthorized/.test(text)) return 'gateway_authentication_required';
-  if (/free_model_unavailable/.test(text)) return 'zero_price_model_unavailable';
+  if (/free_model_unavailable|allowance_model_unavailable|allowance_model_price_changed/.test(text)) return 'zero_price_model_unavailable';
+  if (/assistant_allowance_not_configured|assistant_allowance_unavailable/.test(text)) return 'allowance_guard_unavailable';
   if (/timeout|timed out|abort/.test(text)) return 'provider_timeout';
   return 'provider_unavailable';
 }
