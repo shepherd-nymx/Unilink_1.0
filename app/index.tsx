@@ -1,3 +1,4 @@
+import WelcomeMotion from '@/components/WelcomeMotion';
 import {
   View,
   Text,
@@ -6,7 +7,6 @@ import {
   TouchableOpacity,
   Platform,
   Modal,
-  Animated,
   ScrollView,
   Dimensions,
   Linking,
@@ -91,19 +91,11 @@ export default function Home() {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [showInstallButton, setShowInstallButton] = useState(false);
   const [showNotifModal, setShowNotifModal] = useState(false);
-  const pulseAnim = useRef(new Animated.Value(1)).current;
   const scrollRef = useRef<ScrollView>(null);
 
   const isNarrow = SCREEN_WIDTH < 600;
 
   useEffect(() => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, { toValue: 1.05, duration: 2200, useNativeDriver: true }),
-        Animated.timing(pulseAnim, { toValue: 1, duration: 2200, useNativeDriver: true }),
-      ])
-    ).start();
-
     if (Platform.OS === 'web') {
       const handler = (e: Event) => {
         e.preventDefault();
@@ -738,23 +730,7 @@ export default function Home() {
           </View>
 
           <View style={s.heroContent}>
-            <Animated.View style={[s.logoRing, { transform: [{ scale: pulseAnim }] }]}>
-              <View style={s.logoInner}>
-                <ShoppingCart size={40} color={colors.primary} />
-              </View>
-            </Animated.View>
-
-            <Text style={s.heroLabel}>Welcome to</Text>
-            <Text style={s.heroTitle}>
-              <Text style={s.heroTitleUni}>UNI</Text>
-              <Text style={s.heroTitleLink}>LINK</Text>
-            </Text>
-
-            <View style={s.heroDivider}>
-              <View style={s.heroDividerLine} />
-              <Zap size={12} color={colors.primary} />
-              <View style={s.heroDividerLine} />
-            </View>
+            <WelcomeMotion />
 
             <Text style={s.heroTagline}>Fast Grocery Delivery</Text>
             <Text style={s.heroSubtitle}>
