@@ -7,6 +7,10 @@
     {
       "source": "/customer/assistant",
       "destination": "/index.html"
+    },
+    {
+      "source": "/policies",
+      "destination": "/index.html"
     }
   ]
 }
