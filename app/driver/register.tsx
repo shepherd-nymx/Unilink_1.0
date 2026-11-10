@@ -1,3 +1,7 @@
+import PageSkeleton from '@/components/PageSkeleton';
+import { CustomerIdentityButtons } from '@/components/CustomerIdentityButtons';
+import { verifiedCustomerIdentity } from '@/lib/customer-identity';
+import { driverIdentityProfile } from '@/lib/driver-identity';
 import { SkeletonField } from '@/components/Skeleton';
 import { useState, useEffect, useRef } from 'react';
 import {
@@ -12,8 +16,8 @@ import {
   Animated,
   Dimensions,
 } from 'react-native';
-import { useRouter } from 'expo-router';
-import { validateUpload } from '@/lib/upload-validation';
+import { useRouter, useLocalSearchParams } from 'expo-router';
+import { validateUpload, getFileExtension } from '@/lib/upload-validation';
 import { supabase } from '@/lib/supabase';
 import { ArrowLeft, CircleAlert as AlertCircle, UserCheck, Bike, Car, ChevronRight, MapPin, Phone, Mail, User, Hop as Home, CreditCard, CircleCheck as CheckCircle2, Camera, Image as ImageIcon } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
@@ -35,6 +39,11 @@ const TEXT_MUTED = '#3d5a7a';
 
 export default function DriverRegister() {
   const router = useRouter();
+  const { identity } = useLocalSearchParams<{identity?:string}>();
+  const identityMode = identity === 'true';
+  const [identityReady,setIdentityReady] = useState(false);
+  const [identityUserId,setIdentityUserId] = useState('');
+  const submitting = useRef(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
 
@@ -70,6 +79,25 @@ export default function DriverRegister() {
       Animated.timing(slideAnim, { toValue: 0, duration: 600, useNativeDriver: true }),
     ]).start();
   }, []);
+
+  useEffect(() => {
+    if (!identityMode) return;
+    let alive=true;
+    void (async()=>{
+      try {
+        const user=await verifiedCustomerIdentity();
+        if(!user) throw new Error('Verify your email with Google or an email sign-in link first.');
+        const profile=await driverIdentityProfile();
+        if(!alive)return;
+        if(profile){router.replace('/driver/application-status');return;}
+        setEmail(user.email || '');
+        const name=user.user_metadata?.full_name || user.user_metadata?.name;
+        if(typeof name==='string')setFullName(name);
+        setIdentityUserId(user.id);setIdentityReady(true);
+      } catch(err:any) {if(alive)setError(err.message || 'Verification could not be checked.');}
+    })();
+    return()=>{alive=false;};
+  },[identityMode,router]);
 
   const loadUniversities = async () => {
     try {
@@ -107,7 +135,7 @@ export default function DriverRegister() {
 
   const handleTermsAccept = async () => {
     setShowTermsModal(false);
-    await handleRegister();
+    await handleRegister(true);
   };
 
   const handleTermsDecline = () => {
@@ -115,7 +143,9 @@ export default function DriverRegister() {
     setError('You must accept the Terms & Conditions to register.');
   };
 
-  const handleRegister = async () => {
+  const handleRegister = async (accepted = false) => {
+    if (submitting.current) return;
+    if (!identityReady || !identityUserId) { setError('Verify your email before applying.'); return; }
     setError('');
 
     if (!fullName || !phoneNumber || !address || !nationalId || !email.trim()) {
@@ -145,67 +175,30 @@ export default function DriverRegister() {
       return;
     }
 
-    if (!termsContent) {
+    if (!accepted || !termsContent) {
       await fetchTermsAndConditions();
       return;
     }
 
+    submitting.current=true;
     setLoading(true);
+    let uploadedPath: string | null = null;
     try {
-      const { data: existingDriver } = await supabase
-        .from('drivers')
-        .select('id, approval_status')
-        .eq('phone_number', phoneNumber)
-        .maybeSingle();
-
-      if (existingDriver) {
-        if (existingDriver.approval_status === 'pending') {
-          setError('A registration with this phone number is already pending approval');
-        } else if (existingDriver.approval_status === 'approved') {
-          setError('This phone number is already registered. Please login instead.');
-        } else {
-          setError('A previous registration with this phone number was rejected. Please contact admin.');
-        }
-        setLoading(false);
-        return;
-      }
-
-      let finalUniversityId = universityId;
-      if (universityId === 'other') {
-        const { data: existingUni } = await supabase
-          .from('universities')
-          .select('id')
-          .eq('name', customLocation.trim())
-          .maybeSingle();
-
-        if (existingUni) {
-          finalUniversityId = existingUni.id;
-        } else {
-          const { data: newUni, error: uniError } = await supabase
-            .from('universities')
-            .insert({ name: customLocation.trim(), is_active: true })
-            .select('id')
-            .single();
-          if (uniError) throw uniError;
-          finalUniversityId = newUni.id;
-        }
-      }
-
       // Upload national ID photo to storage
-      let idPhotoUrl: string | null = null;
+
       if (idPhotoUri) {
         setIdPhotoUploading(true);
         try {
-          const fileExt = idPhotoUri.split('.').pop()?.toLowerCase() || 'jpg';
-          const fileName = `id-card-${Date.now()}.${fileExt}`;
-          const filePath = `${fileName}`;
-
           // Convert URI to blob for upload
           const response = await fetch(idPhotoUri);
           const blob = await response.blob();
 
           const check = await validateUpload({ blob, fileNameOrUri: idPhotoUri });
           if (!check.ok) throw new Error(check.reason);
+          const allowed=['jpg','jpeg','png','webp','gif','bmp','heic','heif','avif','tiff','tif'];
+          const uriExt=getFileExtension(idPhotoUri);
+          const ext=allowed.includes(uriExt)?uriExt:({'image/png':'png','image/webp':'webp','image/gif':'gif','image/heic':'heic','image/heif':'heif','image/avif':'avif','image/tiff':'tiff'}[blob.type] || 'jpg');
+          const filePath=`${identityUserId}/id-card-${Date.now()}.${ext}`;
 
           const { error: uploadError } = await supabase.storage
             .from('driver-id-cards')
@@ -215,11 +208,7 @@ export default function DriverRegister() {
 
           if (uploadError) throw uploadError;
 
-          const { data: urlData } = supabase.storage
-            .from('driver-id-cards')
-            .getPublicUrl(filePath);
-
-          idPhotoUrl = urlData.publicUrl;
+          uploadedPath = filePath;
         } catch (uploadErr: any) {
           throw new Error('Failed to upload ID photo: ' + (uploadErr.message || 'Unknown error'));
         } finally {
@@ -227,28 +216,13 @@ export default function DriverRegister() {
         }
       }
 
-      const { data: driver, error: insertError } = await supabase.from('drivers').insert({
-        full_name: fullName,
-        phone_number: phoneNumber,
-        email: emailTrim,
-        address: address,
-        national_id: nationalId,
-        national_id_photo_url: idPhotoUrl,
-        university_id: finalUniversityId,
-        delivery_type: [deliveryType],
-        vehicle_type: deliveryType === 'vehicle' ? vehicleType : null,
-        vehicle_registration: deliveryType === 'vehicle' ? (vehicleRegistration || null) : null,
-        approval_status: 'pending',
-        is_available: false,
-        max_distance_km: 10,
-        fee_under_10: 2,
-        fee_10_to_30: 5,
-        fee_30_to_50: 8,
-        terms_accepted: true,
-        terms_version: termsVersion,
-        terms_accepted_at: new Date().toISOString(),
-      }).select('id').single();
-
+      const { data: driver, error: insertError } = await supabase.rpc('complete_driver_identity_profile', {
+        p_full_name:fullName.trim(), p_phone:phoneNumber.trim(), p_address:address.trim(), p_national_id:nationalId.trim(),
+        p_photo_path:uploadedPath, p_university_id:universityId==='other'?null:universityId,
+        p_custom_location:universityId==='other'?customLocation.trim():null, p_delivery_type:deliveryType,
+        p_vehicle_type:deliveryType==='vehicle'?vehicleType:null, p_vehicle_registration:deliveryType==='vehicle'?vehicleRegistration:null,
+        p_terms_version:termsVersion,p_accept_terms:accepted,
+      });
       if (insertError) throw insertError;
       if (emailTrim && driver) {
         void sendEmail({ type: 'welcome', to: emailTrim, userId: driver.id, userType: 'driver', data: { name: fullName } }).catch(() => {});
@@ -272,11 +246,15 @@ export default function DriverRegister() {
       } catch {}
       setSuccess(true);
     } catch (err: any) {
+      if(uploadedPath) await supabase.storage.from('driver-id-cards').remove([uploadedPath]).catch(()=>{});
       setError(err.message || 'Registration failed. Please try again.');
     } finally {
-      setLoading(false);
+      submitting.current=false; setLoading(false);
     }
   };
+
+  if (identityMode && !identityReady && !error) return <PageSkeleton page="driver/register"/>;
+  if (!identityReady && !success) return <ScrollView style={styles.container} contentContainerStyle={{padding:24,paddingTop:64,maxWidth:520,width:'100%',alignSelf:'center'}}><TouchableOpacity accessibilityRole="button" accessibilityLabel="Back to home" onPress={()=>router.push('/')} style={{marginBottom:24}}><ArrowLeft size={22} color={NEON_CYAN}/></TouchableOpacity><Text style={styles.title}>Register as a Messenger</Text><Text style={{color:TEXT_SECONDARY,marginTop:12}}>Verify your email, complete your driver details, then wait for admin approval. Already applied? Verify again to check your application.</Text>{!!error && <Text accessibilityRole="alert" style={styles.errorText}>{error}</Text>}<CustomerIdentityButtons portal="driver"/><TouchableOpacity onPress={()=>router.push('/driver/login')}><Text style={{color:NEON_CYAN}}>Already approved? Sign in with your monthly key</Text></TouchableOpacity></ScrollView>;
 
   if (success) {
     return (
@@ -295,7 +273,7 @@ export default function DriverRegister() {
           <View style={styles.successInfoBox}>
             <Text style={styles.successInfoText}>You will receive a monthly key after admin approval to activate your account.</Text>
           </View>
-          <TouchableOpacity style={styles.successButton} onPress={() => router.push('/driver/login')}>
+          <TouchableOpacity style={styles.successButton} onPress={async () => { await supabase.auth.signOut({scope:'local'}); router.push('/driver/login'); }}>
             <Text style={styles.successButtonText}>Return to Login</Text>
             <ChevronRight size={18} color={DARK_BG} />
           </TouchableOpacity>
@@ -377,6 +355,7 @@ export default function DriverRegister() {
               icon={<Mail size={16} color={TEXT_MUTED} />}
               label="Email Address"
               required
+              editable={false}
               value={email}
               onChangeText={setEmail}
               placeholder="your@email.com"
@@ -708,6 +687,7 @@ function InputField({
   fieldName,
   focusedField,
   setFocusedField,
+  editable = true,
 }: any) {
   const isFocused = focusedField === fieldName;
 
@@ -721,6 +701,7 @@ function InputField({
       </View>
       <TextInput
         style={[styles.input, isFocused && styles.inputFocused, multiline && { height: 72, textAlignVertical: 'top', paddingTop: 12 }]}
+        editable={editable}
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}

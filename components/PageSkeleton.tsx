@@ -26,7 +26,7 @@ export default function PageSkeleton({ page, layout = skeletonLayoutForPage(page
   const { width, height } = useWindowDimensions();
   const desktop = width >= 1000;
   // Admin and several messenger/chat screens deliberately use their own dark palette.
-  const fixedDark = page.startsWith('admin/') || ['driver/dashboard','driver/chat','driver/settings','driver/customers','driver/shop-deliveries','customer/chat','chat/messages','driver/locations'].includes(page);
+  const fixedDark = page.startsWith('admin/') || ['driver/register','driver/identity-callback','driver/dashboard','driver/chat','driver/settings','driver/customers','driver/shop-deliveries','customer/chat','chat/messages','driver/locations'].includes(page);
   const dark = fixedDark || isDark;
   const bg = dark ? (fixedDark && !page.startsWith('admin/') ? '#030810' : '#050b16') : layout === 'home' ? '#fff' : '#f0f4f8';
   const surface = dark ? '#0d1b2e' : '#fff';

@@ -11,6 +11,22 @@
     {
       "source": "/policies",
       "destination": "/index.html"
+    },
+    {
+      "source": "/driver/identity-callback",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/driver/register",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/driver/application-status",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/driver/login",
+      "destination": "/index.html"
     }
   ]
 }

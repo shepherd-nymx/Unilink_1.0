@@ -65,7 +65,8 @@ export default function DriverLogin() {
         .from('drivers').select('*').eq('phone_number', trimmedPhone).eq('current_key', trimmedKey).maybeSingle();
       if (dbError) throw dbError;
       if (!data) { setError('Invalid phone number or key. Please check your credentials.'); setLoading(false); return; }
-      if (new Date(data.key_expires_at) < new Date()) { setError('Your key has expired. Please contact admin for renewal.'); setLoading(false); return; }
+      if (data.auth_id && (data.approval_status !== 'approved' || data.suspended || data.subscription_status !== 'active')) { setError('Your driver account is awaiting approval or is not active. Please contact admin.'); return; }
+      if (!data.key_expires_at || new Date(data.key_expires_at) < new Date()) { setError('Your key has expired. Please contact admin for renewal.'); setLoading(false); return; }
       if (!data.terms_accepted || data.terms_version !== await getCurrentTermsVersion()) {
         saveUserData({ id: data.id, type: 'driver', name: data.full_name });
         registerForPushNotificationsOnLogin(data.id, 'driver').catch(() => {});

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import Svg, { Path } from 'react-native-svg';
 import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, useWindowDimensions } from 'react-native';
 import { supabase } from '@/lib/supabase';
+import { driverCallbackUrl } from '@/lib/driver-identity';
 import { customerCallbackUrl } from '@/lib/customer-identity';
 
 // Google G artwork from Google's FirebaseUI assets (Copyright Google Inc.).
@@ -14,7 +15,7 @@ function GoogleMark() {
   </Svg>;
 }
 
-export function CustomerIdentityButtons() {
+export function CustomerIdentityButtons({ portal = 'customer' }: { portal?: 'customer' | 'driver' }) {
   const { width } = useWindowDimensions();
   const compact = width < 360;
   const [email,setEmail]=useState('');
@@ -25,10 +26,11 @@ export function CustomerIdentityButtons() {
     setMessage('');setFailed(false);
     if(!google&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())){setFailed(true);setMessage('Enter a valid email address.');return;}
     setBusy(true);
+    const callback = portal === 'driver' ? driverCallbackUrl() : customerCallbackUrl();
     try{
       const result=google
-        ? await supabase.auth.signInWithOAuth({provider:'google',options:{redirectTo:customerCallbackUrl()}})
-        : await supabase.auth.signInWithOtp({email:email.trim().toLowerCase(),options:{emailRedirectTo:customerCallbackUrl(),shouldCreateUser:true}});
+        ? await supabase.auth.signInWithOAuth({provider:'google',options:{redirectTo:callback}})
+        : await supabase.auth.signInWithOtp({email:email.trim().toLowerCase(),options:{emailRedirectTo:callback,shouldCreateUser:true}});
       if(result.error)throw result.error;
       if(!google)setMessage('Check your email for the sign-in link. Open it on this device to continue.');
     }catch(e:any){setFailed(true);setMessage(e.message||'Sign-in could not start. Please try again.');}
