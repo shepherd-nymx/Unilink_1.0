@@ -1,7 +1,7 @@
+import FuturePulseLogo from '@/components/FuturePulseLogo';
 import {
   View,
   Text,
-  Image,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
@@ -30,7 +30,6 @@ const COMPANY = {
   tagline: 'The company behind UniLink Grocery Delivery',
   domain: 'futurepulse.co.zw',
   url: 'https://futurepulse.co.zw',
-  logo: require('../assets/images/future-pulse-logo.png'),
 };
 
 const CONTACT = {
@@ -629,14 +628,12 @@ export default function SupportPage() {
       justifyContent: 'center' as any, alignItems: 'center' as any,
       overflow: 'hidden' as any,
     },
-    aboutLogoImage: { width: '100%' as any, height: '100%' as any },
     companyCard: {
-      flexDirection: 'row' as any, alignItems: 'center' as any, gap: 14,
+      flexDirection: 'column' as any, alignItems: 'flex-start' as any, gap: 14,
       padding: 14, borderRadius: 14,
       backgroundColor: isDark ? 'rgba(245,158,11,0.06)' : 'rgba(245,158,11,0.06)',
       borderWidth: 1, borderColor: isDark ? 'rgba(245,158,11,0.2)' : 'rgba(245,158,11,0.15)',
     },
-    companyLogo: { width: 48, height: 48, borderRadius: 12 },
     companyName: { fontSize: 14, fontWeight: '800', color: colors.text },
     companyTagline: { fontSize: 12, color: colors.textSecondary, marginTop: 2, lineHeight: 17 },
     aboutDevInfo: { flex: 1 },
@@ -990,7 +987,7 @@ export default function SupportPage() {
             <View style={s.aboutInner}>
               <View style={s.aboutDevRow}>
                 <View style={s.aboutAvatar}>
-                  <Image source={COMPANY.logo} style={s.aboutLogoImage} resizeMode="cover" />
+                  <FuturePulseLogo variant="mark" width={52} height={52} />
                 </View>
                 <View style={s.aboutDevInfo}>
                   <Text style={s.aboutDevName}>{DEVELOPER.name}</Text>
@@ -1013,8 +1010,8 @@ export default function SupportPage() {
               </TouchableOpacity>
 
               <View style={s.companyCard}>
-                <Image source={COMPANY.logo} style={s.companyLogo} resizeMode="contain" />
-                <View style={{ flex: 1 }}>
+                <FuturePulseLogo width={200} height={44} />
+                <View>
                   <Text style={s.companyName}>{COMPANY.name}</Text>
                   <Text style={s.companyTagline}>{COMPANY.tagline}</Text>
                 </View>

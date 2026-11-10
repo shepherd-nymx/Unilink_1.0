@@ -1,8 +1,8 @@
+import FuturePulseLogo from '@/components/FuturePulseLogo';
 import WelcomeMotion from '@/components/WelcomeMotion';
 import {
   View,
   Text,
-  Image,
   StyleSheet,
   TouchableOpacity,
   Platform,
@@ -40,7 +40,6 @@ import { useState, useEffect, useRef } from 'react';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { isFirstVisit, markFirstVisitDone } from '@/lib/storage-service';
 
-const FUTURE_PULSE_LOGO = require('../assets/images/future-pulse-logo.png');
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -529,8 +528,8 @@ export default function Home() {
       textAlign: 'center',
     },
     footerLogo: {
-      width: 44,
-      height: 44,
+      width: 220,
+      height: 48,
       marginBottom: 10,
     },
     footerPoweredBy: {
@@ -874,7 +873,7 @@ export default function Home() {
 
         {/* ── FOOTER ── */}
         <View style={s.footer}>
-          <Image source={FUTURE_PULSE_LOGO} style={s.footerLogo} resizeMode="contain" />
+          <FuturePulseLogo width={220} height={48} style={s.footerLogo} />
           <Text style={s.footerText}>UniLink — connect, deliver, and receive anywhere, anytime.</Text>
           <View style={s.footerLinks}>
             <TouchableOpacity style={s.footerAdmin} onPress={() => router.push('/support' as any)}>
