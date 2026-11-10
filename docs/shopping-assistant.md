@@ -40,3 +40,7 @@ Requests: 8KB, six messages, 1,000 characters per message, 4,000 total character
 - Security advisors reviewed: no-policy findings on the two private quota tables are intentional deny-all; existing unrelated findings are outside this change.
 - TypeScript and Expo web export; browser flow at dark 390px, light 320px and dark desktop 1440px, including an assistant round trip preserving an existing cart, failed-request retry and fallback.
 - Production browser flow was verified against the real public catalogue with synthetic browser-only customer details and production writes blocked. Live model activation is verified separately after deployment; do not equate catalogue fallback success with AI activation.
+
+## Live verification after activation
+
+On 2026-11-10, both a direct production request and the production browser flow returned `mode: ai` using the free-tier-eligible model. The browser completed Home → assistant → live catalogue response → exact matching product in the existing shop. The central quota recorded the two reservations. No production orders, payments or customer records were created. The local migration filename was aligned with the exact version recorded by Supabase so future database pushes do not try to reapply it.
