@@ -1,3 +1,4 @@
+import DeliveryTerms from '@/components/DeliveryTerms';
 import {
   View,
   Text,
@@ -56,6 +57,8 @@ export function OrderDetailModal({
   onChat?: (order: ShopOrder) => void;
 }) {
   if (!order) return null;
+  const quoted = !!(order as any).delivery_quote_id;
+  const dispatchDrivers = quoted ? drivers.filter(d => d.id === order.messenger_id) : drivers;
 
   return (
     <Modal visible={visible} animationType="slide" transparent>
@@ -84,6 +87,7 @@ export function OrderDetailModal({
               </View>
             ))}
 
+<DeliveryTerms terms={(order as any).delivery_terms} />
             <View style={styles.modalTotalRow}>
               <Text style={styles.modalTotalLabel}>Items Subtotal</Text>
               <Text style={styles.modalTotalValue}>${(Number(order.total_amount) - Number(order.delivery_fee || 0) - Number((order as any).ecocash_fee_amount || 0)).toFixed(2)}</Text>
@@ -217,7 +221,7 @@ export function OrderDetailModal({
             )}
             {order.status === 'ready' && (
               <View style={{ width: '100%' }}>
-                <Text style={styles.assignLabel}>Assign a Messenger (Required):</Text>
+                <Text style={styles.assignLabel}>{quoted ? 'Dispatch the messenger agreed in this quote:' : 'Assign a Messenger (Required):'}</Text>
                 {assignError ? (
                   <View style={styles.assignErrorBox}>
                     <AlertCircle size={14} color={S.red} />
@@ -229,17 +233,17 @@ export function OrderDetailModal({
                     <ActivityIndicator size="small" color={S.cyan} />
                     <Text style={styles.driverLoadingText}>Assigning driver…</Text>
                   </View>
-                ) : drivers.length === 0 ? (
+                ) : dispatchDrivers.length === 0 ? (
                   <View style={styles.noDriversBox}>
                     <Truck size={20} color={S.textMuted} />
                     <Text style={styles.noDriversTitle}>No eligible drivers</Text>
                     <Text style={styles.noDriversSub}>
-                      All approved drivers are currently unavailable, suspended, or lack an active subscription. Please check back shortly.
+                      {quoted ? 'The agreed messenger is unavailable. Wait for them or cancel this order and arrange a new quote; a different messenger cannot take over the locked fee.' : 'All approved drivers are currently unavailable, suspended, or lack an active subscription. Please check back shortly.'}
                     </Text>
                   </View>
                 ) : (
                   <ScrollView style={{ maxHeight: 220 }}>
-                    {drivers.map((d) => {
+                    {dispatchDrivers.map((d) => {
                       const vBadge = d.vehicle_type ? VEHICLE_BADGES[d.vehicle_type] : null;
                       return (
                         <TouchableOpacity

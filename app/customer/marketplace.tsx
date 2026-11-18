@@ -1,3 +1,4 @@
+import type { DeliveryQuote } from '@/lib/delivery-quote-types';
 import PageSkeleton from '@/components/PageSkeleton';
 import { useState, useEffect, useRef } from 'react';
 import {
@@ -205,7 +206,7 @@ export default function Marketplace() {
 
       const { data: prodData, error: prodErr } = await supabase
         .from('shop_products')
-        .select('id, shop_id, name, description, image_url, price, stock, category, status')
+        .select('id, shop_id, name, description, image_url, price, stock, category, status,weight_kg,volume_litres,package_size,fragile,two_person_lift')
         .eq('status', 'active')
         .order('name');
       if (prodErr) throw prodErr;
@@ -354,7 +355,8 @@ export default function Marketplace() {
     paymentMethod: string,
     deliveryFee: number,
     ecocashFeeAmount: number,
-    ecocashPop: string | null
+    ecocashPop: string | null,
+    quotes?: Record<string,DeliveryQuote>
   ) => {
     if (!customerId) {
       setError('Please login to place an order');
@@ -369,8 +371,16 @@ export default function Marketplace() {
         .eq('id', customerId)
         .maybeSingle();
 
+      let quotedOrders: Record<string,any> | null = null;
+      if (quotes) {
+        if (cartByShop.some(sc=>!quotes[sc.shopId])) throw new Error('Accept a quote for every shop first.');
+        const batch=await supabase.rpc('place_quoted_shop_orders',{p_quotes:cartByShop.map(sc=>quotes[sc.shopId].id),p_method:paymentMethod,p_address:deliveryLocation,p_ecocash_pop:ecocashPop});
+        if(batch.error) throw batch.error;
+        quotedOrders=batch.data;
+      }
       for (const shopCart of cartByShop) {
         const shop = shops.find(s => s.id === shopCart.shopId);
+        if (!quotedOrders) {
         if (shop && !shop.is_available) {
           throw new Error(`${shop.name} is currently unavailable. Please remove its items from your cart.`);
         }
@@ -404,16 +414,20 @@ export default function Marketplace() {
           throw new Error(`${shop?.name || 'This shop'} does not accept the selected payment method (${paymentMethod}).`);
         }
 
+        } // Quoted orders were already validated and committed atomically by the server.
+
         const orderProducts = shopCart.items.map(item => ({
           id: item.product.id,
           name: item.product.name,
           price: Number(item.product.price),
           qty: item.quantity,
         }));
-        const shopDeliveryFee = computeTierDeliveryFee(shopCart.total, deliveryFeeTiers[shopCart.shopId] || [], Number(shop?.delivery_fee || 0));
-        const orderTotal = shopCart.total + shopDeliveryFee + ecocashFeeAmount;
+        const acceptedQuote=quotes?.[shopCart.shopId];
+        const shopDeliveryFee = acceptedQuote ? Number(acceptedQuote.delivery_fee) : computeTierDeliveryFee(shopCart.total, deliveryFeeTiers[shopCart.shopId] || [], Number(shop?.delivery_fee || 0));
+        const thisEcocashFee=paymentMethod==='ecocash'?Number(shop?.ecocash_fee||0):0;
+        const orderTotal = quotedOrders ? Number(quotedOrders[shopCart.shopId].total_amount) : shopCart.total + shopDeliveryFee + thisEcocashFee;
 
-        const { data: order, error: orderErr } = await supabase
+        const { data: order, error: orderErr } = acceptedQuote ? {data:quotedOrders?.[shopCart.shopId],error:null} : await supabase
           .from('shop_orders')
           .insert({
             customer_id: customerId,
@@ -421,7 +435,7 @@ export default function Marketplace() {
             products: orderProducts,
             total_amount: orderTotal,
             delivery_fee: shopDeliveryFee,
-            ecocash_fee_amount: ecocashFeeAmount,
+            ecocash_fee_amount: thisEcocashFee,
             ecocash_pop: paymentMethod === 'ecocash' ? ecocashPop : null,
             delivery_location: deliveryLocation,
             delivery_latitude: lat,
@@ -473,7 +487,7 @@ export default function Marketplace() {
 
       if (paymentMethod === 'paynow') {
         const { startPaynowPayment, generateReference } = await import('@/lib/paynow-service');
-        const grandTotal = cartByShop.reduce((sum, sc) => sum + sc.total, 0) + deliveryFee + ecocashFeeAmount;
+        const grandTotal = quotedOrders ? Object.values(quotedOrders).reduce((sum,o)=>sum+Number(o.total_amount),0) : cartByShop.reduce((sum, sc) => sum + sc.total, 0) + deliveryFee + ecocashFeeAmount;
         const ref = generateReference('marketplace_order', customerId);
         const result = await startPaynowPayment({
           paymentType: 'marketplace_order',

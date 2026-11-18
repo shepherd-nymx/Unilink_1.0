@@ -1,3 +1,5 @@
+import ProductLoadFields from '@/components/shop/ProductLoadFields';
+import type { ProductLoad } from '@/lib/delivery-quote-types';
 import PageSkeleton from '@/components/PageSkeleton';
 import { useState, useEffect, useRef } from 'react';
 import {
@@ -88,6 +90,8 @@ export default function ShopDashboard() {
   const [editingProduct, setEditingProduct] = useState<ShopProduct | null>(null);
   const [productName, setProductName] = useState('');
   const [productPrice, setProductPrice] = useState('');
+  const [productFormVersion,setProductFormVersion]=useState(0);
+  const [productLoad, setProductLoad] = useState<ProductLoad>({});
   const [productStock, setProductStock] = useState('');
   const [productCategory, setProductCategory] = useState('');
   const [productDesc, setProductDesc] = useState('');
@@ -391,6 +395,8 @@ export default function ShopDashboard() {
   };
 
   const openAddProduct = () => {
+    setProductFormVersion(v=>v+1);
+    setProductLoad({});
     setEditingProduct(null);
     setProductName('');
     setProductPrice('');
@@ -403,6 +409,8 @@ export default function ShopDashboard() {
   };
 
   const openEditProduct = (p: ShopProduct) => {
+    setProductFormVersion(v=>v+1);
+    setProductLoad({weight_kg:p.weight_kg,volume_litres:p.volume_litres,package_size:p.package_size,fragile:p.fragile,two_person_lift:p.two_person_lift});
     setEditingProduct(p);
     setProductName(p.name);
     setProductPrice(String(p.price));
@@ -436,6 +444,7 @@ export default function ShopDashboard() {
       setError('Product name and price are required');
       return;
     }
+    if ([productLoad.weight_kg,productLoad.volume_litres].some(v=>v!=null && (!Number.isFinite(v)||v<=0))) {setError('Weight and packed volume must be positive numbers or left unknown.');return;}
     setSavingProduct(true);
     setError('');
     try {
@@ -475,6 +484,7 @@ export default function ShopDashboard() {
 
       const payload = {
         shop_id: shop.id,
+        weight_kg: productLoad.weight_kg ?? null, volume_litres: productLoad.volume_litres ?? null, package_size: productLoad.package_size ?? null, fragile: !!productLoad.fragile, two_person_lift: !!productLoad.two_person_lift,
         name: trimmedName,
         description: productDesc.trim() || null,
         image_url: imageUrl,
@@ -979,6 +989,7 @@ export default function ShopDashboard() {
                   />
                 </View>
               </View>
+              <ProductLoadFields key={productFormVersion} value={productLoad} onChange={setProductLoad} />
               <View style={styles.inputGroup}>
                 <Text style={styles.inputLabel}>Category</Text>
                 <TextInput

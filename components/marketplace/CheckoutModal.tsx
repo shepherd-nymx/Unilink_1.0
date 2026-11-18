@@ -1,3 +1,6 @@
+import DeliveryQuotePanel from './DeliveryQuotePanel';
+import { supabase } from '@/lib/supabase';
+import type { DeliveryQuote } from '@/lib/delivery-quote-types';
 import { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, TextInput, StyleSheet, ActivityIndicator, Platform, Linking } from 'react-native';
 import {
@@ -18,7 +21,7 @@ type Props = {
   placingOrder: boolean;
   error: string;
   onClose: () => void;
-  onPlaceOrder: (deliveryLocation: string, lat: number | null, lng: number | null, paymentMethod: string, deliveryFee: number, ecocashFeeAmount: number, ecocashPop: string | null) => void;
+  onPlaceOrder: (deliveryLocation: string, lat: number | null, lng: number | null, paymentMethod: string, deliveryFee: number, ecocashFeeAmount: number, ecocashPop: string | null, quotes?: Record<string,DeliveryQuote>) => void;
   customerId?: string;
   customerAddress?: { formatted_address: string | null; latitude: number | null; longitude: number | null } | null;
   deliveryFeeTiers?: Record<string, DeliveryFeeTier[]>;
@@ -29,6 +32,10 @@ const ALL_PAYMENT_METHODS = ['pay_on_delivery', 'ecocash', 'paynow', 'card', 'ba
 export function CheckoutModal({
   visible, palette, cartByShop, shops, cartTotal, placingOrder, error, onClose, onPlaceOrder, customerId, customerAddress, deliveryFeeTiers = {},
 }: Props) {
+  const [quoteMode,setQuoteMode]=useState<boolean|null>(null);
+  const [quotes,setQuotes]=useState<Record<string,DeliveryQuote>>({});
+  useEffect(()=>{ if(!visible)return; let active=true;setQuoteMode(null);setQuotes({}); supabase.from('delivery_pricing_settings').select('enabled').eq('id',true).single().then(({data,error})=>{if(active)setQuoteMode(error?true:!!data?.enabled)}); return()=>{active=false}; },[visible]);
+  const quotesReady=cartByShop.length>0&&cartByShop.every(sc=>quotes[sc.shopId]?.status==='accepted'&&new Date(quotes[sc.shopId].expires_at||'').getTime()>Date.now());
   const [deliveryLocation, setDeliveryLocation] = useState('');
   const [confirmedLatitude, setConfirmedLatitude] = useState<number | null>(null);
   const [confirmedLongitude, setConfirmedLongitude] = useState<number | null>(null);
@@ -104,7 +111,7 @@ export function CheckoutModal({
   const totalEcocashFee = isEcocash
     ? shopsWithEcocash.reduce((sum, sc) => {
         const shop = shops.find(s => s.id === sc.shopId);
-        return sum + (shop?.ecocash_fee || 0);
+        return sum + (quoteMode && quotes[sc.shopId] ? Number(quotes[sc.shopId].ecocash_fee_at_quote||0) : (shop?.ecocash_fee || 0));
       }, 0)
     : 0;
 
@@ -132,7 +139,7 @@ export function CheckoutModal({
   const firstWhatsappShop = shopsWithWhatsapp[0] ? shops.find(s => s.id === shopsWithWhatsapp[0].shopId) : null;
   const whatsappNumber = firstWhatsappShop?.whatsapp_number || '';
 
-  const effectiveDeliveryFee = shopHasOwnFee ? String(tierBasedDeliveryFee.toFixed(2)) : deliveryFee;
+  const effectiveDeliveryFee = quoteMode ? String(Object.values(quotes).reduce((sum,q)=>sum+Number(q.delivery_fee||0),0)) : shopHasOwnFee ? String(tierBasedDeliveryFee.toFixed(2)) : deliveryFee;
 
   const detectMyLocation = async () => {
     setDetectingLocation(true);
@@ -198,15 +205,16 @@ export function CheckoutModal({
   };
 
   const handlePlace = () => {
+    if (quoteMode===null || (quoteMode && !quotesReady)) return;
     if (!deliveryLocation.trim()) return;
     if (!locationConfirmed) return;
     if (confirmedLatitude == null || confirmedLongitude == null) return;
     if (anyBlocked) return;
     if (requiresWhatsapp && !whatsappConfirmed) return;
-    onPlaceOrder(deliveryLocation.trim(), confirmedLatitude, confirmedLongitude, paymentMethod, parseFloat(effectiveDeliveryFee) || 0, totalEcocashFee, isEcocash ? ecocashPop.trim() || null : null);
+    onPlaceOrder(deliveryLocation.trim(), confirmedLatitude, confirmedLongitude, paymentMethod, parseFloat(effectiveDeliveryFee) || 0, totalEcocashFee, isEcocash ? ecocashPop.trim() || null : null, quoteMode ? quotes : undefined);
   };
 
-  const canPlace = !!deliveryLocation.trim() && locationConfirmed && confirmedLatitude != null && confirmedLongitude != null && !placingOrder && !anyBlocked && (!requiresWhatsapp || whatsappConfirmed);
+  const canPlace = quoteMode!==null && (!quoteMode||quotesReady) && !!deliveryLocation.trim() && locationConfirmed && confirmedLatitude != null && confirmedLongitude != null && !placingOrder && !anyBlocked && (!requiresWhatsapp || whatsappConfirmed);
   const isPaynow = paymentMethod === 'paynow';
   const numericDeliveryFee = parseFloat(effectiveDeliveryFee) || 0;
   const grandTotal = cartTotal + numericDeliveryFee + totalEcocashFee;
@@ -441,7 +449,7 @@ export function CheckoutModal({
               ) : (
                 <>
                   <Navigation size={16} color="#fff" />
-                  <Text style={styles.confirmLocBtnText}>Confirm Location</Text>
+                  <Text style={styles.confirmLocBtnText}>{quoteMode ? 'Confirm Address at My Current GPS' : 'Confirm Location'}</Text>
                 </>
               )}
             </TouchableOpacity>
@@ -477,7 +485,7 @@ export function CheckoutModal({
           <View style={[styles.infoBox, { backgroundColor: `${palette.primary}10`, borderColor: `${palette.primary}30` }]}>
             <Truck size={16} color={palette.primary} />
             <Text style={[styles.infoText, { color: palette.textSecondary }]}>
-              The shop will assign a messenger to deliver your order. No need to select one yourself.
+              {quoteMode ? 'Your delivery quote names the messenger who has agreed to carry this load.' : 'The shop will assign a messenger to deliver your order. No need to select one yourself.'}
             </Text>
           </View>
 
@@ -513,8 +521,10 @@ export function CheckoutModal({
             </View>
           ) : null}
 
+          {quoteMode && <DeliveryQuotePanel cart={cartByShop} lat={confirmedLatitude} lng={confirmedLongitude} quotes={quotes} onChange={setQuotes} />}
+          {quoteMode && !quotesReady && <Text style={{color:palette.warning,padding:12}}>Delivery quote required. The total is incomplete until every delivery fee is agreed. Do not pay yet.</Text>}
           <Text style={[styles.label, { color: palette.textSecondary, marginTop: 16 }]}>DELIVERY FEE</Text>
-          {shopHasOwnFee ? (
+          {quoteMode ? <Text style={{color:palette.textPrimary,padding:12}}>{quotesReady ? `$${numericDeliveryFee.toFixed(2)} — agreed for all deliveries` : 'Quote required — not yet priced'}</Text> : shopHasOwnFee ? (
             <View style={[styles.input, { backgroundColor: palette.inputBg, borderColor: palette.inputBorder, flexDirection: 'row', alignItems: 'center' }]}>
               <Text style={{ color: palette.textPrimary, fontSize: 15, flex: 1 }}>${tierBasedDeliveryFee.toFixed(2)}</Text>
               <Text style={{ color: palette.textSecondary, fontSize: 11 }}>Based on order total</Text>
@@ -567,11 +577,11 @@ export function CheckoutModal({
             ) : null}
             <View style={styles.summaryRow}>
               <Text style={{ color: palette.textSecondary, fontSize: 13 }}>Delivery fee</Text>
-              <Text style={{ color: palette.textPrimary, fontSize: 13 }}>${numericDeliveryFee.toFixed(2)}</Text>
+              <Text style={{ color: palette.textPrimary, fontSize: 13 }}>{quoteMode && !quotesReady ? 'Pending quote' : `$${numericDeliveryFee.toFixed(2)}`}</Text>
             </View>
             <View style={styles.summaryRow}>
               <Text style={{ color: palette.textPrimary, fontSize: 15, fontWeight: '700' }}>Grand Total</Text>
-              <Text style={{ color: palette.primary, fontSize: 17, fontWeight: '800' }}>${grandTotal.toFixed(2)}</Text>
+              <Text style={{ color: palette.primary, fontSize: 17, fontWeight: '800' }}>{quoteMode && !quotesReady ? 'Awaiting delivery quotes' : `$${grandTotal.toFixed(2)}`}</Text>
             </View>
           </View>
 
@@ -642,7 +652,7 @@ export function CheckoutModal({
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
               {isPaynow && <ExternalLink size={16} color="#fff" />}
               <Text style={styles.placeOrderBtnText}>
-                {anyUnavailable ? 'Shop Unavailable' : anyClosed ? 'Shop Closed — No Orders' : requiresWhatsapp && !whatsappConfirmed ? 'Send WhatsApp First' : !locationConfirmed || confirmedLatitude == null || confirmedLongitude == null ? 'Confirm Location First' : isPaynow ? `Pay ${grandTotal.toFixed(2)} via Paynow` : 'Place Order(s)'}
+                {anyUnavailable ? 'Shop Unavailable' : anyClosed ? 'Shop Closed — No Orders' : requiresWhatsapp && !whatsappConfirmed ? 'Send WhatsApp First' : !locationConfirmed || confirmedLatitude == null || confirmedLongitude == null ? 'Confirm Location First' : quoteMode===null ? 'Checking delivery pricing…' : quoteMode&&!quotesReady ? 'Agree Delivery Fees First' : isPaynow ? `Pay ${grandTotal.toFixed(2)} via Paynow` : 'Place Order(s)'}
               </Text>
             </View>
           )}

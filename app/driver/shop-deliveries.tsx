@@ -1,3 +1,5 @@
+import DeliveryTerms from '@/components/DeliveryTerms';
+import DriverDeliveryQuotes from '@/components/DriverDeliveryQuotes';
 import PageSkeleton from '@/components/PageSkeleton';
 import { useState, useEffect, useRef } from 'react';
 import {
@@ -286,6 +288,7 @@ export default function MessengerShopDeliveries() {
             contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
             refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={GREEN} />}
           >
+            <DriverDeliveryQuotes />
             {orders.length === 0 ? (
               <View style={styles.emptyState}>
                 <Truck size={48} color={TEXT3} />
@@ -385,6 +388,7 @@ export default function MessengerShopDeliveries() {
                           <Text style={styles.itemPrice}>${Number(item.price || 0).toFixed(2)}</Text>
                         </View>
                       ))}
+<DeliveryTerms terms={(order as any).delivery_terms} />
                       <View style={styles.totalRow}>
                         <Text style={styles.totalLabel}>Total</Text>
                         <Text style={styles.totalValue}>${Number(order.total_amount).toFixed(2)}</Text>
