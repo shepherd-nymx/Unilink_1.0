@@ -1,3 +1,4 @@
+import CustomerShopMap from '@/components/shop-map/CustomerShopMap';
 import PageSkeleton from '@/components/PageSkeleton';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import {
@@ -1709,6 +1710,7 @@ export default function CustomerDashboard() {
       )}
 
       <ScrollView ref={contentRef} style={styles.content} contentContainerStyle={!isDark ? { paddingBottom: 28 } : undefined}>
+        <CustomerShopMap />
         <NearbyShopsAction onPress={() => router.push('/customer/marketplace')}/>
         <TouchableOpacity accessibilityRole="button" accessibilityLabel="Shop with UNILINK assistant" onPress={() => router.push('/customer/assistant')}
           style={{ marginHorizontal: isDark ? 16 : 20, marginVertical: 8, padding: 15, borderRadius: 17, borderWidth: 1, borderColor: isDark ? '#245078' : '#c7dcfa', backgroundColor: isDark ? '#0d2038' : '#edf5ff', flexDirection: 'row', alignItems: 'center', gap: 12 }}>
