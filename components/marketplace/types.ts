@@ -72,7 +72,7 @@ export function computeTierDeliveryFee(
   return fallbackFee;
 }
 
-export type Product = {
+export type Product = import('@/lib/delivery-quote-types').ProductLoad & {
   id: string;
   shop_id: string;
   name: string;

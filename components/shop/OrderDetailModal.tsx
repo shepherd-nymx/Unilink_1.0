@@ -1,3 +1,4 @@
+import DeliveryTerms from '@/components/DeliveryTerms';
 import {
   View,
   Text,
@@ -84,6 +85,7 @@ export function OrderDetailModal({
               </View>
             ))}
 
+<DeliveryTerms terms={(order as any).delivery_terms} />
             <View style={styles.modalTotalRow}>
               <Text style={styles.modalTotalLabel}>Items Subtotal</Text>
               <Text style={styles.modalTotalValue}>${(Number(order.total_amount) - Number(order.delivery_fee || 0) - Number((order as any).ecocash_fee_amount || 0)).toFixed(2)}</Text>

@@ -31,7 +31,7 @@ export type ShopOrder = {
   driver_phone?: string | null;
 };
 
-export type ShopProduct = {
+export type ShopProduct = import('./delivery-quote-types').ProductLoad & {
   id: string;
   name: string;
   description: string | null;

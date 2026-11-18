@@ -1,3 +1,4 @@
+import DeliveryTerms from '@/components/DeliveryTerms';
 import PageSkeleton from '@/components/PageSkeleton';
 import { useState, useEffect, useRef } from 'react';
 import {
@@ -284,6 +285,7 @@ export default function ShopOrders() {
                   </View>
 
                   {/* Delivery info */}
+<DeliveryTerms terms={(order as any).delivery_terms} />
                   {order.delivery_location && (
                     <View style={[styles.deliveryRow, { gap: 6 }]}>
                       <MapPin size={14} color={primary} />

@@ -1,6 +1,10 @@
 {
   "rewrites": [
     {
+      "source": "/admin/delivery-pricing",
+      "destination": "/index.html"
+    },
+    {
       "source": "/customer/dashboard",
       "destination": "/index.html"
     },
