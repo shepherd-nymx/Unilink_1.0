@@ -1,6 +1,14 @@
 {
   "rewrites": [
     {
+      "source": "/customer/dashboard",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/customer/marketplace",
+      "destination": "/index.html"
+    },
+    {
       "source": "/customer/identity-callback",
       "destination": "/index.html"
     },
