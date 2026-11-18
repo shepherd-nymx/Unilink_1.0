@@ -28,3 +28,7 @@ verify_jwt = false
 # Authenticated by a private campaign token; unsubscribe uses a per-delivery token.
 [functions.weekly-marketing]
 verify_jwt = false
+
+# Server-only Vault capability token is verified inside the worker.
+[functions.business-activity-email]
+verify_jwt = false
