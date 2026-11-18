@@ -21,6 +21,8 @@ begin
  select count(*) into n from public.business_activity_events;
  update public.shop_products set updated_at=now() where id=product_row.id;
  if (select count(*) from public.business_activity_events)<>n then raise exception 'Timestamp-only update generated mail';end if;
+ update public.shop_products set image_url='https://example.invalid/image.png' where id=product_row.id;
+ if not exists(select 1 from public.business_activity_events where entity_id=product_row.id::text and snapshot->'other_fields_changed' ? 'image_url' and not snapshot ? 'image_url') then raise exception 'Image change not captured safely';end if;
  delete from public.shop_products where id=product_row.id;
  if not exists(select 1 from public.business_activity_events where entity_id=product_row.id::text and operation='delete') then raise exception 'Product deletion not captured';end if;
  if exists(select 1 from public.business_activity_events e where not exists(select 1 from public.business_activity_email_deliveries d where d.event_id=e.id and d.recipient_email='unilinkbase@gmail.com')) then raise exception 'An activity lacks the mandatory UniLink recipient';end if;
