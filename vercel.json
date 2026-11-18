@@ -1,6 +1,10 @@
 {
   "rewrites": [
     {
+      "source": "/admin/whatsapp-bot",
+      "destination": "/index.html"
+    },
+    {
       "source": "/admin/delivery-pricing",
       "destination": "/index.html"
     },

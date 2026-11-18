@@ -32,3 +32,7 @@ verify_jwt = false
 # Server-only Vault capability token is verified inside the worker.
 [functions.business-activity-email]
 verify_jwt = false
+
+# Meta webhook signatures and a private worker capability are checked in the function.
+[functions.whatsapp-order-bot]
+verify_jwt = false
