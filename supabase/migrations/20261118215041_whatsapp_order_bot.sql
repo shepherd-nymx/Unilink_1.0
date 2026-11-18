@@ -213,7 +213,7 @@ begin
   choices:=choices||jsonb_build_array(jsonb_build_object('id','cart','title','View basket'),jsonb_build_object('id','shops','title','Choose another shop'));st:=st||'{"step":"products"}';
  elsif action='cart' and answer is null then
   answer:='Your basket at '||coalesce(st->>'shop_name','the shop')||E':\n';
-  for r in select catalog_product.name,catalog_product.price,(c.value->>'qty')::int as qty from jsonb_array_elements(coalesce(st->'cart','[]'))c join public.shop_products catalog_product on catalog_product.id=(c.value->>'id')::uuid loop answer:=answer||r.qty||' × '||left(r.name,60)||' — $'||to_char(r.price*r.qty,'FM999999990.00')||E'\n';end loop;
+  for r in select catalog_product.name,catalog_product.price,(c.value->>'qty')::int as qty from jsonb_array_elements(coalesce(st->'cart','[]'))c join public.shop_products catalog_product on catalog_product.id=(c.value->>'id')::uuid loop answer:=answer||r.qty||' × '||left(r.name,32)||' — $'||to_char(r.price*r.qty,'FM999999990.00')||E'\n';end loop;
   choices:=jsonb_build_array(jsonb_build_object('id','products:0','title','Add / change items'),jsonb_build_object('id','checkout','title','Checkout'),jsonb_build_object('id','clear','title','Clear basket'));st:=st||'{"step":"cart"}';
  elsif action='payment_menu' then
   select * into s from public.shops where id=(st->>'shop_id')::uuid;
@@ -230,7 +230,7 @@ begin
    else
     st:=st||jsonb_build_object('step','review','review',review,'checkout_id',gen_random_uuid());
     answer:=coalesce(answer||E'\n','')||'Review your order from '||left(review->>'shop_name',80)||E':\n';
-    for line in select value from jsonb_array_elements(review->'products') loop answer:=answer||(line->>'qty')||' × '||left(line->>'name',60)||' — $'||to_char((line->>'price')::numeric*(line->>'qty')::int,'FM999999990.00')||E'\n';end loop;
+    for line in select value from jsonb_array_elements(review->'products') loop answer:=answer||(line->>'qty')||' × '||left(line->>'name',32)||' — $'||to_char((line->>'price')::numeric*(line->>'qty')::int,'FM999999990.00')||E'\n';end loop;
     answer:=answer||'Items: $'||to_char((review->>'subtotal')::numeric,'FM999999990.00')||E'\nDelivery: $'||to_char((review->>'delivery_fee')::numeric,'FM999999990.00')||E'\nEcoCash fee: $'||to_char((review->>'ecocash_fee')::numeric,'FM999999990.00')||E'\nTotal: $'||to_char((review->>'total')::numeric,'FM999999990.00')||E'\nPayment: '||(review->>'payment')||E'\nDeliver to: '||(st->>'address')||E'\nGPS: '||(st->>'latitude')||', '||(st->>'longitude')||E'\nSelect Confirm order to place it.';
     choices:=jsonb_build_array(jsonb_build_object('id','confirm','title','Confirm order'),jsonb_build_object('id','cart','title','Edit basket'),jsonb_build_object('id','cancel','title','Cancel'));
    end if;

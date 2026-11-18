@@ -9,6 +9,7 @@ const appSecretValue = () => Deno.env.get('WHATSAPP_BOT_APP_SECRET') || Deno.env
 const verifyTokenValue = () => Deno.env.get('WHATSAPP_BOT_VERIFY_TOKEN') || Deno.env.get('WHATSAPP_VERIFY_TOKEN');
 const hash = async (value:string) => Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(value)))).map(v=>v.toString(16).padStart(2,'0')).join('');
 const escape = (value:string) => value.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]!));
+const clip = (value:unknown,limit:number) => String(value).slice(0,limit).replace(/[\uD800-\uDBFF]$/,'');
 function equal(a:string,b:string) { if(a.length!==b.length)return false;let mismatch=0;for(let i=0;i<a.length;i++)mismatch|=a.charCodeAt(i)^b.charCodeAt(i);return mismatch===0; }
 
 export async function verifyMetaSignature(raw:string,signature:string|null,secret:string) {
@@ -20,13 +21,13 @@ export async function verifyMetaSignature(raw:string,signature:string|null,secre
 
 export function metaMessage(to:string,payload:any) {
  const base={messaging_product:'whatsapp',recipient_type:'individual',to};
- const text=String(payload.text || 'Reply MENU to continue.').slice(0,4096);
- if(payload.kind==='location_request')return {...base,type:'interactive',interactive:{type:'location_request_message',body:{text:text.slice(0,1024)},action:{name:'send_location'}}};
+ const text=clip(payload.text || 'Reply MENU to continue.',4096);
+ if(payload.kind==='location_request')return {...base,type:'interactive',interactive:{type:'location_request_message',body:{text:clip(text,1024)},action:{name:'send_location'}}};
  const choices=Array.isArray(payload.choices)?payload.choices.slice(0,10):[];
  if(!choices.length)return {...base,type:'text',text:{body:text,preview_url:false}};
- if(text.length>1024)return {...base,type:'text',text:{body:(text+'\n\n'+choices.map((c:any,i:number)=>`${i+1}. ${c.title}`).join('\n')).slice(0,4096),preview_url:false}};
- if(choices.length<=3)return {...base,type:'interactive',interactive:{type:'button',body:{text},action:{buttons:choices.map((c:any)=>({type:'reply',reply:{id:String(c.id).slice(0,256),title:String(c.title).slice(0,20)}}))}}};
- return {...base,type:'interactive',interactive:{type:'list',body:{text},action:{button:'Choose an option',sections:[{title:'UniLink',rows:choices.map((c:any)=>({id:String(c.id).slice(0,200),title:String(c.title).slice(0,24),...(c.description?{description:String(c.description).slice(0,72)}:{})}))}]}}};
+ if(text.length>1024)return {...base,type:'text',text:{body:clip(text+'\n\n'+choices.map((c:any,i:number)=>`${i+1}. ${c.title}`).join('\n'),4096),preview_url:false}};
+ if(choices.length<=3)return {...base,type:'interactive',interactive:{type:'button',body:{text},action:{buttons:choices.map((c:any)=>({type:'reply',reply:{id:clip(c.id,256),title:clip(c.title,20)}}))}}};
+ return {...base,type:'interactive',interactive:{type:'list',body:{text},action:{button:'Choose an option',sections:[{title:'UniLink',rows:choices.map((c:any)=>({id:clip(c.id,200),title:clip(c.title,24),...(c.description?{description:clip(c.description,72)}:{})}))}]}}};
 }
 
 export function incomingMessages(value:any) {

@@ -25,6 +25,7 @@ const signed=data=>({'Content-Type':'application/json','X-Hub-Signature-256':'sh
  message=h.api.metaMessage('263771234567',{text:'Choose',choices:choices.slice(0,3)});assert.equal(message.interactive.type,'button');assert.ok(message.interactive.action.buttons.every(b=>b.reply.title.length<=20));
  message=h.api.metaMessage('263771234567',{text:'Share delivery GPS',kind:'location_request'});assert.equal(message.interactive.action.name,'send_location');
  message=h.api.metaMessage('263771234567',{text:'x'.repeat(1800),choices:choices.slice(0,2)});assert.equal(message.type,'text');assert.ok(message.text.body.includes('1.'));
+ message=h.api.metaMessage('263771234567',{text:'Choose',choices:[{id:'product:1',title:'x'.repeat(19)+'😀'}]});assert.ok(!/[\uD800-\uDBFF]$/.test(message.interactive.action.buttons[0].reply.title));
  const raw=JSON.stringify(event),signature=signed(event)['X-Hub-Signature-256'];assert.equal(await h.api.verifyMetaSignature(raw+' ',signature,'test-app-secret'),false);
  // Payment initiation derives amount/order from the database and never recovers
  // a URL or paid status from the legacy browser-writable transaction table.

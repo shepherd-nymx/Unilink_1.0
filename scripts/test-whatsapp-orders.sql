@@ -84,6 +84,11 @@ begin
  update public.whatsapp_bot_sessions set state=state_copy||jsonb_build_object('address',repeat('A',300),'cart',(select jsonb_agg(jsonb_build_object('id',id,'qty',1000)) from public.shop_products where shop_id=sid and name like 'Long product name %')) where wa_id=wa;
  q:=public.whatsapp_bot_message('large-review-'||wa,wa,'text','review');
  if length(q->>'text')>3800 or q->>'text' not like '%Total: $30003.00%' or q->>'text' not like '%Select Confirm order%' then raise exception 'Large basket hid checkout totals or confirmation';end if;
+ update public.shop_products set name=repeat(chr(128512),100)||id::text where shop_id=sid and name like 'Long product name %';
+ update public.whatsapp_bot_sessions set state=state||jsonb_build_object('address',repeat(chr(128512),300)) where wa_id=wa;
+ q:=public.whatsapp_bot_message('unicode-review-'||wa,wa,'text','review');
+ select sum(case when ascii(substring(q->>'text' from i for 1))>65535 then 2 else 1 end) into n from generate_series(1,length(q->>'text'))i;
+ if n>3900 or q->>'text' not like '%Total: $30003.00%' or q->>'text' not like '%Select Confirm order%' then raise exception 'Unicode invoice exceeded WhatsApp display budget';end if;
  update public.whatsapp_bot_sessions set state=state_copy where wa_id=wa;
  update public.delivery_pricing_settings set enabled=true where id;
  q:=public.whatsapp_bot_message('quote-required-'||wa,wa,'text','review');
