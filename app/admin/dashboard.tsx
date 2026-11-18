@@ -174,6 +174,7 @@ export default function AdminDashboard() {
       </View>
 
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 20, gap: 12 }}>
+        <TouchableOpacity accessibilityRole="button" onPress={() => router.push('/admin/whatsapp-bot')} style={{padding:16,margin:16,backgroundColor:'#128c7e',borderRadius:12}}><Text style={{color:'#fff',fontWeight:'700'}}>WhatsApp ordering bot</Text></TouchableOpacity>
         <TouchableOpacity accessibilityRole="button" onPress={() => router.push('/admin/delivery-pricing')} style={{padding:16,margin:16,backgroundColor:'#1a73e8',borderRadius:12}}><Text style={{color:'#fff',fontWeight:'700'}}>Delivery pricing &amp; quote requests</Text></TouchableOpacity>
         <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }], gap: 12 }}>
           <View>
