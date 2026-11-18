@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="no-referrer"><title>UniLink email preferences</title><style>body{font:17px/1.6 system-ui;color:#18324b;background:#f3f7ff;margin:0;padding:32px}main{max-width:520px;margin:10vh auto;background:white;padding:32px;border-radius:16px}button{font:inherit;background:#1a73e8;color:white;border:0;padding:12px 20px;border-radius:8px;cursor:pointer}button:disabled{opacity:.6}</style></head><body><main><h1>Email preferences</h1><p>Stop weekly UniLink shopping reminders. Your order and delivery updates will continue.</p><button id="unsubscribe">Unsubscribe</button><p id="result" role="status" aria-live="polite"></p><a href="https://unilinkbase.com">Return to UniLink</a></main><script>
+const button = document.getElementById('unsubscribe');
+const result = document.getElementById('result');
+const token = new URLSearchParams(location.search).get('token');
+if (!token || !/^[0-9a-f-]{36}$/i.test(token)) { button.disabled = true; result.textContent = 'This link is invalid. Please use the unsubscribe link in your UniLink email.'; }
+button.addEventListener('click', async () => {
+  button.disabled = true;
+  try {
+    const response = await fetch('https://yysnoiamfoveltvyjzgx.supabase.co/functions/v1/weekly-marketing?unsubscribe=' + encodeURIComponent(token), { method: 'POST' });
+    const body = await response.json();
+    if (!response.ok) throw new Error('Unsubscribe failed');
+    result.textContent = body.message;
+    button.textContent = 'Unsubscribed';
+    history.replaceState(null, '', location.pathname);
+  } catch { result.textContent = 'Could not update your preference. Please try again or contact unilinkbase@gmail.com.'; button.disabled = false; }
+});
+</script></body></html>
