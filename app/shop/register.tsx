@@ -1,3 +1,4 @@
+import { validShopCoordinates } from '@/lib/shop-map';
 import { SkeletonField } from '@/components/Skeleton';
 import { useState, useRef, useEffect } from 'react';
 import {
@@ -176,6 +177,10 @@ export default function ShopRegister() {
     setError('');
     if (!shopName || !email.trim() || !password || !contactPhone || !address || !area || !category) {
       setError('Please fill in all required fields including area and category');
+      return;
+    }
+    if ((latitude.trim() || longitude.trim()) && !validShopCoordinates(latitude.trim(), longitude.trim())) {
+      setError('Enter both valid GPS coordinates: latitude -90 to 90 and longitude -180 to 180, or leave both blank.');
       return;
     }
     const emailTrim = email.trim().toLowerCase();
