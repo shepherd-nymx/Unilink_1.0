@@ -184,7 +184,6 @@ export function CheckoutModal({
   };
 
   const confirmLocation = async () => {
-    if (quoteMode===null || (quoteMode && !quotesReady)) return;
     if (!deliveryLocation.trim()) return;
     setConfirmingLocation(true);
     setGpsError('');
@@ -206,6 +205,7 @@ export function CheckoutModal({
   };
 
   const handlePlace = () => {
+    if (quoteMode===null || (quoteMode && !quotesReady)) return;
     if (!deliveryLocation.trim()) return;
     if (!locationConfirmed) return;
     if (confirmedLatitude == null || confirmedLongitude == null) return;
@@ -449,7 +449,7 @@ export function CheckoutModal({
               ) : (
                 <>
                   <Navigation size={16} color="#fff" />
-                  <Text style={styles.confirmLocBtnText}>Confirm Location</Text>
+                  <Text style={styles.confirmLocBtnText}>{quoteMode ? 'Confirm Address at My Current GPS' : 'Confirm Location'}</Text>
                 </>
               )}
             </TouchableOpacity>
@@ -485,7 +485,7 @@ export function CheckoutModal({
           <View style={[styles.infoBox, { backgroundColor: `${palette.primary}10`, borderColor: `${palette.primary}30` }]}>
             <Truck size={16} color={palette.primary} />
             <Text style={[styles.infoText, { color: palette.textSecondary }]}>
-              The shop will assign a messenger to deliver your order. No need to select one yourself.
+              {quoteMode ? 'Your delivery quote names the messenger who has agreed to carry this load.' : 'The shop will assign a messenger to deliver your order. No need to select one yourself.'}
             </Text>
           </View>
 
