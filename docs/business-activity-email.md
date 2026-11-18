@@ -1,0 +1,13 @@
+# UniLink business activity email
+
+Every committed business event creates an alert to **unilinkbase@gmail.com**. A relevant shop and/or assigned messenger also receives a separate message when their saved email is valid. Missing recipient details never suppress the UniLink alert. The app's existing customer-facing emails remain in place.
+
+Coverage: customer/messenger/shop registrations and account changes; product additions, changes, stock changes and deletions; shopping requests, delivery requests, marketplace orders and their status/payment/assignment changes; quote requests and decisions; delivery rate/capacity/activation changes; new chat-message notifications (metadata only). Timestamp-only updates and chat read receipts are ignored. Password changes generate a flag without any credential value. Passwords, codes, identity documents, GPS coordinates and private message bodies are excluded from snapshots. This does not generate emails for page views, keystrokes or unsuccessful/uncommitted actions.
+
+Database triggers write a service-only queue in the same transaction as the business action. A one-minute cron invokes `business-activity-email` using a private Vault capability token. The endpoint verifies the token hash before claiming mail; browser roles cannot read/write the queue or call its claim RPC. The worker sends up to ten messages per run through the existing Resend configuration, with individual recipient records, three-minute leases, exponential retry delay and stable provider idempotency keys. Eight failed attempts or a 23-hour uncertainty window requires operator review; never blindly resend an uncertain old message. Provider acceptance is recorded; inbox delivery still depends on the recipient's mail provider.
+
+There is no replay of old historical activity. New events are captured from migration installation. Existing transactional templates can produce an additional related email. Each business activity email identifies its source record and changed fields.
+
+Operations: `business_activity_email_config.enabled` pauses/resumes delivery (events continue queuing). Monitor `business_activity_email_deliveries` for queued/failed rows and Resend for delivery/bounce status. Editing this switch is service-only. Do not expose the Vault token in application environment variables or logs.
+
+Validation: `node scripts/test-business-activity.cjs` uses a mocked provider; `scripts/test-business-activity.sql` must run inside BEGIN/ROLLBACK. The database test checks mandatory UniLink/shop recipients, credential exclusion, creation/deletion, unchanged-field suppression and private queue permissions. A worker dry run checks authenticated configuration without sending mail.
