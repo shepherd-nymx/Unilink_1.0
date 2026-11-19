@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { Linking, Platform } from 'react-native';
 
 // ---------------------------------------------------------------------------
 // UniLink Paynow Client Service
@@ -145,11 +146,13 @@ export function generateReference(type: PaynowPaymentType, entityId?: string): s
 
 /**
  * Redirect the user to the Paynow payment page.
- * On web, this opens in a new tab. On mobile, it opens the browser.
+ * On web, this navigates to Paynow. On mobile, it opens the phone's browser.
  */
-export function redirectToPaynow(paymentUrl: string): void {
-  if (typeof window !== 'undefined') {
+export async function redirectToPaynow(paymentUrl: string): Promise<void> {
+  if (Platform.OS === 'web' && typeof window !== 'undefined' && window.location) {
     window.location.href = paymentUrl;
+  } else {
+    await Linking.openURL(paymentUrl);
   }
 }
 
@@ -160,7 +163,7 @@ export function redirectToPaynow(paymentUrl: string): void {
 export async function startPaynowPayment(params: PaynowInitiateParams): Promise<PaynowInitiateResult> {
   const result = await initiatePaynowPayment(params);
   if (result.success && result.paymentUrl) {
-    redirectToPaynow(result.paymentUrl);
+    await redirectToPaynow(result.paymentUrl);
   }
   return result;
 }

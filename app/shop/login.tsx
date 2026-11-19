@@ -8,6 +8,7 @@ import {
   Animated,
   ActivityIndicator,
   Modal,
+  Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
@@ -64,7 +65,7 @@ export default function ShopLogin() {
     setResetMessage('');
     try {
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(emailTrim, {
-        redirectTo: `${typeof window !== 'undefined' ? window.location.origin : 'https://updates.unilinkbase.com'}/shop/login`,
+        redirectTo: `${Platform.OS === 'web' && typeof window !== 'undefined' && window.location ? window.location.origin : 'https://www.unilinkbase.com'}/shop/login`,
       });
       if (resetError) throw resetError;
       setResetMessage('Password reset email sent. Check your inbox for instructions to reset your password.');
