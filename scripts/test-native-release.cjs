@@ -3,13 +3,13 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const ts = require('typescript');
 
-function load(file, mocks) {
+function load(file, mocks, globals = {}) {
  const module = { exports: {} };
  const source = ts.transpileModule(fs.readFileSync(file, 'utf8'), {
   compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
  }).outputText;
  vm.runInNewContext(source, {
-  module, exports: module.exports, URL, URLSearchParams,
+  module, exports: module.exports, URL, URLSearchParams, ...globals,
   require(name) { if (!(name in mocks)) throw new Error(`Unexpected dependency: ${name}`); return mocks[name]; },
  });
  return module.exports;
@@ -118,6 +118,22 @@ async function main() {
  platform.OS = 'ios';
  await photos.requestPhotoSelectionPermission();
  assert.equal(permissionRequests, 1);
- console.log('PASS: Unicode encrypted storage, atomic failures, concurrent writes, cold login restoration, logout, native OAuth/deep links, and Android photo permissions.');
+ const opened = [], location = { href: '' };
+ let openError = null;
+ const payment = load('lib/paynow-service.ts', {
+  './supabase': { supabase: {} },
+  'react-native': { Platform: platform, Linking: { async openURL(url) { if(openError)throw openError; opened.push(url); } } },
+ }, { window: { location } });
+ platform.OS = 'android';
+ await payment.redirectToPaynow('https://www.paynow.co.zw/payment/test-android');
+ assert.equal(opened[0], 'https://www.paynow.co.zw/payment/test-android');
+ assert.equal(location.href, '', 'Android must not access the browser window');
+ platform.OS = 'web';
+ await payment.redirectToPaynow('https://www.paynow.co.zw/payment/test-web');
+ assert.equal(location.href, 'https://www.paynow.co.zw/payment/test-web');
+ assert.equal(opened.length, 1);
+ platform.OS = 'android';openError = new Error('No browser available');
+ await assert.rejects(payment.redirectToPaynow('https://www.paynow.co.zw/payment/test-error'), /No browser available/);
+ console.log('PASS: Unicode encrypted storage, atomic failures, concurrent writes, cold login restoration, logout, native OAuth/deep links, Android photo permissions and native/web payment navigation.');
 }
 main().catch(error => { console.error(error); process.exitCode = 1; });

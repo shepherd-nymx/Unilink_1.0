@@ -66,7 +66,7 @@ export default function CustomerLogin() {
     setResetMessage('');
     try {
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(emailTrim, {
-        redirectTo: `${typeof window !== 'undefined' ? window.location.origin : 'https://updates.unilinkbase.com'}/customer/login`,
+        redirectTo: `${Platform.OS === 'web' && typeof window !== 'undefined' && window.location ? window.location.origin : 'https://www.unilinkbase.com'}/customer/login`,
       });
       if (resetError) throw resetError;
       setResetMessage('Password reset email sent. Check your inbox for instructions to reset your password.');
