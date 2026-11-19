@@ -2,11 +2,11 @@ import { supabase } from './supabase';
 import { saveUserData } from './storage-service';
 import { registerForPushNotificationsOnLogin } from './notification-service';
 import { registerDeviceToken } from './device-token-service';
+import { identityCallbackUrl } from './identity-redirect';
 
 export interface CustomerIdentityProfile { id: string; full_name: string; email: string }
 export function customerCallbackUrl() {
-  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://www.unilinkbase.com';
-  return `${origin}/customer/identity-callback`;
+  return identityCallbackUrl('customer');
 }
 export async function verifiedCustomerIdentity() {
   const { data, error } = await supabase.auth.getUser();

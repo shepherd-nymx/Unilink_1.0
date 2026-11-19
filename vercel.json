@@ -1,6 +1,14 @@
 {
   "rewrites": [
     {
+      "source": "/privacy-policy",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/delete-account",
+      "destination": "/index.html"
+    },
+    {
       "source": "/admin/whatsapp-bot",
       "destination": "/index.html"
     },

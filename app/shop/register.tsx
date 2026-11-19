@@ -1,3 +1,4 @@
+import { requestPhotoSelectionPermission } from '@/lib/photo-selection';
 import { validShopCoordinates } from '@/lib/shop-map';
 import { SkeletonField } from '@/components/Skeleton';
 import { useState, useRef, useEffect } from 'react';
@@ -128,7 +129,7 @@ export default function ShopRegister() {
   };
 
   const pickLogo = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    const { status } = await requestPhotoSelectionPermission();
     if (status !== 'granted') {
       setError('Permission to access photos is required');
       return;

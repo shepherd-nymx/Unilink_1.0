@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useRouter, usePathname } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { Platform, View } from 'react-native';
 import CustomerNavigation from '@/components/CustomerNavigation';
@@ -10,6 +10,7 @@ import { NotificationProvider } from '@/contexts/NotificationContext';
 import { checkAndApplyUpdate } from '@/lib/version-service';
 import { loadSession } from '@/lib/session-service';
 import { registerDeviceToken } from '@/lib/device-token-service';
+import { loadShopSession } from '@/lib/shop-session-service';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -70,6 +71,9 @@ async function requestAndRegister(userId: string | null): Promise<void> {
 function RootNavigator() {
   const { isDark } = useTheme();
   const router = useRouter();
+  const pathname = usePathname();
+  const currentPath = useRef(pathname);
+  currentPath.current = pathname;
   const notificationResponseListener = useRef<Notifications.Subscription | null>(null);
   const sessionRestored = useRef(false);
 
@@ -85,7 +89,11 @@ function RootNavigator() {
 
         await requestAndRegister(session?.id ?? null);
 
-        if (!session) return;
+        if (currentPath.current.endsWith('/identity-callback') || ['/privacy-policy', '/delete-account'].includes(currentPath.current)) return;
+        if (!session) {
+          if (Platform.OS !== 'web' && await loadShopSession()) router.replace('/shop/dashboard');
+          return;
+        }
 
         if (session.type === 'customer') {
           router.replace({

@@ -1,9 +1,14 @@
 import { useState } from 'react';
 import Svg, { Path } from 'react-native-svg';
-import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, useWindowDimensions } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, useWindowDimensions, Platform } from 'react-native';
+import * as WebBrowser from 'expo-web-browser';
+import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { driverCallbackUrl } from '@/lib/driver-identity';
 import { customerCallbackUrl } from '@/lib/customer-identity';
+import { acceptIdentityRedirect } from '@/lib/identity-redirect';
+
+WebBrowser.maybeCompleteAuthSession();
 
 // Google G artwork from Google's FirebaseUI assets (Copyright Google Inc.).
 function GoogleMark() {
@@ -16,6 +21,7 @@ function GoogleMark() {
 }
 
 export function CustomerIdentityButtons({ portal = 'customer' }: { portal?: 'customer' | 'driver' }) {
+  const router = useRouter();
   const { width } = useWindowDimensions();
   const compact = width < 360;
   const [email,setEmail]=useState('');
@@ -26,12 +32,21 @@ export function CustomerIdentityButtons({ portal = 'customer' }: { portal?: 'cus
     setMessage('');setFailed(false);
     if(!google&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())){setFailed(true);setMessage('Enter a valid email address.');return;}
     setBusy(true);
-    const callback = portal === 'driver' ? driverCallbackUrl() : customerCallbackUrl();
     try{
+      const callback = portal === 'driver' ? driverCallbackUrl() : customerCallbackUrl();
       const result=google
-        ? await supabase.auth.signInWithOAuth({provider:'google',options:{redirectTo:callback}})
+        ? await supabase.auth.signInWithOAuth({provider:'google',options:{redirectTo:callback,skipBrowserRedirect:Platform.OS!=='web'}})
         : await supabase.auth.signInWithOtp({email:email.trim().toLowerCase(),options:{emailRedirectTo:callback,shouldCreateUser:true}});
       if(result.error)throw result.error;
+      if (google && Platform.OS !== 'web') {
+        const url = 'url' in result.data ? result.data.url : null;
+        if (!url) throw new Error('Google sign-in could not open. Please try again.');
+        const response = await WebBrowser.openAuthSessionAsync(url, callback);
+        if (response.type === 'success') {
+          await acceptIdentityRedirect(response.url);
+          router.replace(portal === 'driver' ? '/driver/identity-callback' : '/customer/identity-callback');
+        } else setMessage('Sign-in was cancelled. You can try again.');
+      }
       if(!google)setMessage('Check your email for the sign-in link. Open it on this device to continue.');
     }catch(e:any){setFailed(true);setMessage(e.message||'Sign-in could not start. Please try again.');}
     finally{setBusy(false);}

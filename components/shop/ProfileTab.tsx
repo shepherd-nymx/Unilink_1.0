@@ -1,3 +1,5 @@
+import AccountPolicyLinks from '@/components/AccountPolicyLinks';
+import { requestPhotoSelectionPermission } from '@/lib/photo-selection';
 import { useState, useEffect } from 'react';
 import {
   View,
@@ -268,7 +270,7 @@ export function ProfileTab({
   };
 
   const pickLogo = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    const { status } = await requestPhotoSelectionPermission();
     if (status !== 'granted') {
       setMsg('Permission to access photos is required');
       return;
@@ -1164,6 +1166,8 @@ export function ProfileTab({
           )}
         </View>
       </View>
+
+        <AccountPolicyLinks/>
 
       <TouchableOpacity style={styles.logoutCard} onPress={onLogout}>
         <LogOut size={18} color={S.red} />

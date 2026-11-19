@@ -1,3 +1,4 @@
+import { requestPhotoSelectionPermission } from '@/lib/photo-selection';
 import PageSkeleton from '@/components/PageSkeleton';
 import { CustomerIdentityButtons } from '@/components/CustomerIdentityButtons';
 import { verifiedCustomerIdentity } from '@/lib/customer-identity';
@@ -444,7 +445,7 @@ export default function DriverRegister() {
                   <TouchableOpacity
                     style={styles.idPhotoUploadBtn}
                     onPress={async () => {
-                      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+                      const { status } = await requestPhotoSelectionPermission();
                       if (status !== 'granted') {
                         setError('Permission to access photos is required');
                         return;

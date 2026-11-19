@@ -1,3 +1,5 @@
+import AccountPolicyLinks from '@/components/AccountPolicyLinks';
+import { requestPhotoSelectionPermission } from '@/lib/photo-selection';
 import PageSkeleton from '@/components/PageSkeleton';
 import { useState, useEffect, useRef } from 'react';
 import {
@@ -152,7 +154,7 @@ export default function DriverSettings() {
       input.click();
       return;
     }
-    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    const permissionResult = await requestPhotoSelectionPermission();
     if (permissionResult.granted === false) {
       Alert.alert('Permission Required', 'Please allow access to your photo library.');
       return;
@@ -577,6 +579,8 @@ export default function DriverSettings() {
         </View>
 
         <AnimatedSaveButton onPress={saveSettings} saving={saving} />
+
+        <AccountPolicyLinks/>
 
         <View style={ss.logoutSection}>
           <Text style={ss.logoutTitle}>Account</Text>

@@ -1,3 +1,4 @@
+import { requestPhotoSelectionPermission } from '@/lib/photo-selection';
 import ProductLoadFields from '@/components/shop/ProductLoadFields';
 import type { ProductLoad } from '@/lib/delivery-quote-types';
 import PageSkeleton from '@/components/PageSkeleton';
@@ -423,7 +424,7 @@ export default function ShopDashboard() {
   };
 
   const pickProductImage = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    const { status } = await requestPhotoSelectionPermission();
     if (status !== 'granted') {
       setError('Permission required');
       return;
