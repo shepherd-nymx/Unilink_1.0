@@ -19,6 +19,8 @@ eas build --platform android --profile production
 
 The `work/`, generated `android/` and `ios/`, environment files, signing material and compiled artifacts must stay outside Git. EAS builds generate native projects from the Expo config. Keep the first upload key backed up in Expo's credentials manager and use Google Play App Signing.
 
+If the first AAB is built locally, securely retain its upload keystore and passwords, and import that same key into EAS before making subsequent cloud builds. Do not let a later build generate a different upload key after the first bundle has been registered in Play Console. Local signing material is private and must never be committed or included in the public store-assets package.
+
 ## Service setup
 
 1. Expo must have Developer or higher access to `mufaro20`. A Viewer-scoped device login can read project details but cannot configure environment variables or start builds.
@@ -61,7 +63,7 @@ Test using the internal-test opt-in link. Review Play's pre-launch report, crash
 
 ## Preparation checks on 19 November 2026
 
-TypeScript, the native storage/session/OAuth regression tests, shop-map regressions, the Android Hermes export and the production web export passed. Expo Doctor passed 18/18 checks after enabling the environment's configured HTTPS proxy. Android prebuild verified the notification icon resource and removal directives for the blocked permissions. Browser checks loaded the real published privacy policy and verified deletion-page validation/email composition both with and without a saved account session; no email was sent. These checks do not include a signed cloud build, real Android device acceptance or Play review.
+TypeScript, the native storage/session/OAuth regression tests, shop-map regressions, the Android Hermes export and the production web export passed. Expo Doctor passed 18/18 checks after enabling the environment's configured HTTPS proxy. Android prebuild verified the notification icon resource and removal directives for the blocked permissions. Browser checks passed against the local export and the deployed production site: the real published privacy policy loads, and deletion-page validation/email composition works both with and without a saved account session; no email was sent. These checks do not include a signed cloud build, real Android device acceptance or Play review.
 
 Official references:
 - https://docs.expo.dev/build/setup/

@@ -51,6 +51,6 @@ Welcome to UniLink for Android. Discover local shops, browse products, place ord
 ## Store assets
 
 - `icon-512.png`: existing UniLink brand icon exported to Google's 512 × 512 size.
-- Feature graphic still needed: 1024 × 500 JPG or opaque PNG, using UniLink's real branding.
+- `feature-graphic-1024x500.png`: opaque Play feature graphic using UniLink branding. Review the graphic and listing text before submission.
 - At least two genuine screenshots of the Android app are needed. Capture them from the preview APK or Play internal-test installation. Suggested views: shopper home/map, shop marketplace/products, order overview. Hide real customers, contact details and order information.
 - Web screenshots and invented screens must not be presented as Android screenshots.
