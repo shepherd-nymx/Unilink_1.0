@@ -30,4 +30,6 @@
     <changefreq>yearly</changefreq>
     <priority>0.4</priority>
   </url>
+  <url><loc>https://www.unilinkbase.com/privacy-policy</loc><changefreq>yearly</changefreq></url>
+  <url><loc>https://www.unilinkbase.com/delete-account</loc><changefreq>yearly</changefreq></url>
 </urlset>

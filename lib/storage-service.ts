@@ -1,5 +1,5 @@
 import { Platform } from 'react-native';
-import { saveSession, loadSession, clearSession, type SessionData } from './session-service';
+import { saveSession, loadSession, clearSession, getMemorySession, type SessionData } from './session-service';
 
 export type UserType = 'driver' | 'customer' | 'admin';
 
@@ -25,7 +25,10 @@ export function saveUserData(data: StoredUserData): void {
 }
 
 export function loadUserData(): StoredUserData | null {
-  if (!isWeb()) return null;
+  if (!isWeb()) {
+    const session = getMemorySession();
+    return session ? { id: session.id, type: session.type, name: session.name } : null;
+  }
   try {
     const raw = localStorage.getItem('userData');
     if (!raw) return null;

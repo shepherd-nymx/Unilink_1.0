@@ -33,3 +33,13 @@ yarn-error.*
 
 # typescript
 *.tsbuildinfo
+
+# Generated native projects and release artifacts
+/android/
+/ios/
+/work/
+*.aab
+*.apk
+*.apks
+*.keystore
+credentials.json

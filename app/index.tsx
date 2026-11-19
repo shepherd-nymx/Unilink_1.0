@@ -1,3 +1,4 @@
+import AccountPolicyLinks from '@/components/AccountPolicyLinks';
 import FuturePulseLogo from '@/components/FuturePulseLogo';
 import WelcomeMotion from '@/components/WelcomeMotion';
 import {
@@ -870,6 +871,8 @@ export default function Home() {
             </TouchableOpacity>
           </View>
         </View>
+
+        <AccountPolicyLinks/>
 
         {/* ── FOOTER ── */}
         <View style={s.footer}>

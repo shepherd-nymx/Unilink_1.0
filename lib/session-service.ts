@@ -1,4 +1,5 @@
 import { Platform } from 'react-native';
+import { nativeSecureStorage } from './native-secure-storage';
 
 export type UserType = 'driver' | 'customer' | 'admin';
 
@@ -13,21 +14,6 @@ const SESSION_KEY = 'unilink_session_v2';
 const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
 let _memorySession: SessionData | null = null;
-let _asyncStorage: any = null;
-
-async function getAsyncStorage() {
-  if (_asyncStorage) return _asyncStorage;
-  if (Platform.OS !== 'web') {
-    try {
-      const mod = await import('@react-native-async-storage/async-storage');
-      _asyncStorage = mod.default;
-      return _asyncStorage;
-    } catch {
-      return null;
-    }
-  }
-  return null;
-}
 
 export async function saveSession(data: Omit<SessionData, 'expiresAt'>): Promise<void> {
   const session: SessionData = {
@@ -44,12 +30,7 @@ export async function saveSession(data: Omit<SessionData, 'expiresAt'>): Promise
     return;
   }
 
-  const storage = await getAsyncStorage();
-  if (storage) {
-    try {
-      await storage.setItem(SESSION_KEY, raw);
-    } catch {}
-  }
+  await nativeSecureStorage.setItem(SESSION_KEY, raw);
 }
 
 export async function loadSession(): Promise<SessionData | null> {
@@ -65,12 +46,7 @@ export async function loadSession(): Promise<SessionData | null> {
       raw = localStorage.getItem(SESSION_KEY);
     } catch {}
   } else {
-    const storage = await getAsyncStorage();
-    if (storage) {
-      try {
-        raw = await storage.getItem(SESSION_KEY);
-      } catch {}
-    }
+    try { raw = await nativeSecureStorage.getItem(SESSION_KEY); } catch {}
   }
 
   if (!raw) return null;
@@ -99,12 +75,7 @@ export async function clearSession(): Promise<void> {
     return;
   }
 
-  const storage = await getAsyncStorage();
-  if (storage) {
-    try {
-      await storage.removeItem(SESSION_KEY);
-    } catch {}
-  }
+  await nativeSecureStorage.removeItem(SESSION_KEY);
 }
 
 export async function refreshSession(): Promise<boolean> {

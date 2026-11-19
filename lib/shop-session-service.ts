@@ -1,4 +1,6 @@
 import { supabase } from './supabase';
+import { Platform } from 'react-native';
+import { nativeSecureStorage } from './native-secure-storage';
 
 const SHOP_SESSION_KEY = 'unilink_shop_session';
 const SESSION_TTL_MS = 90 * 24 * 60 * 60 * 1000; // 90 days
@@ -21,8 +23,10 @@ export async function saveShopSession(data: Omit<ShopSessionData, 'expiresAt'>):
   };
   _memorySession = session;
   try {
-    if (typeof localStorage !== 'undefined') {
+    if (Platform.OS === 'web' && typeof localStorage !== 'undefined') {
       localStorage.setItem(SHOP_SESSION_KEY, JSON.stringify(session));
+    } else if (Platform.OS !== 'web') {
+      await nativeSecureStorage.setItem(SHOP_SESSION_KEY, JSON.stringify(session));
     }
   } catch {}
 }
@@ -34,12 +38,13 @@ export async function loadShopSession(): Promise<ShopSessionData | null> {
     return null;
   }
   try {
-    if (typeof localStorage !== 'undefined') {
-      const raw = localStorage.getItem(SHOP_SESSION_KEY);
+    if (typeof localStorage !== 'undefined' || Platform.OS !== 'web') {
+      const raw = Platform.OS === 'web' ? localStorage.getItem(SHOP_SESSION_KEY) : await nativeSecureStorage.getItem(SHOP_SESSION_KEY);
       if (!raw) return null;
       const session = JSON.parse(raw) as ShopSessionData;
       if (session.expiresAt <= Date.now()) {
-        localStorage.removeItem(SHOP_SESSION_KEY);
+        if (Platform.OS === 'web') localStorage.removeItem(SHOP_SESSION_KEY);
+        else await nativeSecureStorage.removeItem(SHOP_SESSION_KEY);
         return null;
       }
       _memorySession = session;
@@ -60,8 +65,10 @@ export async function refreshShopSession(): Promise<void> {
     session.expiresAt = Date.now() + SESSION_TTL_MS;
     _memorySession = session;
     try {
-      if (typeof localStorage !== 'undefined') {
+      if (Platform.OS === 'web' && typeof localStorage !== 'undefined') {
         localStorage.setItem(SHOP_SESSION_KEY, JSON.stringify(session));
+      } else if (Platform.OS !== 'web') {
+        await nativeSecureStorage.setItem(SHOP_SESSION_KEY, JSON.stringify(session));
       }
     } catch {}
   }
@@ -70,8 +77,10 @@ export async function refreshShopSession(): Promise<void> {
 export async function clearShopSession(): Promise<void> {
   _memorySession = null;
   try {
-    if (typeof localStorage !== 'undefined') {
+    if (Platform.OS === 'web' && typeof localStorage !== 'undefined') {
       localStorage.removeItem(SHOP_SESSION_KEY);
+    } else if (Platform.OS !== 'web') {
+      await nativeSecureStorage.removeItem(SHOP_SESSION_KEY);
     }
   } catch {}
   try {

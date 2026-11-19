@@ -1,3 +1,4 @@
+import { requestPhotoSelectionPermission } from '@/lib/photo-selection';
 import CustomerShopMap from '@/components/shop-map/CustomerShopMap';
 import PageSkeleton from '@/components/PageSkeleton';
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -587,7 +588,7 @@ export default function CustomerDashboard() {
 
   const pickImage = async () => {
     try {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      const { status } = await requestPhotoSelectionPermission();
 
       if (status !== 'granted') {
         setError('Permission to access gallery is required');

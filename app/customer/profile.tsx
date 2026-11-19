@@ -1,3 +1,4 @@
+import AccountPolicyLinks from '@/components/AccountPolicyLinks';
 import PageSkeleton from '@/components/PageSkeleton';
 import { useState, useEffect } from 'react';
 import {
@@ -775,6 +776,8 @@ export default function CustomerProfile() {
             </TouchableOpacity>
           </View>
         </View>
+
+        <AccountPolicyLinks/>
 
         {/* Privacy Centre */}
         <TouchableOpacity
