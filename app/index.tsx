@@ -13,6 +13,7 @@ import {
   Linking,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useIsFocused } from '@react-navigation/native';
 import {
   ShoppingCart,
   Truck,
@@ -86,6 +87,7 @@ const FEATURES = [
 
 export default function Home() {
   const router = useRouter();
+  const isFocused = useIsFocused();
   const { colors, toggleTheme, isDark } = useTheme();
   const { requestNotificationPermission } = useNotifications();
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
@@ -96,6 +98,8 @@ export default function Home() {
   const isNarrow = SCREEN_WIDTH < 600;
 
   useEffect(() => {
+    if (!isFocused) setShowNotifModal(false);
+    if (Platform.OS !== 'web' || !isFocused) return;
     if (Platform.OS === 'web') {
       const handler = (e: Event) => {
         e.preventDefault();
@@ -103,12 +107,13 @@ export default function Home() {
         setShowInstallButton(true);
       };
       window.addEventListener('beforeinstallprompt', handler);
-      if (isFirstVisit()) setTimeout(() => setShowNotifModal(true), 800);
-      return () => window.removeEventListener('beforeinstallprompt', handler);
-    } else {
-      if (isFirstVisit()) setTimeout(() => setShowNotifModal(true), 800);
+      const timer = isFirstVisit() ? setTimeout(() => setShowNotifModal(true), 800) : null;
+      return () => {
+        if (timer) clearTimeout(timer);
+        window.removeEventListener('beforeinstallprompt', handler);
+      };
     }
-  }, []);
+  }, [isFocused]);
 
   const handleAllowNotifications = async () => {
     await requestNotificationPermission();

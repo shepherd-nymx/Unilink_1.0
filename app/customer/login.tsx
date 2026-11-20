@@ -1,6 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { CustomerIdentityButtons } from '@/components/CustomerIdentityButtons';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Animated, Platform, Modal, ActivityIndicator, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Animated, Platform, Modal, ActivityIndicator } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import TextInput from '@/components/AuthTextInput';
+import ScrollView from '@/components/AuthScrollView';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { ArrowLeft, CircleCheck as CheckCircle, User, Lock, ShoppingCart, Zap, LogIn, Mail, CircleAlert as AlertCircle, X } from 'lucide-react-native';
@@ -8,6 +11,8 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { saveUserData } from '@/lib/storage-service';
 import { registerForPushNotificationsOnLogin } from '@/lib/notification-service';
 import { registerDeviceToken } from '@/lib/device-token-service';
+
+const LoginBody = Platform.OS === 'web' ? Animated.View : View;
 
 export default function CustomerLogin() {
   const router = useRouter();
@@ -28,7 +33,6 @@ export default function CustomerLogin() {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(40)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
-  const shimmerAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (registered === 'true') {
@@ -47,9 +51,6 @@ export default function CustomerLogin() {
       ])
     ).start();
 
-    Animated.loop(
-      Animated.timing(shimmerAnim, { toValue: 1, duration: 3000, useNativeDriver: false })
-    ).start();
   }, [registered]);
 
   const handleResetPassword = async () => {
@@ -175,10 +176,10 @@ export default function CustomerLogin() {
   return (
     <View style={[styles.container, { backgroundColor: bg }]}>
       {/* Background geometric accents */}
-      <View style={[styles.bgCircle1, { borderColor: isDark ? 'rgba(26,115,232,0.12)' : 'rgba(26,115,232,0.07)' }]} />
-      <View style={[styles.bgCircle2, { borderColor: isDark ? 'rgba(74,158,255,0.08)' : 'rgba(26,115,232,0.05)' }]} />
-      <View style={[styles.bgDot1, { backgroundColor: isDark ? 'rgba(26,115,232,0.2)' : 'rgba(26,115,232,0.12)' }]} />
-      <View style={[styles.bgDot2, { backgroundColor: isDark ? 'rgba(74,158,255,0.15)' : 'rgba(26,115,232,0.08)' }]} />
+      <View pointerEvents="none" style={[styles.bgCircle1, { borderColor: isDark ? 'rgba(26,115,232,0.12)' : 'rgba(26,115,232,0.07)' }]} />
+      <View pointerEvents="none" style={[styles.bgCircle2, { borderColor: isDark ? 'rgba(74,158,255,0.08)' : 'rgba(26,115,232,0.05)' }]} />
+      <View pointerEvents="none" style={[styles.bgDot1, { backgroundColor: isDark ? 'rgba(26,115,232,0.2)' : 'rgba(26,115,232,0.12)' }]} />
+      <View pointerEvents="none" style={[styles.bgDot2, { backgroundColor: isDark ? 'rgba(74,158,255,0.15)' : 'rgba(26,115,232,0.08)' }]} />
 
       <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
         <View style={[styles.backButtonInner, { backgroundColor: cardBg, borderColor: cardBorder }]}>
@@ -187,7 +188,7 @@ export default function CustomerLogin() {
       </TouchableOpacity>
 
       <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
-      <Animated.View style={[styles.content, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
+      <LoginBody style={[styles.content, Platform.OS === 'web' && { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
 
         {/* Logo badge */}
         <View style={styles.logoArea}>
@@ -241,6 +242,9 @@ export default function CustomerLogin() {
                 <User size={16} color={usernameFocused ? primary : placeholderColor} style={styles.inputIcon} />
                 <TextInput
                   style={[styles.input, { color: textPrimary }]}
+                  accessibilityLabel="Username"
+                  autoComplete="username"
+                  autoCorrect={false}
                   value={username}
                   onChangeText={setUsername}
                   placeholder="Enter username"
@@ -263,6 +267,8 @@ export default function CustomerLogin() {
                 <Lock size={16} color={passwordFocused ? primary : placeholderColor} style={styles.inputIcon} />
                 <TextInput
                   style={[styles.input, { color: textPrimary }]}
+                  accessibilityLabel="Password"
+                  autoComplete="current-password"
                   value={password}
                   onChangeText={setPassword}
                   placeholder="Enter password"
@@ -315,12 +321,13 @@ export default function CustomerLogin() {
             <Text style={[styles.registerLinkBold, { color: primary }]}>Register</Text>
           </Text>
         </TouchableOpacity>
-      </Animated.View>
+      </LoginBody>
 
       </ScrollView>
 
       {/* Password Reset Modal */}
       <Modal visible={showResetModal} animationType="fade" transparent>
+        <GestureHandlerRootView style={{ flex: 1 }}>
         <View style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.6)' }]}>
           <View style={[styles.resetModal, { backgroundColor: cardBg, borderColor: cardBorder }]}>
             <View style={styles.resetModalHeader}>
@@ -363,6 +370,7 @@ export default function CustomerLogin() {
             </TouchableOpacity>
           </View>
         </View>
+        </GestureHandlerRootView>
       </Modal>
     </View>
   );
@@ -421,7 +429,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   content: {
-    flex: 1,
+    flexGrow: 1,
     justifyContent: 'center',
     paddingHorizontal: 24,
     paddingVertical: 32,

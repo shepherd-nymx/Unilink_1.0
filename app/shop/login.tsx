@@ -2,7 +2,6 @@ import { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
-  TextInput,
   TouchableOpacity,
   StyleSheet,
   Animated,
@@ -13,8 +12,13 @@ import {
 import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { saveShopSession } from '@/lib/shop-session-service';
+import TextInput from '@/components/AuthTextInput';
+import AuthScrollView from '@/components/AuthScrollView';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { ArrowLeft, CircleAlert as AlertCircle, Store, Mail, CreditCard, Lock, CircleCheck as CheckCircle, X } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
+
+const LoginBody = Platform.OS === 'web' ? Animated.View : View;
 
 export default function ShopLogin() {
   const router = useRouter();
@@ -150,7 +154,8 @@ export default function ShopLogin() {
         </View>
       </View>
 
-      <Animated.View style={[styles.body, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
+      <AuthScrollView contentContainerStyle={{ flexGrow: 1 }}>
+      <LoginBody style={[styles.body, Platform.OS === 'web' && { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
         {error ? (
           <View style={[styles.errorBox, { backgroundColor: isDark ? 'rgba(239,68,68,0.1)' : '#fff5f5', borderColor: errorColor }]}>
             <AlertCircle size={16} color={errorColor} />
@@ -230,9 +235,11 @@ export default function ShopLogin() {
             Don't have a shop? <Text style={{ color: primary, fontWeight: '600' }}>Register</Text>
           </Text>
         </TouchableOpacity>
-      </Animated.View>
+      </LoginBody>
+      </AuthScrollView>
 
       <Modal visible={showResetModal} animationType="fade" transparent>
+        <GestureHandlerRootView style={{ flex: 1 }}>
         <View style={styles.modalOverlay}>
           <View style={[styles.resetModal, { backgroundColor: cardBg, borderColor: cardBorder }]}>
             <View style={styles.resetModalHeader}>
@@ -275,6 +282,7 @@ export default function ShopLogin() {
             </TouchableOpacity>
           </View>
         </View>
+        </GestureHandlerRootView>
       </Modal>
     </View>
   );
@@ -294,7 +302,7 @@ const styles = StyleSheet.create({
   titleUni: { fontSize: 18, fontWeight: '800', letterSpacing: 1 },
   titleLink: { fontSize: 18, fontWeight: '800', letterSpacing: 1 },
   headerSub: { fontSize: 12, marginTop: 2 },
-  body: { flex: 1, padding: 16, gap: 16 },
+  body: { flexGrow: 1, padding: 16, gap: 16 },
   errorBox: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12, borderRadius: 10, borderWidth: 1 },
   errorText: { fontSize: 13, flex: 1 },
   card: { borderRadius: 16, borderWidth: 1, padding: 18 },

@@ -6,7 +6,7 @@ const ts = require('typescript');
 function load(file, mocks, globals = {}) {
  const module = { exports: {} };
  const source = ts.transpileModule(fs.readFileSync(file, 'utf8'), {
-  compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
+  compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX },
  }).outputText;
  vm.runInNewContext(source, {
   module, exports: module.exports, URL, URLSearchParams, ...globals,
@@ -89,6 +89,8 @@ async function main() {
  });
  assert.equal(identity.identityCallbackUrl('customer'), 'unilink:///customer/identity-callback');
  assert.equal(identity.identityCallbackUrl('driver'), 'unilink:///driver/identity-callback');
+ assert.equal(identity.identityAuthRedirectUrl('customer'), 'https://unilinkbase.com/customer/identity-callback?native=1');
+ assert.equal(identity.identityAuthRedirectUrl('driver'), 'https://unilinkbase.com/driver/identity-callback?native=1');
  await Promise.all(Array.from({ length: 3 }, () => identity.acceptIdentityRedirect('unilink:///customer/identity-callback?code=one')));
  assert.deepEqual(exchanges, ['one'], 'Browser return and deep link must share one PKCE exchange');
  await identity.acceptIdentityRedirect('unilink:///customer/identity-callback?code=one');
@@ -105,8 +107,58 @@ async function main() {
  await identity.acceptCurrentIdentityRedirect('customer', { code: 'bad' });
  assert.equal(exchanges.filter(code => code === 'bad').length, 2, 'Failed exchanges can retry');
  platform.OS = 'web';
+ assert.equal(identity.identityAuthRedirectUrl('driver'), 'https://unilinkbase.com/driver/identity-callback');
  await identity.acceptIdentityRedirect('https://www.unilinkbase.com/customer/identity-callback?code=already-exchanged');
  assert.ok(!exchanges.includes('already-exchanged'), 'Web SDK owns its automatic exchange');
+
+ const links = load('lib/identity-links.ts', {});
+ const mobileUrl = 'https://unilinkbase.com/customer/identity-callback?native=1&code=phone-code';
+ assert.equal(links.nativeIdentityReturnUrl(mobileUrl), 'unilink:///customer/identity-callback?code=phone-code');
+ assert.equal(links.nativeIdentityReturnUrl('https://www.unilinkbase.com/driver/identity-callback?native=1#code=driver-code'), 'unilink:///driver/identity-callback?code=driver-code');
+ const denied = new URL(links.nativeIdentityReturnUrl('https://unilinkbase.com/customer/identity-callback?native=1#error=access_denied&error_description=Cancelled'));
+ assert.equal(denied.searchParams.get('error_description'), 'Cancelled');
+ for (const url of [
+  'https://attacker.example/customer/identity-callback?native=1&code=one',
+  'https://unilinkbase.com/customer/identity-callback?code=web-code',
+  'https://unilinkbase.com/admin/identity-callback?native=1&code=one',
+  'https://unilinkbase.com/customer/identity-callback?native=1#access_token=secret&refresh_token=secret',
+ ]) assert.equal(links.nativeIdentityReturnUrl(url), null, 'Only an explicit mobile PKCE handoff may open the app');
+ const clientOptions = href => {
+  let options;
+  load('lib/supabase.ts', {
+   'react-native-url-polyfill/auto': {},
+   '@supabase/supabase-js': { createClient(_url, _key, value) { options=value; return {}; } },
+   'react-native': { Platform: { OS: 'web' } },
+   './native-secure-storage': { nativeSecureStorage: {} }, './identity-links': links,
+  }, { process: { env: { EXPO_PUBLIC_SUPABASE_URL: 'https://test.supabase.co', EXPO_PUBLIC_SUPABASE_ANON_KEY: 'test-public-key' } }, window: { location: { href } } });
+  return options;
+ };
+ assert.equal(clientOptions(mobileUrl).auth.detectSessionInUrl, false, 'The bridge must not consume the phone-only PKCE code');
+ assert.equal(clientOptions('https://www.unilinkbase.com/customer/identity-callback?code=web-code').auth.detectSessionInUrl, true, 'Ordinary web sign-in still exchanges its own code');
+
+ const states = { END: 5, CANCELLED: 3, ACTIVE: 4 };
+ const AuthInput = load('components/AuthTextInput.native.tsx', {
+  react: { forwardRef: fn => fn, useRef: () => ({ current: null }), useCallback: fn => fn },
+  'react/jsx-runtime': { jsx: (type, props) => ({ type, props }) },
+  'react-native-gesture-handler': { State: states, TextInput: function GestureInput() {} },
+ }).default;
+ let focused = false, focusCalls = 0;
+ const input = { isFocused: () => focused, focus() { focusCalls++; focused=true; } };
+ const forwarded = { current: null };
+ const field = AuthInput({ value: '' }, forwarded);
+ field.props.ref(input);
+ field.props.onHandlerStateChange({ nativeEvent: { state: states.CANCELLED } });
+ assert.equal(focusCalls, 0, 'Scrolling must not force input focus');
+ field.props.onHandlerStateChange({ nativeEvent: { state: states.END } });
+ assert.equal(focusCalls, 1, 'A native tap must show the text cursor and keyboard');
+ assert.equal(forwarded.current, input);
+ field.props.onHandlerStateChange({ nativeEvent: { state: states.END } });
+ assert.equal(focusCalls, 1, 'Repeated taps must not reset an existing cursor');
+ focused=false;
+ const readonly = AuthInput({ editable: false }, null);
+ readonly.props.ref(input);
+ readonly.props.onHandlerStateChange({ nativeEvent: { state: states.END } });
+ assert.equal(focusCalls, 1, 'Read-only fields stay read-only');
 
  let permissionRequests = 0;
  const photos = load('lib/photo-selection.ts', {
@@ -134,6 +186,6 @@ async function main() {
  assert.equal(opened.length, 1);
  platform.OS = 'android';openError = new Error('No browser available');
  await assert.rejects(payment.redirectToPaynow('https://www.paynow.co.zw/payment/test-error'), /No browser available/);
- console.log('PASS: Unicode encrypted storage, atomic failures, concurrent writes, cold login restoration, logout, native OAuth/deep links, Android photo permissions and native/web payment navigation.');
+ console.log('PASS: encrypted storage, cold login/logout, native tap-to-focus and read-only fields, mobile PKCE handoff without a browser exchange, OAuth/deep links, photo permissions and payment navigation.');
 }
 main().catch(error => { console.error(error); process.exitCode = 1; });

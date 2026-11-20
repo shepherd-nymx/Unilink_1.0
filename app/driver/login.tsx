@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Animated, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Animated, Platform } from 'react-native';
+import TextInput from '@/components/AuthTextInput';
+import AuthScrollView from '@/components/AuthScrollView';
 import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { ArrowLeft, Phone, Key, Truck, Zap, LogIn, UserPlus } from 'lucide-react-native';
@@ -7,6 +9,8 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { saveUserData } from '@/lib/storage-service';
 import { registerForPushNotificationsOnLogin } from '@/lib/notification-service';
 import { registerDeviceToken } from '@/lib/device-token-service';
+
+const LoginBody = Platform.OS === 'web' ? Animated.View : View;
 
 async function getCurrentTermsVersion(): Promise<string | null> {
   try {
@@ -87,10 +91,10 @@ export default function DriverLogin() {
 
   return (
     <View style={[styles.container, { backgroundColor: bg }]}>
-      <View style={[styles.bgCircle1, { borderColor: isDark ? 'rgba(16,185,129,0.1)' : 'rgba(16,185,129,0.07)' }]} />
-      <View style={[styles.bgCircle2, { borderColor: isDark ? 'rgba(52,211,153,0.07)' : 'rgba(16,185,129,0.04)' }]} />
-      <View style={[styles.bgDot1, { backgroundColor: isDark ? 'rgba(16,185,129,0.15)' : 'rgba(16,185,129,0.08)' }]} />
-      <View style={[styles.bgDot2, { backgroundColor: isDark ? 'rgba(52,211,153,0.1)' : 'rgba(16,185,129,0.06)' }]} />
+      <View pointerEvents="none" style={[styles.bgCircle1, { borderColor: isDark ? 'rgba(16,185,129,0.1)' : 'rgba(16,185,129,0.07)' }]} />
+      <View pointerEvents="none" style={[styles.bgCircle2, { borderColor: isDark ? 'rgba(52,211,153,0.07)' : 'rgba(16,185,129,0.04)' }]} />
+      <View pointerEvents="none" style={[styles.bgDot1, { backgroundColor: isDark ? 'rgba(16,185,129,0.15)' : 'rgba(16,185,129,0.08)' }]} />
+      <View pointerEvents="none" style={[styles.bgDot2, { backgroundColor: isDark ? 'rgba(52,211,153,0.1)' : 'rgba(16,185,129,0.06)' }]} />
 
       <TouchableOpacity style={styles.backButton} onPress={() => router.push('/')}>
         <View style={[styles.backButtonInner, { backgroundColor: cardBg, borderColor: cardBorder }]}>
@@ -98,7 +102,8 @@ export default function DriverLogin() {
         </View>
       </TouchableOpacity>
 
-      <Animated.View style={[styles.content, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
+      <AuthScrollView contentContainerStyle={{ flexGrow: 1 }}>
+      <LoginBody style={[styles.content, Platform.OS === 'web' && { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
         <View style={styles.logoArea}>
           <Animated.View style={[styles.logoRingOuter, { borderColor: primary, transform: [{ scale: pulseAnim }] }]}>
             <View style={[styles.logoRingInner, { backgroundColor: glowColor, borderColor: primaryLight }]}>
@@ -201,7 +206,8 @@ export default function DriverLogin() {
             <Text style={[styles.registerLinkBold, { color: primary }]}>Register Here</Text>
           </Text>
         </TouchableOpacity>
-      </Animated.View>
+      </LoginBody>
+      </AuthScrollView>
     </View>
   );
 }
@@ -214,7 +220,7 @@ const styles = StyleSheet.create({
   bgDot2: { position: 'absolute', width: 100, height: 100, borderRadius: 50, bottom: 60, right: -30 },
   backButton: { position: 'absolute', top: 56, left: 20, zIndex: 10 },
   backButtonInner: { width: 40, height: 40, borderRadius: 12, borderWidth: 1, justifyContent: 'center', alignItems: 'center' },
-  content: { flex: 1, justifyContent: 'center', paddingHorizontal: 24, paddingVertical: 32 },
+  content: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 24, paddingVertical: 32 },
   logoArea: { alignItems: 'center', marginBottom: 28 },
   logoRingOuter: { width: 84, height: 84, borderRadius: 42, borderWidth: 1.5, justifyContent: 'center', alignItems: 'center', marginBottom: 14 },
   logoRingInner: { width: 64, height: 64, borderRadius: 32, borderWidth: 1, justifyContent: 'center', alignItems: 'center' },

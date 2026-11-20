@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import Svg, { Path } from 'react-native-svg';
-import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, useWindowDimensions, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, ActivityIndicator, useWindowDimensions, Platform } from 'react-native';
+import TextInput from '@/components/AuthTextInput';
 import * as WebBrowser from 'expo-web-browser';
 import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { driverCallbackUrl } from '@/lib/driver-identity';
 import { customerCallbackUrl } from '@/lib/customer-identity';
-import { acceptIdentityRedirect } from '@/lib/identity-redirect';
+import { acceptIdentityRedirect, identityAuthRedirectUrl } from '@/lib/identity-redirect';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -34,9 +35,10 @@ export function CustomerIdentityButtons({ portal = 'customer' }: { portal?: 'cus
     setBusy(true);
     try{
       const callback = portal === 'driver' ? driverCallbackUrl() : customerCallbackUrl();
+      const authRedirect = identityAuthRedirectUrl(portal);
       const result=google
-        ? await supabase.auth.signInWithOAuth({provider:'google',options:{redirectTo:callback,skipBrowserRedirect:Platform.OS!=='web'}})
-        : await supabase.auth.signInWithOtp({email:email.trim().toLowerCase(),options:{emailRedirectTo:callback,shouldCreateUser:true}});
+        ? await supabase.auth.signInWithOAuth({provider:'google',options:{redirectTo:authRedirect,skipBrowserRedirect:Platform.OS!=='web'}})
+        : await supabase.auth.signInWithOtp({email:email.trim().toLowerCase(),options:{emailRedirectTo:authRedirect,shouldCreateUser:true}});
       if(result.error)throw result.error;
       if (google && Platform.OS !== 'web') {
         const url = 'url' in result.data ? result.data.url : null;

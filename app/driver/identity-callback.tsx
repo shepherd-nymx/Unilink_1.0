@@ -1,12 +1,18 @@
 import { useEffect, useRef, useState } from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity, Platform } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import PageSkeleton from '@/components/PageSkeleton';
 import { supabase } from '@/lib/supabase';
 import { verifiedCustomerIdentity } from '@/lib/customer-identity';
 import { driverIdentityProfile } from '@/lib/driver-identity';
 import { acceptCurrentIdentityRedirect } from '@/lib/identity-redirect';
+import { isNativeAuthBridgeUrl } from '@/lib/identity-links';
+import NativeIdentityReturn from '@/components/NativeIdentityReturn';
 export default function DriverIdentityCallback() {
+ if (Platform.OS === 'web' && typeof window !== 'undefined' && isNativeAuthBridgeUrl(window.location.href)) return <NativeIdentityReturn/>;
+ return <DriverIdentityCompletion/>;
+}
+function DriverIdentityCompletion() {
  const router=useRouter(),started=useRef(false);const [error,setError]=useState('');
  const params = useLocalSearchParams<{ code?: string; error_description?: string; error?: string }>();
  useEffect(()=>{if(started.current)return;started.current=true;void(async()=>{

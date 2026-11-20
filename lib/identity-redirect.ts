@@ -11,6 +11,13 @@ export function identityCallbackUrl(portal: 'customer' | 'driver') {
  return `${origin}/${portal}/identity-callback`;
 }
 
+export function identityAuthRedirectUrl(portal: 'customer' | 'driver') {
+ // Supabase already accepts this HTTPS host. Its mobile handoff keeps the
+ // PKCE verifier on the phone and returns the code to identityCallbackUrl.
+ return Platform.OS === 'web' ? identityCallbackUrl(portal)
+  : `https://unilinkbase.com/${portal}/identity-callback?native=1`;
+}
+
 export async function acceptIdentityRedirect(url: string | null) {
  if (!url) return;
  const parsed = new URL(url);

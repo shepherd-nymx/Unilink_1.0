@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { Stack, useRouter, usePathname } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { Platform, View } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import CustomerNavigation from '@/components/CustomerNavigation';
 import * as Notifications from 'expo-notifications';
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
@@ -87,7 +88,7 @@ function RootNavigator() {
 
         const session = await loadSession();
 
-        await requestAndRegister(session?.id ?? null);
+        if (session) await requestAndRegister(session.id);
 
         if (currentPath.current.endsWith('/identity-callback') || ['/privacy-policy', '/delete-account'].includes(currentPath.current)) return;
         if (!session) {
@@ -183,10 +184,12 @@ export default function RootLayout() {
   }, []);
 
   return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
     <ThemeProvider>
       <NotificationProvider>
         <RootNavigator />
       </NotificationProvider>
     </ThemeProvider>
+    </GestureHandlerRootView>
   );
 }

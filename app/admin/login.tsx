@@ -1,10 +1,14 @@
 import { useState, useEffect, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Animated, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Animated, Platform } from 'react-native';
+import TextInput from '@/components/AuthTextInput';
+import AuthScrollView from '@/components/AuthScrollView';
 import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { ArrowLeft, User, Lock, ShieldCheck, Zap, LogIn } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import { saveUserData } from '@/lib/storage-service';
+
+const LoginBody = Platform.OS === 'web' ? Animated.View : View;
 
 export default function AdminLogin() {
   const router = useRouter();
@@ -67,10 +71,10 @@ export default function AdminLogin() {
 
   return (
     <View style={[styles.container, { backgroundColor: bg }]}>
-      <View style={[styles.bgCircle1, { borderColor: isDark ? 'rgba(245,158,11,0.1)' : 'rgba(245,158,11,0.07)' }]} />
-      <View style={[styles.bgCircle2, { borderColor: isDark ? 'rgba(252,211,77,0.07)' : 'rgba(245,158,11,0.04)' }]} />
-      <View style={[styles.bgDot1, { backgroundColor: isDark ? 'rgba(245,158,11,0.15)' : 'rgba(245,158,11,0.08)' }]} />
-      <View style={[styles.bgDot2, { backgroundColor: isDark ? 'rgba(252,211,77,0.1)' : 'rgba(245,158,11,0.06)' }]} />
+      <View pointerEvents="none" style={[styles.bgCircle1, { borderColor: isDark ? 'rgba(245,158,11,0.1)' : 'rgba(245,158,11,0.07)' }]} />
+      <View pointerEvents="none" style={[styles.bgCircle2, { borderColor: isDark ? 'rgba(252,211,77,0.07)' : 'rgba(245,158,11,0.04)' }]} />
+      <View pointerEvents="none" style={[styles.bgDot1, { backgroundColor: isDark ? 'rgba(245,158,11,0.15)' : 'rgba(245,158,11,0.08)' }]} />
+      <View pointerEvents="none" style={[styles.bgDot2, { backgroundColor: isDark ? 'rgba(252,211,77,0.1)' : 'rgba(245,158,11,0.06)' }]} />
 
       <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
         <View style={[styles.backButtonInner, { backgroundColor: cardBg, borderColor: cardBorder }]}>
@@ -78,7 +82,8 @@ export default function AdminLogin() {
         </View>
       </TouchableOpacity>
 
-      <Animated.View style={[styles.content, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
+      <AuthScrollView contentContainerStyle={{ flexGrow: 1 }}>
+      <LoginBody style={[styles.content, Platform.OS === 'web' && { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
         <View style={styles.logoArea}>
           <Animated.View style={[styles.logoRingOuter, { borderColor: primary, transform: [{ scale: pulseAnim }] }]}>
             <View style={[styles.logoRingInner, { backgroundColor: glowColor, borderColor: primaryLight }]}>
@@ -174,7 +179,8 @@ export default function AdminLogin() {
             </TouchableOpacity>
           </View>
         </View>
-      </Animated.View>
+      </LoginBody>
+      </AuthScrollView>
     </View>
   );
 }
@@ -187,7 +193,7 @@ const styles = StyleSheet.create({
   bgDot2: { position: 'absolute', width: 100, height: 100, borderRadius: 50, bottom: 60, right: -30 },
   backButton: { position: 'absolute', top: 56, left: 20, zIndex: 10 },
   backButtonInner: { width: 40, height: 40, borderRadius: 12, borderWidth: 1, justifyContent: 'center', alignItems: 'center' },
-  content: { flex: 1, justifyContent: 'center', paddingHorizontal: 24, paddingVertical: 32 },
+  content: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 24, paddingVertical: 32 },
   logoArea: { alignItems: 'center', marginBottom: 28 },
   logoRingOuter: { width: 84, height: 84, borderRadius: 42, borderWidth: 1.5, justifyContent: 'center', alignItems: 'center', marginBottom: 14 },
   logoRingInner: { width: 64, height: 64, borderRadius: 32, borderWidth: 1, justifyContent: 'center', alignItems: 'center' },
