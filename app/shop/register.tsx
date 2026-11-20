@@ -5,7 +5,6 @@ import { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
-  TextInput,
   TouchableOpacity,
   ScrollView,
   StyleSheet,
@@ -18,6 +17,7 @@ import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { validateUpload } from '@/lib/upload-validation';
 import { saveShopSession } from '@/lib/shop-session-service';
+import TextInput from '@/components/AuthTextInput';
 import {
   ArrowLeft,
   CircleAlert as AlertCircle,

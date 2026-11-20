@@ -4,9 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
-  TextInput,
   TouchableOpacity,
-  ScrollView,
   StyleSheet,
   ActivityIndicator,
   Platform,
@@ -17,6 +15,8 @@ import { CustomerIdentityButtons } from '@/components/CustomerIdentityButtons';
 import { verifiedCustomerIdentity, enterCustomerPortal } from '@/lib/customer-identity';
 import { supabase } from '@/lib/supabase';
 import { reverseGeocode, getCurrentLocation } from '@/lib/map-utils';
+import TextInput from '@/components/AuthTextInput';
+import ScrollView from '@/components/AuthScrollView';
 import {
   MapPin,
   CircleAlert as AlertCircle,

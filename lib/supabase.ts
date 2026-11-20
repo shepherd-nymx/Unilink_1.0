@@ -2,12 +2,15 @@ import 'react-native-url-polyfill/auto';
 import { createClient } from '@supabase/supabase-js';
 import { Platform, AppState } from 'react-native';
 import { nativeSecureStorage } from './native-secure-storage';
+import { isNativeAuthBridgeUrl } from './identity-links';
 
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: Platform.OS === 'web' ? {} : {
+  auth: Platform.OS === 'web' ? {
+    detectSessionInUrl: !(typeof window !== 'undefined' && isNativeAuthBridgeUrl(window.location.href)),
+  } : {
     storage: nativeSecureStorage,
     persistSession: true,
     autoRefreshToken: true,

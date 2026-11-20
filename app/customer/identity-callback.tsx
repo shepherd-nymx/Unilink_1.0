@@ -1,11 +1,17 @@
 import PageSkeleton from '@/components/PageSkeleton';
 import { useEffect, useRef, useState } from 'react';
-import { View,Text,ActivityIndicator,TouchableOpacity } from 'react-native';
+import { View,Text,ActivityIndicator,TouchableOpacity,Platform } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { verifiedCustomerIdentity,identityCustomerProfile,enterCustomerPortal } from '@/lib/customer-identity';
 import { acceptCurrentIdentityRedirect } from '@/lib/identity-redirect';
+import { isNativeAuthBridgeUrl } from '@/lib/identity-links';
+import NativeIdentityReturn from '@/components/NativeIdentityReturn';
 export default function CustomerIdentityCallback(){
+ if (Platform.OS === 'web' && typeof window !== 'undefined' && isNativeAuthBridgeUrl(window.location.href)) return <NativeIdentityReturn/>;
+ return <CustomerIdentityCompletion/>;
+}
+function CustomerIdentityCompletion(){
  const router=useRouter();const started=useRef(false);const [error,setError]=useState('');
  const params = useLocalSearchParams<{ code?: string; error_description?: string; error?: string }>();
  useEffect(()=>{if(started.current)return;started.current=true;

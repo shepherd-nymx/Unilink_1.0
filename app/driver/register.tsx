@@ -8,9 +8,7 @@ import { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
-  TextInput,
   TouchableOpacity,
-  ScrollView,
   StyleSheet,
   ActivityIndicator,
   Platform,
@@ -18,6 +16,8 @@ import {
   Dimensions,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import TextInput from '@/components/AuthTextInput';
+import ScrollView from '@/components/AuthScrollView';
 import { validateUpload, getFileExtension } from '@/lib/upload-validation';
 import { supabase } from '@/lib/supabase';
 import { ArrowLeft, CircleAlert as AlertCircle, UserCheck, Bike, Car, ChevronRight, MapPin, Phone, Mail, User, Hop as Home, CreditCard, CircleCheck as CheckCircle2, Camera, Image as ImageIcon } from 'lucide-react-native';
