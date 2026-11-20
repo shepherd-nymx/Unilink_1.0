@@ -2,7 +2,7 @@
   "expo": {
     "name": "UNILINK",
     "slug": "unilink",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "unilink",
@@ -20,7 +20,7 @@
         "foregroundImage": "./assets/images/android-launcher-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "versionCode": 2,
+      "versionCode": 3,
       "blockedPermissions": [
         "android.permission.RECORD_AUDIO",
         "android.permission.READ_EXTERNAL_STORAGE",
@@ -50,6 +50,19 @@
       "expo-router",
       "expo-font",
       "expo-web-browser",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#ffffff",
+          "dark": {
+            "image": "./assets/images/icon.png",
+            "backgroundColor": "#ffffff"
+          }
+        }
+      ],
       [
         "expo-notifications",
         {
