@@ -1,6 +1,26 @@
 {
   "rewrites": [
     {
+      "source": "/customer/login",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/customer/register",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/shop/login",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/shop/register",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/admin/login",
+      "destination": "/index.html"
+    },
+    {
       "source": "/privacy-policy",
       "destination": "/index.html"
     },
